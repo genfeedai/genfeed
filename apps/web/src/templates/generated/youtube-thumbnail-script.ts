@@ -1,0 +1,247 @@
+import type { WorkflowFile } from '@/types/workflow';
+
+export const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowFile = {
+  version: 1,
+  name: 'YouTube Thumbnail & Script Generator',
+  description:
+    'Generate multiple thumbnail variations for YouTube videos/livestreams using a character image and reference style, plus generate a livestream script from topic context.',
+  nodes: [
+    // === INPUT NODES ===
+    {
+      id: 'prompt-concept',
+      type: 'prompt',
+      position: { x: 50, y: 50 },
+      data: {
+        label: 'Thumbnail Concept',
+        status: 'idle',
+        prompt: '',
+        variables: {},
+      },
+    },
+    {
+      id: 'image-character',
+      type: 'imageInput',
+      position: { x: 50, y: 250 },
+      data: {
+        label: 'Character Image',
+        status: 'idle',
+        image: null,
+        filename: null,
+        dimensions: null,
+        source: 'upload',
+      },
+    },
+    {
+      id: 'image-example',
+      type: 'imageInput',
+      position: { x: 50, y: 450 },
+      data: {
+        label: 'Example Thumbnail',
+        status: 'idle',
+        image: null,
+        filename: null,
+        dimensions: null,
+        source: 'upload',
+      },
+    },
+    {
+      id: 'prompt-topic',
+      type: 'prompt',
+      position: { x: 50, y: 650 },
+      data: {
+        label: 'Topic Context',
+        status: 'idle',
+        prompt: '',
+        variables: {},
+      },
+    },
+    // === AI NODES ===
+    {
+      id: 'imagegen-1',
+      type: 'imageGen',
+      position: { x: 400, y: 50 },
+      data: {
+        label: 'Thumbnail V1',
+        status: 'idle',
+        inputImages: [],
+        inputPrompt: null,
+        outputImage: null,
+        model: 'nano-banana-pro',
+        aspectRatio: '16:9',
+        resolution: '2K',
+        outputFormat: 'jpg',
+        jobId: null,
+      },
+    },
+    {
+      id: 'imagegen-2',
+      type: 'imageGen',
+      position: { x: 400, y: 250 },
+      data: {
+        label: 'Thumbnail V2',
+        status: 'idle',
+        inputImages: [],
+        inputPrompt: null,
+        outputImage: null,
+        model: 'nano-banana-pro',
+        aspectRatio: '16:9',
+        resolution: '2K',
+        outputFormat: 'jpg',
+        jobId: null,
+      },
+    },
+    {
+      id: 'imagegen-3',
+      type: 'imageGen',
+      position: { x: 400, y: 450 },
+      data: {
+        label: 'Thumbnail V3',
+        status: 'idle',
+        inputImages: [],
+        inputPrompt: null,
+        outputImage: null,
+        model: 'nano-banana-pro',
+        aspectRatio: '16:9',
+        resolution: '2K',
+        outputFormat: 'jpg',
+        jobId: null,
+      },
+    },
+    {
+      id: 'llm-script',
+      type: 'llm',
+      position: { x: 400, y: 650 },
+      data: {
+        label: 'Script Generator',
+        status: 'idle',
+        inputPrompt: null,
+        outputText: null,
+        systemPrompt:
+          'You are a YouTube livestream script writer. Generate engaging, structured scripts for livestreams based on the provided topic context and news. Include: intro hook, main talking points, audience engagement prompts, and outro.',
+        temperature: 0.7,
+        maxTokens: 2048,
+        topP: 0.9,
+        jobId: null,
+      },
+    },
+    // === OUTPUT NODES ===
+    {
+      id: 'output-thumbnails',
+      type: 'output',
+      position: { x: 750, y: 250 },
+      data: {
+        label: 'Thumbnails',
+        status: 'idle',
+        inputMedia: null,
+        inputType: 'image',
+        outputName: 'thumbnails',
+      },
+    },
+    {
+      id: 'output-script',
+      type: 'output',
+      position: { x: 750, y: 650 },
+      data: {
+        label: 'Script',
+        status: 'idle',
+        inputMedia: null,
+        inputType: 'text',
+        outputName: 'script',
+      },
+    },
+  ],
+  edges: [
+    // Prompt → ImageGen nodes
+    {
+      id: 'e1',
+      source: 'prompt-concept',
+      target: 'imagegen-1',
+      sourceHandle: 'text',
+      targetHandle: 'prompt',
+    },
+    {
+      id: 'e2',
+      source: 'prompt-concept',
+      target: 'imagegen-2',
+      sourceHandle: 'text',
+      targetHandle: 'prompt',
+    },
+    {
+      id: 'e3',
+      source: 'prompt-concept',
+      target: 'imagegen-3',
+      sourceHandle: 'text',
+      targetHandle: 'prompt',
+    },
+    // Character image → ImageGen nodes
+    {
+      id: 'e4',
+      source: 'image-character',
+      target: 'imagegen-1',
+      sourceHandle: 'image',
+      targetHandle: 'images',
+    },
+    {
+      id: 'e5',
+      source: 'image-character',
+      target: 'imagegen-2',
+      sourceHandle: 'image',
+      targetHandle: 'images',
+    },
+    {
+      id: 'e6',
+      source: 'image-character',
+      target: 'imagegen-3',
+      sourceHandle: 'image',
+      targetHandle: 'images',
+    },
+    // Example thumbnail → ImageGen nodes
+    {
+      id: 'e7',
+      source: 'image-example',
+      target: 'imagegen-1',
+      sourceHandle: 'image',
+      targetHandle: 'images',
+    },
+    {
+      id: 'e8',
+      source: 'image-example',
+      target: 'imagegen-2',
+      sourceHandle: 'image',
+      targetHandle: 'images',
+    },
+    {
+      id: 'e9',
+      source: 'image-example',
+      target: 'imagegen-3',
+      sourceHandle: 'image',
+      targetHandle: 'images',
+    },
+    // ImageGen → Output
+    {
+      id: 'e10',
+      source: 'imagegen-1',
+      target: 'output-thumbnails',
+      sourceHandle: 'image',
+      targetHandle: 'media',
+    },
+    // Topic → LLM → Output
+    {
+      id: 'e11',
+      source: 'prompt-topic',
+      target: 'llm-script',
+      sourceHandle: 'text',
+      targetHandle: 'prompt',
+    },
+    {
+      id: 'e12',
+      source: 'llm-script',
+      target: 'output-script',
+      sourceHandle: 'text',
+      targetHandle: 'media',
+    },
+  ],
+  edgeStyle: 'smoothstep',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};

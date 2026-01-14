@@ -10,10 +10,17 @@ import { WorkflowsModule } from './workflows/workflows.module';
 
 @Module({
   imports: [
-    // Configuration
+    // Configuration (checks local dir first, then root)
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.local', '.env'],
+      envFilePath: [
+        '.env.production',
+        '.env.local',
+        '.env',
+        '../../.env.production',
+        '../../.env.local',
+        '../../.env',
+      ],
     }),
 
     // MongoDB Connection

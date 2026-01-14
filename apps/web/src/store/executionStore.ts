@@ -102,6 +102,7 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
 
     resetExecution();
     const order = getExecutionOrder();
+    const workflowStore = useWorkflowStore.getState();
 
     set({
       isRunning: true,
@@ -111,6 +112,23 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
     for (const nodeId of order) {
       const { isRunning: stillRunning } = get();
       if (!stillRunning) break;
+
+      // Check if node is locked (individual or via group)
+      const isLocked = workflowStore.isNodeLocked(nodeId);
+      if (isLocked) {
+        const node = workflowStore.getNodeById(nodeId);
+        if (node?.data.cachedOutput) {
+          // Use cached output for locked node
+          workflowStore.updateNodeData(nodeId, {
+            status: 'complete' as NodeStatus,
+          });
+          set((state) => ({
+            completedNodes: new Set([...state.completedNodes, nodeId]),
+          }));
+          continue;
+        }
+        // No cached output - execute anyway and warn
+      }
 
       try {
         await executeNode(nodeId);

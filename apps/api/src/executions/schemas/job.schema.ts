@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, type HydratedDocument, Types } from 'mongoose';
+import type { JobCostBreakdown } from '../../cost/interfaces/cost.interface';
 
 export type JobDocument = HydratedDocument<Job>;
 
@@ -32,6 +33,12 @@ export class Job extends Document {
 
   @Prop({ default: 0 })
   cost: number;
+
+  @Prop({ type: Object })
+  costBreakdown?: JobCostBreakdown;
+
+  @Prop()
+  predictTime?: number; // From Replicate metrics (seconds)
 
   createdAt: Date;
   updatedAt: Date;

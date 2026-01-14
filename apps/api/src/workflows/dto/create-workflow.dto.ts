@@ -47,6 +47,28 @@ class WorkflowEdgeDto {
   type?: string;
 }
 
+class NodeGroupDto {
+  @IsString()
+  id: string;
+
+  @IsString()
+  name: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  nodeIds: string[];
+
+  @IsOptional()
+  isLocked?: boolean;
+
+  @IsOptional()
+  @IsString()
+  color?: string;
+
+  @IsOptional()
+  collapsed?: boolean;
+}
+
 export class CreateWorkflowDto {
   @IsString()
   name: string;
@@ -70,4 +92,10 @@ export class CreateWorkflowDto {
   @IsOptional()
   @IsString()
   edgeStyle?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => NodeGroupDto)
+  groups?: NodeGroupDto[];
 }

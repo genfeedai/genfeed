@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import type { ExecutionCostDetails } from '../cost/interfaces/cost.interface';
 import type { ExecutionsService } from './executions.service';
 
 @Controller()
@@ -46,5 +47,10 @@ export class ExecutionsController {
     }
   ) {
     return this.executionsService.updateJob(predictionId, updates);
+  }
+
+  @Get('executions/:id/costs')
+  async getExecutionCosts(@Param('id') id: string): Promise<ExecutionCostDetails> {
+    return this.executionsService.getExecutionCostDetails(id);
   }
 }

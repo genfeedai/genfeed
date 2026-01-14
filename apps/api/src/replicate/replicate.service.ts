@@ -1,34 +1,45 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { ConfigService } from '@nestjs/config';
 import Replicate from 'replicate';
+import type { CostCalculatorService } from '../cost/cost-calculator.service';
 import type { ExecutionsService } from '../executions/executions.service';
+import type { WorkflowsService } from '../workflows/workflows.service';
 
-// Model identifiers
+// Model identifiers (Replicate official models)
 export const MODELS = {
+  // Image generation
   nanoBanana: 'google/nano-banana',
   nanoBananaPro: 'google/nano-banana-pro',
+  // Video generation
   veoFast: 'google/veo-3.1-fast',
   veo: 'google/veo-3.1',
+  // LLM
   llama: 'meta/meta-llama-3.1-405b-instruct',
 } as const;
 
-// Pricing per unit
+// Pricing per unit (USD) - Source: replicate.com/pricing (Jan 2026)
+// Image models: per output image
+// Video models: per second of output video
+// LLM models: per token
 export const PRICING = {
-  'nano-banana': 0.039,
+  // Image generation
+  'nano-banana': 0.039, // $0.039/image
   'nano-banana-pro': {
-    '1K': 0.15,
-    '2K': 0.2,
-    '4K': 0.3,
+    '1K': 0.15, // $0.15/image
+    '2K': 0.15, // $0.15/image
+    '4K': 0.3, // $0.30/image
   },
+  // Video generation
   'veo-3.1-fast': {
-    withAudio: 0.15,
-    withoutAudio: 0.1,
+    withAudio: 0.15, // $0.15/sec
+    withoutAudio: 0.1, // $0.10/sec
   },
   'veo-3.1': {
-    withAudio: 0.4,
-    withoutAudio: 0.2,
+    withAudio: 0.4, // $0.40/sec
+    withoutAudio: 0.2, // $0.20/sec
   },
-  llama: 0.0001,
+  // LLM (per token, derived from $9.50/million)
+  llama: 0.0000095, // $9.50/1M tokens
 } as const;
 
 export interface ImageGenInput {
@@ -78,7 +89,9 @@ export class ReplicateService {
 
   constructor(
     private readonly configService: ConfigService,
-    private readonly executionsService: ExecutionsService
+    private readonly executionsService: ExecutionsService,
+    private readonly workflowsService: WorkflowsService,
+    private readonly costCalculatorService: CostCalculatorService
   ) {
     this.replicate = new Replicate({
       auth: this.configService.get<string>('REPLICATE_API_TOKEN'),
@@ -228,14 +241,41 @@ export class ReplicateService {
       return;
     }
 
-    // Calculate cost based on prediction time and model
-    const cost = this.calculateJobCost(metrics?.predict_time ?? 0);
+    // Get node data to determine model and settings for cost calculation
+    const execution = await this.executionsService.findExecution(job.executionId.toString());
+    const workflow = await this.workflowsService.findOne(execution.workflowId.toString());
+    const node = workflow.nodes.find((n) => n.id === job.nodeId);
+
+    // Calculate actual cost using model-specific pricing
+    const nodeData = node?.data as
+      | { model?: string; duration?: number; generateAudio?: boolean; resolution?: string }
+      | undefined;
+    const model = nodeData?.model ?? 'unknown';
+    const duration = nodeData?.duration;
+    const withAudio = nodeData?.generateAudio;
+    const resolution = nodeData?.resolution;
+
+    const cost = this.costCalculatorService.calculatePredictionCost(
+      model,
+      duration,
+      withAudio,
+      resolution
+    );
+    const costBreakdown = this.costCalculatorService.buildJobCostBreakdown(
+      model,
+      cost,
+      duration,
+      withAudio,
+      nodeData?.resolution
+    );
 
     await this.executionsService.updateJob(id, {
       status,
       output: output as Record<string, unknown>,
       error,
       cost,
+      costBreakdown,
+      predictTime: metrics?.predict_time,
     });
 
     // Update execution node result if this is the final status
@@ -249,15 +289,10 @@ export class ReplicateService {
         error,
         cost
       );
-    }
-  }
 
-  /**
-   * Calculate cost for a job based on prediction time
-   */
-  private calculateJobCost(predictTimeSeconds: number): number {
-    // Simplified cost calculation - in production, would depend on model
-    return predictTimeSeconds * 0.05; // $0.05 per second base rate
+      // Update execution cost summary
+      await this.executionsService.updateExecutionCost(job.executionId.toString());
+    }
   }
 
   /**
@@ -278,13 +313,20 @@ export class ReplicateService {
       cost += imageCount * PRICING['nano-banana'];
     } else {
       const res = imageResolution as keyof (typeof PRICING)['nano-banana-pro'];
-      cost += imageCount * (PRICING['nano-banana-pro'][res] ?? 0.2);
+      cost += imageCount * (PRICING['nano-banana-pro'][res] ?? 0.15);
     }
 
-    // Video cost
+    // Video cost (per second)
     const videoKey = withAudio ? 'withAudio' : 'withoutAudio';
     cost += videoSeconds * PRICING[videoModel][videoKey];
 
     return cost;
+  }
+
+  /**
+   * Calculate cost for LLM generation based on token count
+   */
+  calculateLLMCost(inputTokens: number, outputTokens: number): number {
+    return (inputTokens + outputTokens) * PRICING.llama;
   }
 }

@@ -12,6 +12,11 @@ export const MODELS = {
   veoFast: 'google/veo-3.1-fast',
   veo: 'google/veo-3.1',
   llama: 'meta/meta-llama-3.1-405b-instruct',
+  // Lip-sync models
+  lipsync2: 'sync/lipsync-2',
+  lipsync2Pro: 'sync/lipsync-2-pro',
+  latentSync: 'bytedance/latentsync',
+  pixverseLipsync: 'pixverse-ai/lipsync',
 } as const;
 
 // Pricing per unit
@@ -31,6 +36,11 @@ export const PRICING = {
     withoutAudio: 0.2,
   },
   llama: 0.0001, // per 1K tokens
+  // Lip-sync pricing (per second of output)
+  'sync/lipsync-2': 0.05,
+  'sync/lipsync-2-pro': 0.08325,
+  'bytedance/latentsync': 0.03,
+  'pixverse-ai/lipsync': 0.04,
 } as const;
 
 // Type definitions
@@ -62,6 +72,23 @@ export interface LLMInput {
   max_tokens?: number;
   temperature?: number;
   top_p?: number;
+}
+
+export type LipSyncModel =
+  | 'sync/lipsync-2-pro'
+  | 'sync/lipsync-2'
+  | 'bytedance/latentsync'
+  | 'pixverse-ai/lipsync';
+
+export type LipSyncMode = 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
+
+export interface LipSyncInput {
+  video?: string;
+  image?: string;
+  audio: string;
+  sync_mode?: LipSyncMode;
+  temperature?: number;
+  active_speaker?: boolean;
 }
 
 export interface PredictionResult {
@@ -157,6 +184,54 @@ export async function generateText(input: LLMInput): Promise<string> {
   }
 
   return String(output);
+}
+
+/**
+ * Generate lip-synced video from image/video and audio
+ */
+export async function generateLipSync(
+  model: LipSyncModel,
+  input: LipSyncInput,
+  webhookUrl?: string
+): Promise<PredictionResult> {
+  // Map model string to Replicate model identifier
+  const modelMap: Record<LipSyncModel, string> = {
+    'sync/lipsync-2': MODELS.lipsync2,
+    'sync/lipsync-2-pro': MODELS.lipsync2Pro,
+    'bytedance/latentsync': MODELS.latentSync,
+    'pixverse-ai/lipsync': MODELS.pixverseLipsync,
+  };
+
+  const modelId = modelMap[model];
+
+  // Build input based on model requirements
+  // sync/lipsync models use video + audio
+  // bytedance/latentsync and pixverse use image + audio
+  const modelInput: Record<string, unknown> = {
+    audio: input.audio,
+  };
+
+  if (model.startsWith('sync/')) {
+    // Sync Labs models expect video input
+    modelInput.video = input.video || input.image;
+    modelInput.sync_mode = input.sync_mode ?? 'loop';
+    modelInput.temperature = input.temperature ?? 0.5;
+    modelInput.active_speaker = input.active_speaker ?? false;
+  } else {
+    // Other models typically use image input
+    modelInput.image = input.image || input.video;
+  }
+
+  const prediction = await replicate.predictions.create({
+    model: modelId,
+    input: modelInput,
+    ...(webhookUrl && {
+      webhook: webhookUrl,
+      webhook_events_filter: ['completed'],
+    }),
+  });
+
+  return prediction as PredictionResult;
 }
 
 /**

@@ -3,6 +3,19 @@ import { Document, type HydratedDocument, Types } from 'mongoose';
 
 export type ExecutionDocument = HydratedDocument<Execution>;
 
+// Cost summary embedded document
+@Schema({ _id: false })
+class CostSummarySchema {
+  @Prop({ default: 0 })
+  estimated: number;
+
+  @Prop({ default: 0 })
+  actual: number;
+
+  @Prop({ default: 0 })
+  variance: number; // Percentage: (actual - estimated) / estimated * 100
+}
+
 // Node result embedded document
 @Schema({ _id: false })
 class NodeResult {
@@ -48,6 +61,9 @@ export class Execution extends Document {
 
   @Prop({ default: 0 })
   totalCost: number;
+
+  @Prop({ type: CostSummarySchema, default: { estimated: 0, actual: 0, variance: 0 } })
+  costSummary: CostSummarySchema;
 
   @Prop({ type: [Object], default: [] })
   nodeResults: NodeResult[];

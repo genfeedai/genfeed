@@ -1,10 +1,12 @@
 import { Module } from '@nestjs/common';
+import { CostModule } from '../cost/cost.module';
 import { ExecutionsModule } from '../executions/executions.module';
+import { WorkflowsModule } from '../workflows/workflows.module';
 import { ReplicateController } from './replicate.controller';
 import { ReplicateService } from './replicate.service';
 
 @Module({
-  imports: [ExecutionsModule],
+  imports: [ExecutionsModule, WorkflowsModule, CostModule],
   controllers: [ReplicateController],
   providers: [ReplicateService],
   exports: [ReplicateService],

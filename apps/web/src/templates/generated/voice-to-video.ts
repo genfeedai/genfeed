@@ -1,0 +1,91 @@
+import type { WorkflowFile } from '@/types/workflow';
+
+export const VOICE_TO_VIDEO_TEMPLATE: WorkflowFile = {
+  version: 1,
+  name: 'Voice to Video',
+  description: 'Generate a talking-head video from an image and audio file',
+  nodes: [
+    {
+      id: 'image-1',
+      type: 'imageInput',
+      position: { x: 50, y: 100 },
+      data: {
+        label: 'Face Image',
+        status: 'idle',
+        image: null,
+        filename: null,
+        dimensions: null,
+        source: 'upload',
+      },
+    },
+    {
+      id: 'audio-1',
+      type: 'audioInput',
+      position: { x: 50, y: 350 },
+      data: {
+        label: 'Voice Audio',
+        status: 'idle',
+        audio: null,
+        filename: null,
+        duration: null,
+        source: 'upload',
+      },
+    },
+    {
+      id: 'lipSync-1',
+      type: 'lipSync',
+      position: { x: 400, y: 200 },
+      data: {
+        label: 'Lip Sync Generator',
+        status: 'idle',
+        inputImage: null,
+        inputVideo: null,
+        inputAudio: null,
+        outputVideo: null,
+        model: 'sync/lipsync-2',
+        syncMode: 'loop',
+        temperature: 0.5,
+        activeSpeaker: false,
+        jobId: null,
+      },
+    },
+    {
+      id: 'output-1',
+      type: 'output',
+      position: { x: 750, y: 200 },
+      data: {
+        label: 'Final Video',
+        status: 'idle',
+        inputMedia: null,
+        inputType: 'video',
+        outputName: 'voice-to-video',
+      },
+    },
+  ],
+  edges: [
+    {
+      id: 'e1',
+      source: 'image-1',
+      target: 'lipSync-1',
+      sourceHandle: 'image',
+      targetHandle: 'image',
+    },
+    {
+      id: 'e2',
+      source: 'audio-1',
+      target: 'lipSync-1',
+      sourceHandle: 'audio',
+      targetHandle: 'audio',
+    },
+    {
+      id: 'e3',
+      source: 'lipSync-1',
+      target: 'output-1',
+      sourceHandle: 'video',
+      targetHandle: 'media',
+    },
+  ],
+  edgeStyle: 'smoothstep',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};

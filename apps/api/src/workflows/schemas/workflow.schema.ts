@@ -50,6 +50,28 @@ class WorkflowEdge {
   type?: string;
 }
 
+// Node group (embedded document)
+@Schema({ _id: false })
+class NodeGroup {
+  @Prop({ required: true })
+  id: string;
+
+  @Prop({ required: true })
+  name: string;
+
+  @Prop({ type: [String], default: [] })
+  nodeIds: string[];
+
+  @Prop({ default: false })
+  isLocked: boolean;
+
+  @Prop()
+  color?: string;
+
+  @Prop()
+  collapsed?: boolean;
+}
+
 @Schema({ timestamps: true, collection: 'workflows' })
 export class Workflow extends Document {
   @Prop({ required: true })
@@ -69,6 +91,9 @@ export class Workflow extends Document {
 
   @Prop({ default: 'smoothstep' })
   edgeStyle: string;
+
+  @Prop({ type: [Object], default: [] })
+  groups: NodeGroup[];
 
   @Prop({ default: false })
   isDeleted: boolean;

@@ -1,11 +1,16 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import type { CostCalculatorService } from '../cost/cost-calculator.service';
+import type { CostEstimate, WorkflowNodeForCost } from '../cost/interfaces/cost.interface';
 import type { CreateWorkflowDto } from './dto/create-workflow.dto';
 import type { UpdateWorkflowDto } from './dto/update-workflow.dto';
 import type { WorkflowsService } from './workflows.service';
 
 @Controller('workflows')
 export class WorkflowsController {
-  constructor(private readonly workflowsService: WorkflowsService) {}
+  constructor(
+    private readonly workflowsService: WorkflowsService,
+    private readonly costCalculatorService: CostCalculatorService
+  ) {}
 
   @Post()
   create(@Body() createWorkflowDto: CreateWorkflowDto) {
@@ -35,5 +40,12 @@ export class WorkflowsController {
   @Post(':id/duplicate')
   duplicate(@Param('id') id: string) {
     return this.workflowsService.duplicate(id);
+  }
+
+  @Get(':id/cost-estimate')
+  async getCostEstimate(@Param('id') id: string): Promise<CostEstimate> {
+    const workflow = await this.workflowsService.findOne(id);
+    const nodes = workflow.nodes as WorkflowNodeForCost[];
+    return this.costCalculatorService.calculateWorkflowEstimate(nodes);
   }
 }

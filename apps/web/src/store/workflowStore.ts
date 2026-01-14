@@ -3,6 +3,8 @@ import { applyEdgeChanges, applyNodeChanges, addEdge as rfAddEdge } from '@xyflo
 import { nanoid } from 'nanoid';
 import { create } from 'zustand';
 import { type WorkflowData, workflowsApi } from '@/lib/api';
+import type { GroupColor, NodeGroup } from '@/types/groups';
+import { DEFAULT_GROUP_COLORS } from '@/types/groups';
 import type {
   HandleType,
   NodeType,
@@ -18,6 +20,33 @@ function generateId(): string {
   return nanoid(8);
 }
 
+// Helper to extract output from a node for caching
+function getNodeOutput(node: WorkflowNode): unknown {
+  const data = node.data as WorkflowNodeData & {
+    outputImage?: string;
+    outputVideo?: string;
+    outputText?: string;
+    outputMedia?: string;
+    image?: string;
+    prompt?: string;
+    extractedTweet?: string;
+    audio?: string;
+  };
+
+  // Return the first available output
+  return (
+    data.outputImage ??
+    data.outputVideo ??
+    data.outputText ??
+    data.outputMedia ??
+    data.image ??
+    data.prompt ??
+    data.extractedTweet ??
+    data.audio ??
+    null
+  );
+}
+
 interface WorkflowStore {
   // State
   nodes: WorkflowNode[];
@@ -28,6 +57,8 @@ interface WorkflowStore {
   isDirty: boolean;
   isSaving: boolean;
   isLoading: boolean;
+  groups: NodeGroup[];
+  selectedNodeIds: string[];
 
   // Node operations
   addNode: (type: NodeType, position: XYPosition) => string;
@@ -43,6 +74,32 @@ interface WorkflowStore {
   // Edge operations
   removeEdge: (edgeId: string) => void;
   setEdgeStyle: (style: EdgeStyle) => void;
+
+  // Node locking operations
+  toggleNodeLock: (nodeId: string) => void;
+  lockNode: (nodeId: string) => void;
+  unlockNode: (nodeId: string) => void;
+  lockMultipleNodes: (nodeIds: string[]) => void;
+  unlockMultipleNodes: (nodeIds: string[]) => void;
+  unlockAllNodes: () => void;
+  isNodeLocked: (nodeId: string) => boolean;
+
+  // Group operations
+  createGroup: (nodeIds: string[], name?: string) => string;
+  deleteGroup: (groupId: string) => void;
+  addToGroup: (groupId: string, nodeIds: string[]) => void;
+  removeFromGroup: (groupId: string, nodeIds: string[]) => void;
+  toggleGroupLock: (groupId: string) => void;
+  renameGroup: (groupId: string, name: string) => void;
+  setGroupColor: (groupId: string, color: GroupColor) => void;
+  getGroupByNodeId: (nodeId: string) => NodeGroup | undefined;
+  getGroupById: (groupId: string) => NodeGroup | undefined;
+
+  // Multi-selection
+  setSelectedNodeIds: (nodeIds: string[]) => void;
+  addToSelection: (nodeId: string) => void;
+  removeFromSelection: (nodeId: string) => void;
+  clearSelection: () => void;
 
   // Workflow operations (local)
   loadWorkflow: (workflow: WorkflowFile) => void;
@@ -89,6 +146,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   isDirty: false,
   isSaving: false,
   isLoading: false,
+  groups: [],
+  selectedNodeIds: [],
 
   addNode: (type, position) => {
     const nodeDef = NODE_DEFINITIONS[type];
@@ -205,6 +264,248 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     }));
   },
 
+  // Node locking operations
+  toggleNodeLock: (nodeId) => {
+    const node = get().getNodeById(nodeId);
+    if (!node) return;
+
+    const isCurrentlyLocked = node.data.isLocked ?? false;
+
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                isLocked: !isCurrentlyLocked,
+                lockTimestamp: !isCurrentlyLocked ? Date.now() : undefined,
+                // Preserve cached output when locking
+                cachedOutput: !isCurrentlyLocked ? getNodeOutput(n) : n.data.cachedOutput,
+              },
+            }
+          : n
+      ),
+      isDirty: true,
+    }));
+  },
+
+  lockNode: (nodeId) => {
+    const node = get().getNodeById(nodeId);
+    if (!node || node.data.isLocked) return;
+
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                isLocked: true,
+                lockTimestamp: Date.now(),
+                cachedOutput: getNodeOutput(n),
+              },
+            }
+          : n
+      ),
+      isDirty: true,
+    }));
+  },
+
+  unlockNode: (nodeId) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        n.id === nodeId
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                isLocked: false,
+                lockTimestamp: undefined,
+              },
+            }
+          : n
+      ),
+      isDirty: true,
+    }));
+  },
+
+  lockMultipleNodes: (nodeIds) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        nodeIds.includes(n.id)
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                isLocked: true,
+                lockTimestamp: Date.now(),
+                cachedOutput: getNodeOutput(n),
+              },
+            }
+          : n
+      ),
+      isDirty: true,
+    }));
+  },
+
+  unlockMultipleNodes: (nodeIds) => {
+    set((state) => ({
+      nodes: state.nodes.map((n) =>
+        nodeIds.includes(n.id)
+          ? {
+              ...n,
+              data: {
+                ...n.data,
+                isLocked: false,
+                lockTimestamp: undefined,
+              },
+            }
+          : n
+      ),
+      isDirty: true,
+    }));
+  },
+
+  unlockAllNodes: () => {
+    set((state) => ({
+      nodes: state.nodes.map((n) => ({
+        ...n,
+        data: {
+          ...n.data,
+          isLocked: false,
+          lockTimestamp: undefined,
+        },
+      })),
+      isDirty: true,
+    }));
+  },
+
+  isNodeLocked: (nodeId) => {
+    const { nodes, groups } = get();
+    const node = nodes.find((n) => n.id === nodeId);
+    if (!node) return false;
+
+    // Check individual lock
+    if (node.data.isLocked) return true;
+
+    // Check if in any locked group
+    return groups.some((group) => group.isLocked && group.nodeIds.includes(nodeId));
+  },
+
+  // Group operations
+  createGroup: (nodeIds, name) => {
+    if (nodeIds.length === 0) return '';
+
+    const groupId = generateId();
+    const { groups } = get();
+    const colorIndex = groups.length % DEFAULT_GROUP_COLORS.length;
+
+    const newGroup: NodeGroup = {
+      id: groupId,
+      name: name ?? `Group ${groups.length + 1}`,
+      nodeIds,
+      isLocked: false,
+      color: DEFAULT_GROUP_COLORS[colorIndex],
+    };
+
+    set((state) => ({
+      groups: [...state.groups, newGroup],
+      isDirty: true,
+    }));
+
+    return groupId;
+  },
+
+  deleteGroup: (groupId) => {
+    set((state) => ({
+      groups: state.groups.filter((g) => g.id !== groupId),
+      isDirty: true,
+    }));
+  },
+
+  addToGroup: (groupId, nodeIds) => {
+    set((state) => ({
+      groups: state.groups.map((g) =>
+        g.id === groupId ? { ...g, nodeIds: [...new Set([...g.nodeIds, ...nodeIds])] } : g
+      ),
+      isDirty: true,
+    }));
+  },
+
+  removeFromGroup: (groupId, nodeIds) => {
+    set((state) => ({
+      groups: state.groups.map((g) =>
+        g.id === groupId ? { ...g, nodeIds: g.nodeIds.filter((id) => !nodeIds.includes(id)) } : g
+      ),
+      isDirty: true,
+    }));
+  },
+
+  toggleGroupLock: (groupId) => {
+    const { groups, lockMultipleNodes, unlockMultipleNodes } = get();
+    const group = groups.find((g) => g.id === groupId);
+    if (!group) return;
+
+    // Update group lock state
+    set((state) => ({
+      groups: state.groups.map((g) => (g.id === groupId ? { ...g, isLocked: !g.isLocked } : g)),
+      isDirty: true,
+    }));
+
+    // Also lock/unlock all nodes in the group
+    if (!group.isLocked) {
+      lockMultipleNodes(group.nodeIds);
+    } else {
+      unlockMultipleNodes(group.nodeIds);
+    }
+  },
+
+  renameGroup: (groupId, name) => {
+    set((state) => ({
+      groups: state.groups.map((g) => (g.id === groupId ? { ...g, name } : g)),
+      isDirty: true,
+    }));
+  },
+
+  setGroupColor: (groupId, color) => {
+    set((state) => ({
+      groups: state.groups.map((g) => (g.id === groupId ? { ...g, color } : g)),
+      isDirty: true,
+    }));
+  },
+
+  getGroupByNodeId: (nodeId) => {
+    return get().groups.find((g) => g.nodeIds.includes(nodeId));
+  },
+
+  getGroupById: (groupId) => {
+    return get().groups.find((g) => g.id === groupId);
+  },
+
+  // Multi-selection
+  setSelectedNodeIds: (nodeIds) => {
+    set({ selectedNodeIds: nodeIds });
+  },
+
+  addToSelection: (nodeId) => {
+    set((state) => ({
+      selectedNodeIds: state.selectedNodeIds.includes(nodeId)
+        ? state.selectedNodeIds
+        : [...state.selectedNodeIds, nodeId],
+    }));
+  },
+
+  removeFromSelection: (nodeId) => {
+    set((state) => ({
+      selectedNodeIds: state.selectedNodeIds.filter((id) => id !== nodeId),
+    }));
+  },
+
+  clearSelection: () => {
+    set({ selectedNodeIds: [] });
+  },
+
   loadWorkflow: (workflow) => {
     set({
       nodes: workflow.nodes,
@@ -213,6 +514,8 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       workflowName: workflow.name,
       workflowId: null, // Reset ID when loading from file/template
       isDirty: true, // Mark as dirty since it's a new unsaved workflow
+      groups: workflow.groups ?? [],
+      selectedNodeIds: [],
     });
   },
 
@@ -223,11 +526,13 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       workflowName: 'Untitled Workflow',
       workflowId: null,
       isDirty: false,
+      groups: [],
+      selectedNodeIds: [],
     });
   },
 
   exportWorkflow: () => {
-    const { nodes, edges, edgeStyle, workflowName } = get();
+    const { nodes, edges, edgeStyle, workflowName, groups } = get();
     return {
       version: 1,
       name: workflowName,
@@ -235,6 +540,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
       nodes,
       edges,
       edgeStyle,
+      groups,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -393,7 +699,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
   // API Operations
   saveWorkflow: async (signal) => {
-    const { nodes, edges, edgeStyle, workflowName, workflowId } = get();
+    const { nodes, edges, edgeStyle, workflowName, workflowId, groups } = get();
     set({ isSaving: true });
 
     try {
@@ -403,13 +709,13 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         // Update existing workflow
         workflow = await workflowsApi.update(
           workflowId,
-          { name: workflowName, nodes, edges, edgeStyle },
+          { name: workflowName, nodes, edges, edgeStyle, groups },
           signal
         );
       } else {
         // Create new workflow
         workflow = await workflowsApi.create(
-          { name: workflowName, nodes, edges, edgeStyle },
+          { name: workflowName, nodes, edges, edgeStyle, groups },
           signal
         );
       }
@@ -439,6 +745,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         edgeStyle: workflow.edgeStyle as EdgeStyle,
         workflowName: workflow.name,
         workflowId: workflow._id,
+        groups: workflow.groups ?? [],
         isDirty: false,
         isLoading: false,
       });

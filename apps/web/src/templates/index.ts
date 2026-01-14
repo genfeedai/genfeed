@@ -1,5 +1,8 @@
 import type { WorkflowFile } from '@/types/workflow';
 import { FULL_PIPELINE_TEMPLATE } from './full-pipeline';
+import { VOICE_TO_VIDEO_TEMPLATE } from './generated/voice-to-video';
+import { YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE } from './generated/youtube-thumbnail-script';
+import { YOUTUBE_VIDEO_GENERATOR_TEMPLATE } from './generated/youtube-video-generator';
 import { IMAGE_SERIES_TEMPLATE } from './image-series';
 import { IMAGE_TO_VIDEO_TEMPLATE } from './image-to-video';
 
@@ -7,7 +10,7 @@ export interface TemplateInfo {
   id: string;
   name: string;
   description: string;
-  category: 'images' | 'video' | 'full-pipeline';
+  category: 'images' | 'video' | 'full-pipeline' | 'audio';
   thumbnail?: string;
 }
 
@@ -15,6 +18,9 @@ export const TEMPLATE_REGISTRY: Record<string, WorkflowFile> = {
   'image-series': IMAGE_SERIES_TEMPLATE,
   'image-to-video': IMAGE_TO_VIDEO_TEMPLATE,
   'full-pipeline': FULL_PIPELINE_TEMPLATE,
+  'voice-to-video': VOICE_TO_VIDEO_TEMPLATE,
+  'youtube-thumbnail-script': YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE,
+  'youtube-video-generator': YOUTUBE_VIDEO_GENERATOR_TEMPLATE,
 };
 
 export const TEMPLATE_INFO: TemplateInfo[] = [
@@ -36,6 +42,26 @@ export const TEMPLATE_INFO: TemplateInfo[] = [
     description: 'Complete workflow: concept → images → videos → animation → stitched output',
     category: 'full-pipeline',
   },
+  {
+    id: 'voice-to-video',
+    name: 'Voice to Video',
+    description: 'Generate a talking-head video from an image and audio file using lip-sync AI',
+    category: 'audio',
+  },
+  {
+    id: 'youtube-thumbnail-script',
+    name: 'YouTube Thumbnail & Script',
+    description:
+      'Generate multiple thumbnail variations using character and reference images, plus a livestream script from topic context',
+    category: 'images',
+  },
+  {
+    id: 'youtube-video-generator',
+    name: 'YouTube 10-Min Video Generator',
+    description:
+      'Generate a complete 10-minute YouTube video: script → images → videos with camera movements → stitch → music → subtitles → publish',
+    category: 'full-pipeline',
+  },
 ];
 
 export function getTemplate(id: string): WorkflowFile | undefined {
@@ -47,4 +73,11 @@ export function getTemplatesByCategory(category: string): TemplateInfo[] {
   return TEMPLATE_INFO.filter((t) => t.category === category);
 }
 
-export { IMAGE_SERIES_TEMPLATE, IMAGE_TO_VIDEO_TEMPLATE, FULL_PIPELINE_TEMPLATE };
+export {
+  IMAGE_SERIES_TEMPLATE,
+  IMAGE_TO_VIDEO_TEMPLATE,
+  FULL_PIPELINE_TEMPLATE,
+  VOICE_TO_VIDEO_TEMPLATE,
+  YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE,
+  YOUTUBE_VIDEO_GENERATOR_TEMPLATE,
+};

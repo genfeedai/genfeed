@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { type Model, Types } from 'mongoose';
+import type {
+  CostSummary,
+  ExecutionCostDetails,
+  JobCostBreakdown,
+} from '../cost/interfaces/cost.interface';
 import { Execution, type ExecutionDocument } from './schemas/execution.schema';
 import { Job, type JobDocument } from './schemas/job.schema';
 
@@ -122,6 +127,8 @@ export class ExecutionsService {
       output?: Record<string, unknown>;
       error?: string;
       cost?: number;
+      costBreakdown?: JobCostBreakdown;
+      predictTime?: number;
     }
   ): Promise<Job> {
     const job = await this.jobModel
@@ -140,5 +147,59 @@ export class ExecutionsService {
       .find({ executionId: new Types.ObjectId(executionId) })
       .sort({ createdAt: 1 })
       .exec();
+  }
+
+  /**
+   * Set estimated cost before execution starts
+   */
+  async setEstimatedCost(executionId: string, estimated: number): Promise<void> {
+    await this.executionModel.findByIdAndUpdate(executionId, {
+      $set: { 'costSummary.estimated': estimated },
+    });
+  }
+
+  /**
+   * Update actual cost after jobs complete
+   */
+  async updateExecutionCost(executionId: string): Promise<void> {
+    const jobs = await this.findJobsByExecution(executionId);
+    const actual = jobs.reduce((sum, job) => sum + (job.cost ?? 0), 0);
+
+    const execution = await this.findExecution(executionId);
+    const estimated = execution.costSummary?.estimated ?? 0;
+    const variance = estimated > 0 ? ((actual - estimated) / estimated) * 100 : 0;
+
+    await this.executionModel.findByIdAndUpdate(executionId, {
+      $set: {
+        'costSummary.actual': actual,
+        'costSummary.variance': variance,
+        totalCost: actual, // Backward compatibility
+      },
+    });
+  }
+
+  /**
+   * Get execution cost details with job breakdown
+   */
+  async getExecutionCostDetails(executionId: string): Promise<ExecutionCostDetails> {
+    const execution = await this.findExecution(executionId);
+    const jobs = await this.findJobsByExecution(executionId);
+
+    const summary: CostSummary = execution.costSummary ?? {
+      estimated: 0,
+      actual: execution.totalCost ?? 0,
+      variance: 0,
+    };
+
+    return {
+      summary,
+      jobs: jobs.map((job) => ({
+        nodeId: job.nodeId,
+        predictionId: job.predictionId,
+        cost: job.cost ?? 0,
+        breakdown: job.costBreakdown,
+        predictTime: job.predictTime,
+      })),
+    };
   }
 }

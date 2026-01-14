@@ -4,7 +4,7 @@ import type { Edge, Node } from '@xyflow/react';
 // HANDLE TYPES
 // =============================================================================
 
-export type HandleType = 'image' | 'text' | 'video' | 'number';
+export type HandleType = 'image' | 'text' | 'video' | 'number' | 'audio';
 
 export interface HandleDefinition {
   id: string;
@@ -20,6 +20,7 @@ export const CONNECTION_RULES: Record<HandleType, HandleType[]> = {
   text: ['text'],
   video: ['video'],
   number: ['number'],
+  audio: ['audio'],
 };
 
 // =============================================================================
@@ -29,6 +30,7 @@ export const CONNECTION_RULES: Record<HandleType, HandleType[]> = {
 export type NodeType =
   // Input nodes
   | 'imageInput'
+  | 'audioInput'
   | 'prompt'
   | 'template'
   | 'tweetInput'
@@ -37,6 +39,8 @@ export type NodeType =
   | 'videoGen'
   | 'llm'
   | 'tweetRemix'
+  | 'lipSync'
+  | 'voiceChange'
   // Processing nodes
   | 'resize'
   | 'animation'
@@ -59,6 +63,10 @@ export interface BaseNodeData extends Record<string, unknown> {
   status: NodeStatus;
   error?: string;
   progress?: number;
+  // Lock state for skipping during execution
+  isLocked?: boolean;
+  cachedOutput?: unknown;
+  lockTimestamp?: number;
 }
 
 // =============================================================================
@@ -91,6 +99,14 @@ export interface TweetInputNodeData extends BaseNodeData {
   rawText: string;
   extractedTweet: string | null;
   authorHandle: string | null;
+}
+
+export interface AudioInputNodeData extends BaseNodeData {
+  audio: string | null;
+  filename: string | null;
+  duration: number | null;
+  source: 'upload' | 'url';
+  url?: string;
 }
 
 // =============================================================================
@@ -192,6 +208,49 @@ export interface TweetRemixNodeData extends BaseNodeData {
   // Config
   tone: TweetTone;
   maxLength: number;
+
+  // Job state
+  jobId: string | null;
+}
+
+export type LipSyncModel =
+  | 'sync/lipsync-2-pro'
+  | 'sync/lipsync-2'
+  | 'bytedance/latentsync'
+  | 'pixverse-ai/lipsync';
+
+export type LipSyncMode = 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
+
+export interface LipSyncNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputImage: string | null;
+  inputVideo: string | null;
+  inputAudio: string | null;
+
+  // Output
+  outputVideo: string | null;
+
+  // Config
+  model: LipSyncModel;
+  syncMode: LipSyncMode;
+  temperature: number;
+  activeSpeaker: boolean;
+
+  // Job state
+  jobId: string | null;
+}
+
+export interface VoiceChangeNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputAudio: string | null;
+
+  // Output
+  outputVideo: string | null;
+
+  // Config
+  preserveOriginalAudio: boolean;
+  audioMixLevel: number;
 
   // Job state
   jobId: string | null;
@@ -303,6 +362,7 @@ export interface DownloadNodeData extends BaseNodeData {
 
 export type WorkflowNodeData =
   | ImageInputNodeData
+  | AudioInputNodeData
   | PromptNodeData
   | TemplateNodeData
   | TweetInputNodeData
@@ -310,6 +370,8 @@ export type WorkflowNodeData =
   | VideoGenNodeData
   | LLMNodeData
   | TweetRemixNodeData
+  | LipSyncNodeData
+  | VoiceChangeNodeData
   | AnimationNodeData
   | VideoStitchNodeData
   | ResizeNodeData
@@ -412,6 +474,23 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       authorHandle: null,
     },
   },
+  audioInput: {
+    type: 'audioInput',
+    label: 'Audio Input',
+    description: 'Upload an audio file (MP3, WAV)',
+    category: 'input',
+    icon: 'Volume2',
+    inputs: [],
+    outputs: [{ id: 'audio', type: 'audio', label: 'Audio' }],
+    defaultData: {
+      label: 'Audio Input',
+      status: 'idle',
+      audio: null,
+      filename: null,
+      duration: null,
+      source: 'upload',
+    },
+  },
 
   // AI nodes
   imageGen: {
@@ -504,6 +583,54 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       outputTweet: null,
       tone: 'professional',
       maxLength: 280,
+      jobId: null,
+    },
+  },
+  lipSync: {
+    type: 'lipSync',
+    label: 'Lip Sync',
+    description: 'Generate talking-head video from image/video and audio using Replicate',
+    category: 'ai',
+    icon: 'Mic',
+    inputs: [
+      { id: 'image', type: 'image', label: 'Face Image' },
+      { id: 'video', type: 'video', label: 'Source Video' },
+      { id: 'audio', type: 'audio', label: 'Audio', required: true },
+    ],
+    outputs: [{ id: 'video', type: 'video', label: 'Generated Video' }],
+    defaultData: {
+      label: 'Lip Sync',
+      status: 'idle',
+      inputImage: null,
+      inputVideo: null,
+      inputAudio: null,
+      outputVideo: null,
+      model: 'sync/lipsync-2',
+      syncMode: 'loop',
+      temperature: 0.5,
+      activeSpeaker: false,
+      jobId: null,
+    },
+  },
+  voiceChange: {
+    type: 'voiceChange',
+    label: 'Voice Change',
+    description: 'Replace or mix audio track in a video',
+    category: 'ai',
+    icon: 'AudioLines',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video', required: true },
+      { id: 'audio', type: 'audio', label: 'New Audio', required: true },
+    ],
+    outputs: [{ id: 'video', type: 'video', label: 'Output Video' }],
+    defaultData: {
+      label: 'Voice Change',
+      status: 'idle',
+      inputVideo: null,
+      inputAudio: null,
+      outputVideo: null,
+      preserveOriginalAudio: false,
+      audioMixLevel: 0.5,
       jobId: null,
     },
   },

@@ -25,14 +25,6 @@ Process into proper task files or complete directly.
 - [ ] Update `.agent/SYSTEM/ARCHITECTURE.md` with project architecture
 - [ ] Add project-specific rules to `SYSTEM/critical/CRITICAL-NEVER-DO.md`
 
-### Active PRDs
-
-- [ ] **[TEST-COVERAGE]** Comprehensive test coverage for content-workflow @high
-  - PRD: `.agent/TASKS/test-coverage-prd.md`
-  - Target: 80-100% coverage
-  - Mock Replicate integration
-  - Execute with Ralph Loop
-
 ---
 
 ## Processed
@@ -42,3 +34,4 @@ Process into proper task files or complete directly.
 ### 2026-01-14
 
 - [x] Initial `.agent/` setup complete
+- [x] Restructured to kaiban format (TASKS + PRDS folders)

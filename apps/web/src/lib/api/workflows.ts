@@ -1,4 +1,5 @@
 import type { WorkflowEdge, WorkflowNode } from '@content-workflow/types';
+import type { NodeGroup } from '@/types/groups';
 import { apiClient } from './client';
 
 export interface WorkflowData {
@@ -9,6 +10,7 @@ export interface WorkflowData {
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   edgeStyle: string;
+  groups?: NodeGroup[];
   createdAt: string;
   updatedAt: string;
 }
@@ -19,6 +21,7 @@ export interface CreateWorkflowInput {
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   edgeStyle?: string;
+  groups?: NodeGroup[];
 }
 
 export interface UpdateWorkflowInput {
@@ -27,6 +30,7 @@ export interface UpdateWorkflowInput {
   nodes?: WorkflowNode[];
   edges?: WorkflowEdge[];
   edgeStyle?: string;
+  groups?: NodeGroup[];
 }
 
 export const workflowsApi = {

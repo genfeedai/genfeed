@@ -21,22 +21,32 @@
     "@nestjs/testing": "11.0.1",
     "@types/express": "5.0.0",
     "@types/node": "22.10.7",
+    "@types/supertest": "6.0.2",
+    "@vitest/coverage-v8": "3.0.4",
+    "mongodb-memory-server": "10.1.4",
     "source-map-support": "0.5.21",
+    "supertest": "7.0.0",
     "ts-loader": "9.5.2",
     "ts-node": "10.9.2",
     "tsconfig-paths": "4.2.0",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "unplugin-swc": "1.5.2",
+    "vitest": "3.0.4"
   },
   "license": "UNLICENSED",
   "name": "@content-workflow/api",
   "private": true,
   "scripts": {
     "build": "nest build",
+    "dev": "nest start --watch",
     "lint": "biome check --fix .",
     "start": "nest start",
     "start:debug": "nest start --debug --watch",
     "start:dev": "nest start --watch",
-    "start:prod": "node dist/main"
+    "start:prod": "node dist/main",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "version": "0.1.0"
 }
