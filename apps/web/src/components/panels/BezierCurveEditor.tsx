@@ -1,8 +1,8 @@
 'use client';
 
+import type { CubicBezier } from '@content-workflow/types';
 import { useCallback, useRef, useState } from 'react';
 import { EASING_PRESETS } from '@/lib/easing/presets';
-import type { CubicBezier } from '@/types/nodes';
 
 interface BezierCurveEditorProps {
   value: CubicBezier;

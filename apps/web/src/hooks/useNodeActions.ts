@@ -1,6 +1,6 @@
+import type { WorkflowNode } from '@content-workflow/types';
 import { useCallback, useState } from 'react';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { WorkflowNode } from '@/types/nodes';
 
 interface ClipboardData {
   nodes: WorkflowNode[];

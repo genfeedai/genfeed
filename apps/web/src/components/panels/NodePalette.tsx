@@ -1,5 +1,6 @@
 'use client';
 
+import { getNodesByCategory, type NodeCategory, type NodeType } from '@content-workflow/types';
 import {
   Brain,
   CheckCircle,
@@ -15,7 +16,6 @@ import {
   Wand2,
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
-import { getNodesByCategory, type NodeCategory, type NodeType } from '@/types/nodes';
 
 // Icon mapping
 const ICONS: Record<string, typeof Image> = {

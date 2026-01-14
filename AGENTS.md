@@ -1,4 +1,4 @@
-# Genfeed.ai Node
+# Content Workflow
 
 This file provides entry points for AI agents.
 

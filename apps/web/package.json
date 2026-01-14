@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@content-workflow/core": "workspace:*",
     "@content-workflow/types": "workspace:*",
     "@xyflow/react": "12.10.0",
     "clsx": "2.1.1",

@@ -4,6 +4,8 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { ExecutionsModule } from './executions/executions.module';
+import { PromptLibraryModule } from './prompt-library/prompt-library.module';
+import { QueueModule } from './queue/queue.module';
 import { ReplicateModule } from './replicate/replicate.module';
 import { TemplatesModule } from './templates/templates.module';
 import { WorkflowsModule } from './workflows/workflows.module';
@@ -37,6 +39,10 @@ import { WorkflowsModule } from './workflows/workflows.module';
     TemplatesModule,
     ExecutionsModule,
     ReplicateModule,
+    PromptLibraryModule,
+
+    // Queue Management (BullMQ + Redis)
+    QueueModule,
   ],
   controllers: [AppController],
   providers: [AppService],

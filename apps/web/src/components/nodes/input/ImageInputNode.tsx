@@ -1,10 +1,10 @@
 'use client';
 
+import type { ImageInputNodeData } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { Upload, X } from 'lucide-react';
 import { memo, useCallback, useRef } from 'react';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { ImageInputNodeData } from '@/types/nodes';
 import { BaseNode } from '../BaseNode';
 
 function ImageInputNodeComponent(props: NodeProps) {

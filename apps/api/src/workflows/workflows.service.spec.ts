@@ -58,13 +58,13 @@ describe('WorkflowsService', () => {
   describe('create', () => {
     it('should create a new workflow', async () => {
       const saveMock = vi.fn().mockResolvedValue(mockWorkflow);
-      const mockModel = vi.fn().mockImplementation(() => ({
-        ...mockWorkflow,
-        save: saveMock,
-      }));
-      mockModel.find = mockWorkflowModel.find;
-      mockModel.findOne = mockWorkflowModel.findOne;
-      mockModel.findOneAndUpdate = mockWorkflowModel.findOneAndUpdate;
+      const mockModel = Object.assign(
+        vi.fn().mockImplementation(() => ({
+          ...mockWorkflow,
+          save: saveMock,
+        })),
+        mockWorkflowModel
+      );
 
       const testModule = await Test.createTestingModule({
         providers: [
@@ -85,13 +85,13 @@ describe('WorkflowsService', () => {
 
     it('should create workflow with default nodes and edges', async () => {
       const saveMock = vi.fn().mockResolvedValue(mockWorkflow);
-      const mockModel = vi.fn().mockImplementation(() => ({
-        ...mockWorkflow,
-        save: saveMock,
-      }));
-      mockModel.find = mockWorkflowModel.find;
-      mockModel.findOne = mockWorkflowModel.findOne;
-      mockModel.findOneAndUpdate = mockWorkflowModel.findOneAndUpdate;
+      const mockModel = Object.assign(
+        vi.fn().mockImplementation(() => ({
+          ...mockWorkflow,
+          save: saveMock,
+        })),
+        mockWorkflowModel
+      );
 
       const testModule = await Test.createTestingModule({
         providers: [
@@ -230,20 +230,24 @@ describe('WorkflowsService', () => {
         name: 'Test Workflow (Copy)',
       };
       const saveMock = vi.fn().mockResolvedValue(duplicatedWorkflow);
-      const mockModel = vi.fn().mockImplementation(() => ({
-        ...duplicatedWorkflow,
-        save: saveMock,
-      }));
-      mockModel.find = vi.fn().mockReturnValue({
-        sort: vi.fn().mockReturnThis(),
-        exec: vi.fn().mockResolvedValue([mockWorkflow]),
-      });
-      mockModel.findOne = vi.fn().mockReturnValue({
-        exec: vi.fn().mockResolvedValue(mockWorkflow),
-      });
-      mockModel.findOneAndUpdate = vi.fn().mockReturnValue({
-        exec: vi.fn().mockResolvedValue(mockWorkflow),
-      });
+      const mockModel = Object.assign(
+        vi.fn().mockImplementation(() => ({
+          ...duplicatedWorkflow,
+          save: saveMock,
+        })),
+        {
+          find: vi.fn().mockReturnValue({
+            sort: vi.fn().mockReturnThis(),
+            exec: vi.fn().mockResolvedValue([mockWorkflow]),
+          }),
+          findOne: vi.fn().mockReturnValue({
+            exec: vi.fn().mockResolvedValue(mockWorkflow),
+          }),
+          findOneAndUpdate: vi.fn().mockReturnValue({
+            exec: vi.fn().mockResolvedValue(mockWorkflow),
+          }),
+        }
+      );
 
       const testModule = await Test.createTestingModule({
         providers: [

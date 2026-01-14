@@ -1,10 +1,10 @@
 'use client';
 
+import type { AnimationNodeData, CubicBezier } from '@content-workflow/types';
+import { NODE_DEFINITIONS, type NodeType } from '@content-workflow/types';
 import { X } from 'lucide-react';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { AnimationNodeData, CubicBezier } from '@/types/nodes';
-import { NODE_DEFINITIONS, type NodeType } from '@/types/nodes';
 import { BezierCurveEditor } from './BezierCurveEditor';
 
 export function ConfigPanel() {

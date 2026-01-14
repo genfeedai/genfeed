@@ -1,5 +1,31 @@
 import { Types } from 'mongoose';
+import type { Mock } from 'vitest';
 import { vi } from 'vitest';
+
+// Type for mongoose model mock methods
+export interface MockModelMethods {
+  find: Mock;
+  findOne: Mock;
+  findById: Mock;
+  findByIdAndUpdate: Mock;
+  findOneAndUpdate: Mock;
+  create: Mock;
+  deleteOne: Mock;
+  deleteMany: Mock;
+}
+
+// Type for constructable mock model (can be called with new or as function)
+export type MockModel = Mock & MockModelMethods;
+
+// Create a constructable mock model with proper typing
+export function createConstructableMockModel<T>(
+  baseMethods: Partial<MockModelMethods>,
+  instanceFactory: () => T
+): MockModel {
+  const mockModel = vi.fn().mockImplementation(instanceFactory) as MockModel;
+  Object.assign(mockModel, baseMethods);
+  return mockModel;
+}
 
 // Helper to create ObjectId
 export function createObjectId(): Types.ObjectId {

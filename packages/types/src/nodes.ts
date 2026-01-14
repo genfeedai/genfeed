@@ -4,7 +4,7 @@ import type { Edge, Node } from '@xyflow/react';
 // HANDLE TYPES
 // =============================================================================
 
-export type HandleType = 'image' | 'text' | 'video' | 'number';
+export type HandleType = 'image' | 'text' | 'video' | 'number' | 'audio';
 
 export interface HandleDefinition {
   id: string;
@@ -20,6 +20,7 @@ export const CONNECTION_RULES: Record<HandleType, HandleType[]> = {
   text: ['text'],
   video: ['video'],
   number: ['number'],
+  audio: ['audio'],
 };
 
 // =============================================================================
@@ -29,6 +30,8 @@ export const CONNECTION_RULES: Record<HandleType, HandleType[]> = {
 export type NodeType =
   // Input nodes
   | 'imageInput'
+  | 'audioInput'
+  | 'videoInput'
   | 'prompt'
   | 'template'
   | 'tweetInput'
@@ -37,14 +40,19 @@ export type NodeType =
   | 'videoGen'
   | 'llm'
   | 'tweetRemix'
+  | 'lipSync'
+  | 'voiceChange'
+  | 'transcribe'
   // Processing nodes
   | 'resize'
   | 'animation'
   | 'videoStitch'
+  | 'videoTrim'
   // Output nodes
   | 'output'
   | 'preview'
-  | 'download';
+  | 'download'
+  | 'socialPublish';
 
 export type NodeCategory = 'input' | 'ai' | 'processing' | 'output';
 
@@ -59,6 +67,10 @@ export interface BaseNodeData extends Record<string, unknown> {
   status: NodeStatus;
   error?: string;
   progress?: number;
+  // Lock state for skipping during execution
+  isLocked?: boolean;
+  cachedOutput?: unknown;
+  lockTimestamp?: number;
 }
 
 // =============================================================================
@@ -91,6 +103,23 @@ export interface TweetInputNodeData extends BaseNodeData {
   rawText: string;
   extractedTweet: string | null;
   authorHandle: string | null;
+}
+
+export interface AudioInputNodeData extends BaseNodeData {
+  audio: string | null;
+  filename: string | null;
+  duration: number | null;
+  source: 'upload' | 'url';
+  url?: string;
+}
+
+export interface VideoInputNodeData extends BaseNodeData {
+  video: string | null;
+  filename: string | null;
+  duration: number | null;
+  dimensions: { width: number; height: number } | null;
+  source: 'upload' | 'url';
+  url?: string;
 }
 
 // =============================================================================
@@ -197,6 +226,67 @@ export interface TweetRemixNodeData extends BaseNodeData {
   jobId: string | null;
 }
 
+export type LipSyncModel =
+  | 'sync/lipsync-2-pro'
+  | 'sync/lipsync-2'
+  | 'bytedance/latentsync'
+  | 'pixverse-ai/lipsync';
+
+export type LipSyncMode = 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
+
+export interface LipSyncNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputImage: string | null;
+  inputVideo: string | null;
+  inputAudio: string | null;
+
+  // Output
+  outputVideo: string | null;
+
+  // Config
+  model: LipSyncModel;
+  syncMode: LipSyncMode;
+  temperature: number;
+  activeSpeaker: boolean;
+
+  // Job state
+  jobId: string | null;
+}
+
+export interface VoiceChangeNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputAudio: string | null;
+
+  // Output
+  outputVideo: string | null;
+
+  // Config
+  preserveOriginalAudio: boolean;
+  audioMixLevel: number;
+
+  // Job state
+  jobId: string | null;
+}
+
+export type TranscribeLanguage = 'auto' | 'en' | 'es' | 'fr' | 'de' | 'ja' | 'zh' | 'ko' | 'pt';
+
+export interface TranscribeNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputAudio: string | null;
+
+  // Output
+  outputText: string | null;
+
+  // Config
+  language: TranscribeLanguage;
+  timestamps: boolean;
+
+  // Job state
+  jobId: string | null;
+}
+
 // =============================================================================
 // PROCESSING NODE DATA
 // =============================================================================
@@ -264,6 +354,22 @@ export interface ResizeNodeData extends BaseNodeData {
   fitMode: 'contain' | 'cover' | 'fill';
 }
 
+export interface VideoTrimNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+
+  // Output
+  outputVideo: string | null;
+
+  // Trim config (in seconds)
+  startTime: number;
+  endTime: number;
+  duration: number | null;
+
+  // Job state
+  jobId: string | null;
+}
+
 // =============================================================================
 // OUTPUT NODE DATA
 // =============================================================================
@@ -297,12 +403,36 @@ export interface DownloadNodeData extends BaseNodeData {
   format: string;
 }
 
+export type SocialPlatform = 'youtube' | 'tiktok' | 'instagram' | 'twitter';
+export type SocialVisibility = 'public' | 'private' | 'unlisted';
+
+export interface SocialPublishNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+
+  // Publish config
+  platform: SocialPlatform;
+  title: string;
+  description: string;
+  tags: string[];
+  visibility: SocialVisibility;
+  scheduledTime: string | null;
+
+  // Output
+  publishedUrl: string | null;
+
+  // Job state
+  jobId: string | null;
+}
+
 // =============================================================================
 // NODE DATA UNION
 // =============================================================================
 
 export type WorkflowNodeData =
   | ImageInputNodeData
+  | AudioInputNodeData
+  | VideoInputNodeData
   | PromptNodeData
   | TemplateNodeData
   | TweetInputNodeData
@@ -310,12 +440,17 @@ export type WorkflowNodeData =
   | VideoGenNodeData
   | LLMNodeData
   | TweetRemixNodeData
+  | LipSyncNodeData
+  | VoiceChangeNodeData
+  | TranscribeNodeData
   | AnimationNodeData
   | VideoStitchNodeData
   | ResizeNodeData
+  | VideoTrimNodeData
   | OutputNodeData
   | PreviewNodeData
-  | DownloadNodeData;
+  | DownloadNodeData
+  | SocialPublishNodeData;
 
 // =============================================================================
 // WORKFLOW NODE & EDGE
@@ -410,6 +545,41 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       rawText: '',
       extractedTweet: null,
       authorHandle: null,
+    },
+  },
+  audioInput: {
+    type: 'audioInput',
+    label: 'Audio Input',
+    description: 'Upload an audio file (MP3, WAV)',
+    category: 'input',
+    icon: 'Volume2',
+    inputs: [],
+    outputs: [{ id: 'audio', type: 'audio', label: 'Audio' }],
+    defaultData: {
+      label: 'Audio Input',
+      status: 'idle',
+      audio: null,
+      filename: null,
+      duration: null,
+      source: 'upload',
+    },
+  },
+  videoInput: {
+    type: 'videoInput',
+    label: 'Video Input',
+    description: 'Upload or reference a video file',
+    category: 'input',
+    icon: 'FileVideo',
+    inputs: [],
+    outputs: [{ id: 'video', type: 'video', label: 'Video' }],
+    defaultData: {
+      label: 'Video Input',
+      status: 'idle',
+      video: null,
+      filename: null,
+      duration: null,
+      dimensions: null,
+      source: 'upload',
     },
   },
 
@@ -507,6 +677,76 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       jobId: null,
     },
   },
+  lipSync: {
+    type: 'lipSync',
+    label: 'Lip Sync',
+    description: 'Generate talking-head video from image/video and audio using Replicate',
+    category: 'ai',
+    icon: 'Mic',
+    inputs: [
+      { id: 'image', type: 'image', label: 'Face Image' },
+      { id: 'video', type: 'video', label: 'Source Video' },
+      { id: 'audio', type: 'audio', label: 'Audio', required: true },
+    ],
+    outputs: [{ id: 'video', type: 'video', label: 'Generated Video' }],
+    defaultData: {
+      label: 'Lip Sync',
+      status: 'idle',
+      inputImage: null,
+      inputVideo: null,
+      inputAudio: null,
+      outputVideo: null,
+      model: 'sync/lipsync-2',
+      syncMode: 'loop',
+      temperature: 0.5,
+      activeSpeaker: false,
+      jobId: null,
+    },
+  },
+  voiceChange: {
+    type: 'voiceChange',
+    label: 'Voice Change',
+    description: 'Replace or mix audio track in a video',
+    category: 'ai',
+    icon: 'AudioLines',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video', required: true },
+      { id: 'audio', type: 'audio', label: 'New Audio', required: true },
+    ],
+    outputs: [{ id: 'video', type: 'video', label: 'Output Video' }],
+    defaultData: {
+      label: 'Voice Change',
+      status: 'idle',
+      inputVideo: null,
+      inputAudio: null,
+      outputVideo: null,
+      preserveOriginalAudio: false,
+      audioMixLevel: 0.5,
+      jobId: null,
+    },
+  },
+  transcribe: {
+    type: 'transcribe',
+    label: 'Transcribe',
+    description: 'Convert video or audio to text transcript',
+    category: 'ai',
+    icon: 'FileText',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video' },
+      { id: 'audio', type: 'audio', label: 'Audio' },
+    ],
+    outputs: [{ id: 'text', type: 'text', label: 'Transcript' }],
+    defaultData: {
+      label: 'Transcribe',
+      status: 'idle',
+      inputVideo: null,
+      inputAudio: null,
+      outputText: null,
+      language: 'auto',
+      timestamps: false,
+      jobId: null,
+    },
+  },
 
   // Processing nodes
   resize: {
@@ -566,6 +806,25 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       seamlessLoop: false,
     },
   },
+  videoTrim: {
+    type: 'videoTrim',
+    label: 'Video Trim',
+    description: 'Trim video to a specific time range',
+    category: 'processing',
+    icon: 'Scissors',
+    inputs: [{ id: 'video', type: 'video', label: 'Video', required: true }],
+    outputs: [{ id: 'video', type: 'video', label: 'Trimmed Video' }],
+    defaultData: {
+      label: 'Video Trim',
+      status: 'idle',
+      inputVideo: null,
+      outputVideo: null,
+      startTime: 0,
+      endTime: 60,
+      duration: null,
+      jobId: null,
+    },
+  },
 
   // Output nodes
   output: {
@@ -616,6 +875,28 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       inputType: null,
       filename: 'output',
       format: 'mp4',
+    },
+  },
+  socialPublish: {
+    type: 'socialPublish',
+    label: 'Social Publish',
+    description: 'Publish video to YouTube, TikTok, or Instagram',
+    category: 'output',
+    icon: 'Share2',
+    inputs: [{ id: 'video', type: 'video', label: 'Video', required: true }],
+    outputs: [],
+    defaultData: {
+      label: 'Social Publish',
+      status: 'idle',
+      inputVideo: null,
+      platform: 'youtube',
+      title: '',
+      description: '',
+      tags: [],
+      visibility: 'public',
+      scheduledTime: null,
+      publishedUrl: null,
+      jobId: null,
     },
   },
 };

@@ -1,26 +1,12 @@
 /**
- * Node Group Types
- * Groups allow users to organize and lock multiple nodes together
+ * Node Group UI Constants
+ * Re-exports types from shared package, defines Tailwind-specific styling
  */
 
-export interface NodeGroup {
-  id: string;
-  name: string;
-  nodeIds: string[];
-  isLocked: boolean;
-  color?: GroupColor;
-  collapsed?: boolean;
-}
+// Re-export types from shared package
+export type { GroupColor, NodeGroup } from '@content-workflow/types';
 
-export type GroupColor =
-  | 'purple'
-  | 'blue'
-  | 'green'
-  | 'yellow'
-  | 'orange'
-  | 'red'
-  | 'pink'
-  | 'gray';
+import type { GroupColor } from '@content-workflow/types';
 
 export const GROUP_COLORS: Record<GroupColor, { bg: string; border: string; text: string }> = {
   purple: {

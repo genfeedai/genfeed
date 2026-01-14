@@ -1,11 +1,11 @@
 'use client';
 
+import type { TweetRemixNodeData, TweetTone } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { Check, RefreshCw, Sparkles } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { TweetRemixNodeData, TweetTone } from '@/types/nodes';
 import { BaseNode } from '../BaseNode';
 
 const TONE_OPTIONS: { value: TweetTone; label: string }[] = [

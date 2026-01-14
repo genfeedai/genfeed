@@ -1,17 +1,17 @@
 'use client';
 
-import type { NodeProps } from '@xyflow/react';
-import { RefreshCw } from 'lucide-react';
-import { memo, useCallback } from 'react';
-import { useExecutionStore } from '@/store/executionStore';
-import { useWorkflowStore } from '@/store/workflowStore';
 import type {
   AspectRatio,
   ImageGenNodeData,
   ImageModel,
   OutputFormat,
   Resolution,
-} from '@/types/nodes';
+} from '@content-workflow/types';
+import type { NodeProps } from '@xyflow/react';
+import { RefreshCw } from 'lucide-react';
+import { memo, useCallback } from 'react';
+import { useExecutionStore } from '@/store/executionStore';
+import { useWorkflowStore } from '@/store/workflowStore';
 import { BaseNode } from '../BaseNode';
 
 const MODELS: { value: ImageModel; label: string; description: string }[] = [

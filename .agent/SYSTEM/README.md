@@ -1,6 +1,6 @@
 # SYSTEM - Core Documentation
 
-This folder contains the core documentation for the Genfeed.ai Node project.
+This folder contains the core documentation for the Content Workflow project.
 
 ## Contents
 

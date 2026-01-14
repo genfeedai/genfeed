@@ -1,4 +1,4 @@
-import type { WorkflowFile } from '@/types/workflow';
+import type { WorkflowFile } from '@content-workflow/types';
 
 export const FULL_PIPELINE_TEMPLATE: WorkflowFile = {
   version: 1,

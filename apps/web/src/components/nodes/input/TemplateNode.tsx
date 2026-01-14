@@ -1,9 +1,9 @@
 'use client';
 
+import type { TemplateNodeData } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { TemplateNodeData } from '@/types/nodes';
 import { BaseNode } from '../BaseNode';
 
 // Template presets

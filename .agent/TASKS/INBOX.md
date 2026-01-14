@@ -35,3 +35,9 @@ Process into proper task files or complete directly.
 
 - [x] Initial `.agent/` setup complete
 - [x] Restructured to kaiban format (TASKS + PRDS folders)
+- [x] Created marketplace PRDs and tasks (OSS + Marketplace direction)
+  - [marketplace-platform.md](./marketplace-platform.md) - Parent task
+  - [seller-system.md](./seller-system.md) - Stripe Connect, payouts
+  - [listing-system.md](./listing-system.md) - Listing CRUD
+  - [purchase-flow.md](./purchase-flow.md) - Checkout, downloads
+  - [reviews-ratings.md](./reviews-ratings.md) - Reviews system

@@ -1,4 +1,4 @@
-import type { WorkflowFile } from '@/types/workflow';
+import type { WorkflowFile } from '@content-workflow/types';
 
 export const IMAGE_SERIES_TEMPLATE: WorkflowFile = {
   version: 1,

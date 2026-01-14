@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  BookMarked,
   FolderOpen,
   LayoutTemplate,
   PanelLeftClose,
@@ -135,6 +136,13 @@ export function Toolbar() {
           title="Templates"
         >
           <LayoutTemplate className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => openModal('promptLibrary')}
+          className="p-2 hover:bg-[var(--secondary)] rounded transition text-[var(--foreground)]"
+          title="Prompt Library"
+        >
+          <BookMarked className="w-4 h-4" />
         </button>
       </div>
 

@@ -1,4 +1,4 @@
-# Coding Rules - Genfeed.ai Node
+# Coding Rules - Content Workflow
 
 **Purpose:** Coding standards and patterns for this project.
 **Last Updated:** 2026-01-14

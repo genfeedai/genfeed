@@ -100,13 +100,13 @@ describe('ExecutionsService', () => {
     it('should create a new execution with pending status', async () => {
       // Mock the model constructor
       const saveMock = vi.fn().mockResolvedValue(mockExecution);
-      const mockModel = vi.fn().mockImplementation(() => ({
-        ...mockExecution,
-        save: saveMock,
-      }));
-      mockModel.find = mockExecutionModel.find;
-      mockModel.findOne = mockExecutionModel.findOne;
-      mockModel.findByIdAndUpdate = mockExecutionModel.findByIdAndUpdate;
+      const mockModel = Object.assign(
+        vi.fn().mockImplementation(() => ({
+          ...mockExecution,
+          save: saveMock,
+        })),
+        mockExecutionModel
+      );
 
       const testModule = await Test.createTestingModule({
         providers: [
@@ -312,13 +312,13 @@ describe('ExecutionsService', () => {
   describe('createJob', () => {
     it('should create a new job', async () => {
       const saveMock = vi.fn().mockResolvedValue(mockJob);
-      const mockModel = vi.fn().mockImplementation(() => ({
-        ...mockJob,
-        save: saveMock,
-      }));
-      mockModel.find = mockJobModel.find;
-      mockModel.findOne = mockJobModel.findOne;
-      mockModel.findOneAndUpdate = mockJobModel.findOneAndUpdate;
+      const mockModel = Object.assign(
+        vi.fn().mockImplementation(() => ({
+          ...mockJob,
+          save: saveMock,
+        })),
+        mockJobModel
+      );
 
       const testModule = await Test.createTestingModule({
         providers: [

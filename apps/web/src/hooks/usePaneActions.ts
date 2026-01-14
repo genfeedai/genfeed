@@ -1,7 +1,7 @@
+import type { NodeType } from '@content-workflow/types';
 import { useReactFlow } from '@xyflow/react';
 import { useCallback } from 'react';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { NodeType } from '@/types/nodes';
 
 export function usePaneActions() {
   const { addNode, nodes } = useWorkflowStore();

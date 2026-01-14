@@ -1,11 +1,11 @@
 'use client';
 
+import type { LLMNodeData } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { LLMNodeData } from '@/types/nodes';
 import { BaseNode } from '../BaseNode';
 
 function LLMNodeComponent(props: NodeProps) {

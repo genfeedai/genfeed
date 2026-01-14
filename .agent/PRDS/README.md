@@ -9,6 +9,14 @@ PRDs are stored as markdown files following the naming convention:
 
 ## Current PRDs
 
+### Marketplace (Phase 1 - OSS + Marketplace Direction)
+- **[marketplace-overview.md](marketplace-overview.md)** - Creator Marketplace Platform Overview
+- **[seller-system.md](seller-system.md)** - Seller Onboarding, Profiles & Payouts
+- **[listing-system.md](listing-system.md)** - Listing Creation & Management
+- **[purchase-flow.md](purchase-flow.md)** - Checkout, Payment & Download Delivery
+- **[reviews-ratings.md](reviews-ratings.md)** - Reviews & Ratings System
+
+### Content Workflow Features
 - **[test-coverage.md](test-coverage.md)** - Comprehensive Test Coverage for Content Workflow
 - **[workflow-cost-tracking.md](workflow-cost-tracking.md)** - Workflow Cost Tracking & Analytics
 - **[ai-quickstart-natural-language.md](ai-quickstart-natural-language.md)** - Natural Language Workflow Generation

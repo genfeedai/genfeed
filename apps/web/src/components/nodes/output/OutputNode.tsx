@@ -1,9 +1,9 @@
 'use client';
 
+import type { OutputNodeData } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { CheckCircle, Download } from 'lucide-react';
 import { memo } from 'react';
-import type { OutputNodeData } from '@/types/nodes';
 import { BaseNode } from '../BaseNode';
 
 function OutputNodeComponent(props: NodeProps) {

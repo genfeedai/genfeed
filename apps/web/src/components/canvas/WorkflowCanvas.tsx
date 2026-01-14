@@ -13,13 +13,13 @@ import {
 import { useCallback, useEffect } from 'react';
 import '@xyflow/react/dist/style.css';
 
+import type { NodeType, WorkflowEdge, WorkflowNode } from '@content-workflow/types';
 import { GroupOverlay } from '@/components/canvas/GroupOverlay';
 import { ContextMenu } from '@/components/context-menu';
 import { nodeTypes } from '@/components/nodes';
 import { useContextMenu } from '@/hooks/useContextMenu';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { NodeType, WorkflowEdge, WorkflowNode } from '@/types/nodes';
 
 export function WorkflowCanvas() {
   const {

@@ -1,4 +1,4 @@
-# Genfeed.ai Node
+# Content Workflow
 
 Claude-specific entry point. Documentation in `.agent/`.
 

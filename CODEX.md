@@ -1,4 +1,4 @@
-# Genfeed.ai Node
+# Content Workflow
 
 Codex-specific entry point. Documentation in `.agent/`.
 

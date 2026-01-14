@@ -1,12 +1,12 @@
 'use client';
 
+import type { AnimationNodeData, EasingPreset } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { RefreshCw, Wand2 } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { EASING_PRESETS } from '@/lib/easing/presets';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { AnimationNodeData, EasingPreset } from '@/types/nodes';
 import { BaseNode } from '../BaseNode';
 
 const PRESET_OPTIONS: { value: EasingPreset; label: string }[] = [

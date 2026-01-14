@@ -1,3 +1,14 @@
+import type {
+  EdgeStyle,
+  HandleType,
+  NodeType,
+  ValidationResult,
+  WorkflowEdge,
+  WorkflowFile,
+  WorkflowNode,
+  WorkflowNodeData,
+} from '@content-workflow/types';
+import { CONNECTION_RULES, NODE_DEFINITIONS } from '@content-workflow/types';
 import type { Connection, EdgeChange, NodeChange, XYPosition } from '@xyflow/react';
 import { applyEdgeChanges, applyNodeChanges, addEdge as rfAddEdge } from '@xyflow/react';
 import { nanoid } from 'nanoid';
@@ -5,15 +16,6 @@ import { create } from 'zustand';
 import { type WorkflowData, workflowsApi } from '@/lib/api';
 import type { GroupColor, NodeGroup } from '@/types/groups';
 import { DEFAULT_GROUP_COLORS } from '@/types/groups';
-import type {
-  HandleType,
-  NodeType,
-  WorkflowEdge,
-  WorkflowNode,
-  WorkflowNodeData,
-} from '@/types/nodes';
-import { CONNECTION_RULES, NODE_DEFINITIONS } from '@/types/nodes';
-import type { EdgeStyle, ValidationResult, WorkflowFile } from '@/types/workflow';
 
 // Utility for unique IDs
 function generateId(): string {

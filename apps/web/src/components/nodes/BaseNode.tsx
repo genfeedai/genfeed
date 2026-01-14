@@ -1,5 +1,12 @@
 'use client';
 
+import type {
+  HandleDefinition,
+  NodeStatus,
+  NodeType,
+  WorkflowNodeData,
+} from '@content-workflow/types';
+import { NODE_DEFINITIONS } from '@content-workflow/types';
 import { Handle, type NodeProps, Position } from '@xyflow/react';
 import { clsx } from 'clsx';
 import {
@@ -11,6 +18,7 @@ import {
   Download,
   Eye,
   FileText,
+  FileVideo,
   Image,
   Layers,
   Loader2,
@@ -18,6 +26,8 @@ import {
   Maximize2,
   MessageSquare,
   RefreshCw,
+  Scissors,
+  Share2,
   Sparkles,
   Unlock,
   Video,
@@ -26,20 +36,21 @@ import {
 import { memo, type ReactNode } from 'react';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { HandleDefinition, NodeStatus, NodeType, WorkflowNodeData } from '@/types/nodes';
-import { NODE_DEFINITIONS } from '@/types/nodes';
 
 // Icon mapping
 const ICON_MAP: Record<string, typeof Image> = {
   Image,
   MessageSquare,
   FileText,
+  FileVideo,
   Sparkles,
   Video,
   Brain,
   Maximize2,
   Wand2,
   Layers,
+  Scissors,
+  Share2,
   CheckCircle,
   Eye,
   Download,

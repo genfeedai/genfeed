@@ -1,3 +1,4 @@
+import type { NodeGroup } from './groups';
 import type { WorkflowEdge, WorkflowNode } from './nodes';
 
 export type EdgeStyle = 'bezier' | 'smoothstep' | 'straight';
@@ -9,6 +10,7 @@ export interface WorkflowFile {
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];
   edgeStyle: EdgeStyle;
+  groups?: NodeGroup[];
   createdAt: string;
   updatedAt: string;
 }

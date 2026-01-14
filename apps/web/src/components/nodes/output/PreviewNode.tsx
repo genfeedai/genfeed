@@ -1,10 +1,10 @@
 'use client';
 
+import type { PreviewNodeData } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import { memo, useCallback, useRef } from 'react';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { PreviewNodeData } from '@/types/nodes';
 import { BaseNode } from '../BaseNode';
 
 function PreviewNodeComponent(props: NodeProps) {

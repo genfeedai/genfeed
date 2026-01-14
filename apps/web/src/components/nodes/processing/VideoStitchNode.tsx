@@ -1,11 +1,11 @@
 'use client';
 
+import type { TransitionType, VideoStitchNodeData } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { Layers, RefreshCw } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import type { TransitionType, VideoStitchNodeData } from '@/types/nodes';
 import { BaseNode } from '../BaseNode';
 
 const TRANSITIONS: { value: TransitionType; label: string }[] = [

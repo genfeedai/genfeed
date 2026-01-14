@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-export type ModalType = 'templates' | 'cost' | 'welcome' | 'settings' | null;
+export type ModalType = 'templates' | 'cost' | 'welcome' | 'settings' | 'promptLibrary' | null;
 
 interface UIStore {
   // Panel visibility

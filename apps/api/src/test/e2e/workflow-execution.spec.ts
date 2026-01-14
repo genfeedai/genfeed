@@ -3,7 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { getModelToken, MongooseModule } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import type { Model } from 'mongoose';
+import type { Model, Types } from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ExecutionsModule } from '../../executions/executions.module';
@@ -159,7 +159,7 @@ describe('Workflow Execution E2E', () => {
 
       expect(response.body).toHaveProperty('_id');
       expect(response.body.status).toBe('pending');
-      expect(response.body.workflowId.toString()).toBe(workflow._id.toString());
+      expect(response.body.workflowId.toString()).toBe((workflow._id as Types.ObjectId).toString());
     });
 
     it('should get executions for a workflow', async () => {

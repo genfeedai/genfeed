@@ -1,5 +1,11 @@
+import { topologicalSort } from '@content-workflow/core';
+import type {
+  NodeStatus,
+  NodeType,
+  TweetInputNodeData,
+  TweetRemixNodeData,
+} from '@content-workflow/types';
 import { create } from 'zustand';
-import type { NodeStatus, NodeType, TweetInputNodeData, TweetRemixNodeData } from '@/types/nodes';
 import { useWorkflowStore } from './workflowStore';
 
 export interface Job {
@@ -40,51 +46,6 @@ interface ExecutionStore {
   // Helpers
   getExecutionOrder: () => string[];
   resetExecution: () => void;
-}
-
-// Topological sort for execution order
-function topologicalSort(
-  nodes: { id: string }[],
-  edges: { source: string; target: string }[]
-): string[] {
-  const inDegree = new Map<string, number>();
-  const adjList = new Map<string, string[]>();
-
-  // Initialize
-  for (const node of nodes) {
-    inDegree.set(node.id, 0);
-    adjList.set(node.id, []);
-  }
-
-  // Build adjacency list and in-degree count
-  for (const edge of edges) {
-    adjList.get(edge.source)?.push(edge.target);
-    inDegree.set(edge.target, (inDegree.get(edge.target) ?? 0) + 1);
-  }
-
-  // Find all nodes with no incoming edges
-  const queue: string[] = [];
-  for (const [nodeId, degree] of inDegree) {
-    if (degree === 0) {
-      queue.push(nodeId);
-    }
-  }
-
-  const result: string[] = [];
-
-  while (queue.length > 0) {
-    const node = queue.shift()!;
-    result.push(node);
-
-    for (const neighbor of adjList.get(node) ?? []) {
-      inDegree.set(neighbor, (inDegree.get(neighbor) ?? 1) - 1);
-      if (inDegree.get(neighbor) === 0) {
-        queue.push(neighbor);
-      }
-    }
-  }
-
-  return result;
 }
 
 export const useExecutionStore = create<ExecutionStore>((set, get) => ({

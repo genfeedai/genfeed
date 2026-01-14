@@ -74,14 +74,13 @@ describe('TemplatesService', () => {
   describe('create', () => {
     it('should create a new template', async () => {
       const saveMock = vi.fn().mockResolvedValue(mockTemplate);
-      const mockModel = vi.fn().mockImplementation(() => ({
-        ...mockTemplate,
-        save: saveMock,
-      }));
-      mockModel.find = mockTemplateModel.find;
-      mockModel.findOne = mockTemplateModel.findOne;
-      mockModel.findOneAndUpdate = mockTemplateModel.findOneAndUpdate;
-      mockModel.create = mockTemplateModel.create;
+      const mockModel = Object.assign(
+        vi.fn().mockImplementation(() => ({
+          ...mockTemplate,
+          save: saveMock,
+        })),
+        mockTemplateModel
+      );
 
       const testModule = await Test.createTestingModule({
         providers: [
@@ -103,14 +102,13 @@ describe('TemplatesService', () => {
 
     it('should create template with default nodes and edges', async () => {
       const saveMock = vi.fn().mockResolvedValue(mockTemplate);
-      const mockModel = vi.fn().mockImplementation(() => ({
-        ...mockTemplate,
-        save: saveMock,
-      }));
-      mockModel.find = mockTemplateModel.find;
-      mockModel.findOne = mockTemplateModel.findOne;
-      mockModel.findOneAndUpdate = mockTemplateModel.findOneAndUpdate;
-      mockModel.create = mockTemplateModel.create;
+      const mockModel = Object.assign(
+        vi.fn().mockImplementation(() => ({
+          ...mockTemplate,
+          save: saveMock,
+        })),
+        mockTemplateModel
+      );
 
       const testModule = await Test.createTestingModule({
         providers: [

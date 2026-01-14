@@ -1,4 +1,4 @@
-# Project Map - Genfeed.ai Node
+# Project Map - Content Workflow
 
 **Purpose:** Quick reference for project structure and responsibilities.
 **Last Updated:** 2026-01-14
@@ -8,7 +8,7 @@
 ## Directory Overview
 
 ```
-Genfeed.ai Node/
+Content Workflow/
 ├── .agent/              # AI documentation (you are here)
 ├── src/                 # Source code
 │   ├── components/      # UI components

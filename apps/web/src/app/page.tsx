@@ -4,6 +4,7 @@ import { ReactFlowProvider } from '@xyflow/react';
 import { WorkflowCanvas } from '@/components/canvas/WorkflowCanvas';
 import { ConfigPanel } from '@/components/panels/ConfigPanel';
 import { NodePalette } from '@/components/panels/NodePalette';
+import { PromptLibraryModal } from '@/components/prompt-library';
 import { Toolbar } from '@/components/Toolbar';
 import { useUIStore } from '@/store/uiStore';
 
@@ -22,6 +23,7 @@ export default function Home() {
           {showConfigPanel && <ConfigPanel />}
         </div>
       </main>
+      <PromptLibraryModal />
     </ReactFlowProvider>
   );
 }

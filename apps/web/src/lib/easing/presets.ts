@@ -1,4 +1,4 @@
-import type { CubicBezier, EasingPreset } from '@/types/nodes';
+import type { CubicBezier, EasingPreset } from '@content-workflow/types';
 
 /**
  * Easing presets based on easy-peasy-ease patterns

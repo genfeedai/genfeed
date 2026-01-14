@@ -74,6 +74,16 @@ export class Execution extends Document {
   @Prop({ default: false })
   isDeleted: boolean;
 
+  // Queue-related fields
+  @Prop({ enum: ['sync', 'async'], default: 'sync' })
+  executionMode: string;
+
+  @Prop({ type: [String], default: [] })
+  queueJobIds: string[];
+
+  @Prop()
+  resumedFrom?: string; // For recovery - previous execution ID
+
   createdAt: Date;
   updatedAt: Date;
 }

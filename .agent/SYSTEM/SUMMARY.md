@@ -1,4 +1,4 @@
-# Project Summary - Genfeed.ai Node
+# Project Summary - Content Workflow
 
 **Purpose:** Quick overview of current project state.
 **Last Updated:** 2026-01-14
