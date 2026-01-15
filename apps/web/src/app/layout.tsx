@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import 'tw-animate-css';
 import './globals.scss';
 
 export const metadata: Metadata = {

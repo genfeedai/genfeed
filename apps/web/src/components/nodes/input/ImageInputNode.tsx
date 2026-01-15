@@ -3,7 +3,11 @@
 import type { ImageInputNodeData } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { Upload, X } from 'lucide-react';
+import Image from 'next/image';
 import { memo, useCallback, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { BaseNode } from '../BaseNode';
 
@@ -56,31 +60,36 @@ function ImageInputNodeComponent(props: NodeProps) {
 
   return (
     <BaseNode {...props}>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {nodeData.image ? (
           <div className="relative">
-            <img
+            <Image
               src={nodeData.image}
               alt={nodeData.filename || 'Uploaded image'}
-              className="w-full h-32 object-cover rounded"
+              width={200}
+              height={128}
+              className="h-32 w-full rounded-md object-cover"
+              unoptimized
             />
-            <button
+            <Button
+              variant="secondary"
+              size="icon-sm"
               onClick={handleRemoveImage}
-              className="absolute top-1 right-1 p-1 bg-black/50 rounded-full hover:bg-black/70 transition"
+              className="absolute right-1.5 top-1.5"
             >
-              <X className="w-3 h-3" />
-            </button>
-            <div className="absolute bottom-1 left-1 px-2 py-0.5 bg-black/50 rounded text-xs">
+              <X className="h-3 w-3" />
+            </Button>
+            <div className="absolute bottom-1.5 left-1.5 rounded bg-black/60 px-2 py-0.5 text-xs">
               {nodeData.dimensions?.width}x{nodeData.dimensions?.height}
             </div>
           </div>
         ) : (
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="w-full h-24 border-2 border-dashed border-[var(--border)] rounded flex flex-col items-center justify-center gap-1 hover:border-[var(--primary)] transition"
+            className="flex h-24 w-full flex-col items-center justify-center gap-1.5 rounded-md border-2 border-dashed border-border transition-colors hover:border-primary"
           >
-            <Upload className="w-5 h-5 text-[var(--muted-foreground)]" />
-            <span className="text-xs text-[var(--muted-foreground)]">Upload Image</span>
+            <Upload className="h-5 w-5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">Upload Image</span>
           </button>
         )}
 
@@ -92,14 +101,16 @@ function ImageInputNodeComponent(props: NodeProps) {
           className="hidden"
         />
 
-        <div className="text-xs text-[var(--muted-foreground)]">Or paste URL:</div>
-        <input
-          type="url"
-          value={nodeData.url || ''}
-          onChange={handleUrlChange}
-          placeholder="https://..."
-          className="w-full px-2 py-1.5 text-xs bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-        />
+        <div className="space-y-1.5">
+          <Label className="text-xs">Or paste URL:</Label>
+          <Input
+            type="url"
+            value={nodeData.url || ''}
+            onChange={handleUrlChange}
+            placeholder="https://..."
+            className="h-8 text-xs"
+          />
+        </div>
       </div>
     </BaseNode>
   );

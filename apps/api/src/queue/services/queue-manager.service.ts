@@ -21,16 +21,12 @@ export class QueueManagerService {
   private readonly queues: Map<QueueName, Queue>;
 
   constructor(
-    // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used via this.queues map
     @InjectQueue(QUEUE_NAMES.WORKFLOW_ORCHESTRATOR)
     private readonly workflowQueue: Queue,
-    // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used via this.queues map
     @InjectQueue(QUEUE_NAMES.IMAGE_GENERATION)
     private readonly imageQueue: Queue,
-    // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used via this.queues map
     @InjectQueue(QUEUE_NAMES.VIDEO_GENERATION)
     private readonly videoQueue: Queue,
-    // biome-ignore lint/correctness/noUnusedPrivateClassMembers: Used via this.queues map
     @InjectQueue(QUEUE_NAMES.LLM_GENERATION)
     private readonly llmQueue: Queue,
     @InjectModel(QueueJob.name)

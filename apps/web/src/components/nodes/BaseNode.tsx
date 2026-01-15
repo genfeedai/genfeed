@@ -70,11 +70,11 @@ const HANDLE_COLORS: Record<string, string> = {
 function StatusIndicator({ status }: { status: NodeStatus }) {
   switch (status) {
     case 'processing':
-      return <Loader2 className="w-4 h-4 animate-spin text-blue-400" />;
+      return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
     case 'complete':
-      return <CheckCircle2 className="w-4 h-4 text-green-400" />;
+      return <CheckCircle2 className="h-4 w-4 text-chart-2" />;
     case 'error':
-      return <AlertCircle className="w-4 h-4 text-red-400" />;
+      return <AlertCircle className="h-4 w-4 text-destructive" />;
     default:
       return null;
   }
@@ -101,23 +101,46 @@ function BaseNodeComponent({ id, type, data, selected, children }: BaseNodeProps
     toggleNodeLock(id);
   };
 
-  // Category colors
-  const categoryColors: Record<string, string> = {
-    input: 'border-emerald-500/50 bg-emerald-500/10',
-    ai: 'border-purple-500/50 bg-purple-500/10',
-    processing: 'border-blue-500/50 bg-blue-500/10',
-    output: 'border-amber-500/50 bg-amber-500/10',
+  // Category colors - using CSS variables for button access
+  const categoryStyles: Record<string, { className: string; cssVar: string }> = {
+    input: {
+      className:
+        'border-[var(--category-input)] bg-[color-mix(in_oklch,var(--category-input)_15%,var(--card))]',
+      cssVar: 'var(--category-input)',
+    },
+    ai: {
+      className:
+        'border-[var(--category-ai)] bg-[color-mix(in_oklch,var(--category-ai)_15%,var(--card))]',
+      cssVar: 'var(--category-ai)',
+    },
+    processing: {
+      className:
+        'border-[var(--category-processing)] bg-[color-mix(in_oklch,var(--category-processing)_15%,var(--card))]',
+      cssVar: 'var(--category-processing)',
+    },
+    output: {
+      className:
+        'border-[var(--category-output)] bg-[color-mix(in_oklch,var(--category-output)_15%,var(--card))]',
+      cssVar: 'var(--category-output)',
+    },
   };
+
+  const categoryStyle = categoryStyles[nodeDef.category] ?? categoryStyles.input;
 
   return (
     <div
       className={clsx(
-        'relative min-w-[200px] rounded-lg border-2 shadow-lg transition-all',
-        'bg-[var(--card)]',
-        categoryColors[nodeDef.category],
-        isSelected && 'ring-2 ring-[var(--primary)] ring-offset-2 ring-offset-[var(--background)]',
+        'relative min-w-[220px] rounded-lg border-2 shadow-lg transition-all',
+        categoryStyle.className,
+        isSelected && 'ring-2 ring-offset-2 ring-offset-background',
         isLocked && 'opacity-60'
       )}
+      style={
+        {
+          '--node-color': categoryStyle.cssVar,
+          ...(isSelected && { '--tw-ring-color': categoryStyle.cssVar }),
+        } as React.CSSProperties
+      }
       onClick={() => selectNode(id)}
     >
       {/* Input Handles */}
@@ -133,28 +156,28 @@ function BaseNodeComponent({ id, type, data, selected, children }: BaseNodeProps
       ))}
 
       {/* Header */}
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-[var(--border)]">
-        <Icon className="w-4 h-4 text-[var(--foreground)]" />
-        <span className="text-sm font-medium text-[var(--foreground)] flex-1 truncate">
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
+        <Icon className="h-4 w-4 text-foreground" />
+        <span className="flex-1 truncate text-sm font-medium text-foreground">
           {nodeData.label}
         </span>
         {/* Lock Toggle Button */}
         <button
           onClick={handleLockToggle}
           className={clsx(
-            'p-1 rounded hover:bg-[var(--border)] transition-colors',
-            isLocked ? 'text-amber-400' : 'text-[var(--muted-foreground)]'
+            'rounded p-1 transition-colors hover:bg-secondary',
+            isLocked ? 'text-chart-3' : 'text-muted-foreground'
           )}
           title={isLocked ? 'Unlock node (L)' : 'Lock node (L)'}
         >
-          {isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
+          {isLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
         </button>
         <StatusIndicator status={nodeData.status} />
       </div>
 
       {/* Lock Badge */}
       {isLocked && (
-        <div className="absolute -top-2 -right-2 px-1.5 py-0.5 bg-amber-500 text-amber-950 text-[10px] font-bold rounded">
+        <div className="absolute -right-2 -top-2 rounded bg-chart-3 px-1.5 py-0.5 text-[10px] font-bold text-background">
           LOCKED
         </div>
       )}
@@ -165,22 +188,20 @@ function BaseNodeComponent({ id, type, data, selected, children }: BaseNodeProps
 
         {/* Progress bar */}
         {nodeData.status === 'processing' && nodeData.progress !== undefined && (
-          <div className="mt-2">
-            <div className="h-1 bg-[var(--border)] rounded-full overflow-hidden">
+          <div className="mt-3">
+            <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
               <div
-                className="h-full bg-[var(--primary)] transition-all duration-300"
+                className="h-full bg-primary transition-all duration-300"
                 style={{ width: `${nodeData.progress}%` }}
               />
             </div>
-            <span className="text-xs text-[var(--muted-foreground)] mt-1">
-              {nodeData.progress}%
-            </span>
+            <span className="mt-1 text-xs text-muted-foreground">{nodeData.progress}%</span>
           </div>
         )}
 
         {/* Error message */}
         {nodeData.error && (
-          <div className="mt-2 p-2 bg-red-500/10 border border-red-500/20 rounded text-xs text-red-400">
+          <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
             {nodeData.error}
           </div>
         )}

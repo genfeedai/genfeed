@@ -1,41 +1,41 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  EXECUTION_REPOSITORY,
+  type ExecutionEntity,
+  type IExecutionRepository,
+} from '@content-workflow/storage';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { type Model, Types } from 'mongoose';
+import type { Model } from 'mongoose';
+import { Types } from 'mongoose';
 import type {
   CostSummary,
   ExecutionCostDetails,
   JobCostBreakdown,
 } from '../cost/interfaces/cost.interface';
-import { Execution, type ExecutionDocument } from './schemas/execution.schema';
 import { Job, type JobDocument } from './schemas/job.schema';
 
 @Injectable()
 export class ExecutionsService {
   constructor(
-    @InjectModel(Execution.name) private executionModel: Model<ExecutionDocument>,
+    @Inject(EXECUTION_REPOSITORY)
+    private readonly executionRepository: IExecutionRepository,
     @InjectModel(Job.name) private jobModel: Model<JobDocument>
   ) {}
 
   // Execution methods
-  async createExecution(workflowId: string): Promise<Execution> {
-    const execution = new this.executionModel({
-      workflowId: new Types.ObjectId(workflowId),
-      status: 'pending',
-      startedAt: new Date(),
-      nodeResults: [],
+  async createExecution(workflowId: string): Promise<ExecutionEntity> {
+    return this.executionRepository.create({ workflowId });
+  }
+
+  async findExecutionsByWorkflow(workflowId: string): Promise<ExecutionEntity[]> {
+    return this.executionRepository.findByWorkflowId(workflowId, {
+      sortBy: 'createdAt',
+      sortOrder: 'desc',
     });
-    return execution.save();
   }
 
-  async findExecutionsByWorkflow(workflowId: string): Promise<Execution[]> {
-    return this.executionModel
-      .find({ workflowId: new Types.ObjectId(workflowId), isDeleted: false })
-      .sort({ createdAt: -1 })
-      .exec();
-  }
-
-  async findExecution(id: string): Promise<Execution> {
-    const execution = await this.executionModel.findOne({ _id: id, isDeleted: false }).exec();
+  async findExecution(id: string): Promise<ExecutionEntity> {
+    const execution = await this.executionRepository.findById(id);
 
     if (!execution) {
       throw new NotFoundException(`Execution with ID ${id} not found`);
@@ -44,20 +44,12 @@ export class ExecutionsService {
     return execution;
   }
 
-  async updateExecutionStatus(id: string, status: string, error?: string): Promise<Execution> {
-    const updates: Record<string, unknown> = { status };
-
-    if (status === 'completed' || status === 'failed' || status === 'cancelled') {
-      updates.completedAt = new Date();
-    }
-
-    if (error) {
-      updates.error = error;
-    }
-
-    const execution = await this.executionModel
-      .findByIdAndUpdate(id, { $set: updates }, { new: true })
-      .exec();
+  async updateExecutionStatus(
+    id: string,
+    status: string,
+    error?: string
+  ): Promise<ExecutionEntity> {
+    const execution = await this.executionRepository.updateStatus(id, status, error);
 
     if (!execution) {
       throw new NotFoundException(`Execution with ID ${id} not found`);
@@ -73,15 +65,10 @@ export class ExecutionsService {
     output?: Record<string, unknown>,
     error?: string,
     cost?: number
-  ): Promise<Execution> {
-    const execution = await this.findExecution(executionId);
-
-    // Find existing node result or create new one
-    const nodeResultIndex = execution.nodeResults.findIndex((nr) => nr.nodeId === nodeId);
-
+  ): Promise<ExecutionEntity> {
     const nodeResult = {
       nodeId,
-      status,
+      status: status as 'pending' | 'running' | 'completed' | 'failed' | 'skipped',
       output,
       error,
       cost: cost ?? 0,
@@ -89,19 +76,13 @@ export class ExecutionsService {
       completedAt: status === 'complete' || status === 'error' ? new Date() : undefined,
     };
 
-    if (nodeResultIndex >= 0) {
-      execution.nodeResults[nodeResultIndex] = {
-        ...execution.nodeResults[nodeResultIndex],
-        ...nodeResult,
-      };
-    } else {
-      execution.nodeResults.push(nodeResult as never);
+    const execution = await this.executionRepository.updateNodeResult(executionId, nodeResult);
+
+    if (!execution) {
+      throw new NotFoundException(`Execution with ID ${executionId} not found`);
     }
 
-    // Update total cost
-    execution.totalCost = execution.nodeResults.reduce((total, nr) => total + (nr.cost ?? 0), 0);
-
-    return execution.save();
+    return execution;
   }
 
   // Job methods
@@ -153,9 +134,7 @@ export class ExecutionsService {
    * Set estimated cost before execution starts
    */
   async setEstimatedCost(executionId: string, estimated: number): Promise<void> {
-    await this.executionModel.findByIdAndUpdate(executionId, {
-      $set: { 'costSummary.estimated': estimated },
-    });
+    await this.executionRepository.updateCostSummary(executionId, { estimated });
   }
 
   /**
@@ -169,12 +148,9 @@ export class ExecutionsService {
     const estimated = execution.costSummary?.estimated ?? 0;
     const variance = estimated > 0 ? ((actual - estimated) / estimated) * 100 : 0;
 
-    await this.executionModel.findByIdAndUpdate(executionId, {
-      $set: {
-        'costSummary.actual': actual,
-        'costSummary.variance': variance,
-        totalCost: actual, // Backward compatibility
-      },
+    await this.executionRepository.updateCostSummary(executionId, {
+      actual,
+      variance,
     });
   }
 
@@ -185,10 +161,10 @@ export class ExecutionsService {
     const execution = await this.findExecution(executionId);
     const jobs = await this.findJobsByExecution(executionId);
 
-    const summary: CostSummary = execution.costSummary ?? {
-      estimated: 0,
-      actual: execution.totalCost ?? 0,
-      variance: 0,
+    const summary: CostSummary = {
+      estimated: execution.costSummary?.estimated ?? 0,
+      actual: execution.costSummary?.actual ?? execution.totalCost ?? 0,
+      variance: execution.costSummary?.variance ?? 0,
     };
 
     return {

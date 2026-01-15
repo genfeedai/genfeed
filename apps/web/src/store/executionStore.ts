@@ -4,8 +4,10 @@ import type {
   NodeType,
   TweetInputNodeData,
   TweetRemixNodeData,
+  ValidationResult,
 } from '@content-workflow/types';
 import { create } from 'zustand';
+import { logger } from '@/lib/logger';
 import { useWorkflowStore } from './workflowStore';
 
 export interface Job {
@@ -24,6 +26,7 @@ interface ExecutionStore {
   currentNodeId: string | null;
   executionQueue: string[];
   completedNodes: Set<string>;
+  validationErrors: ValidationResult | null;
 
   // Job tracking
   jobs: Map<string, Job>;
@@ -37,6 +40,7 @@ interface ExecutionStore {
   executeNode: (nodeId: string) => Promise<void>;
   stopExecution: () => void;
   retryNode: (nodeId: string) => Promise<void>;
+  clearValidationErrors: () => void;
 
   // Job management
   addJob: (nodeId: string, predictionId: string) => void;
@@ -53,6 +57,7 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
   currentNodeId: null,
   executionQueue: [],
   completedNodes: new Set(),
+  validationErrors: null,
   jobs: new Map(),
   estimatedCost: 0,
   actualCost: 0,
@@ -61,9 +66,20 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
     const { isRunning, getExecutionOrder, executeNode, resetExecution } = get();
     if (isRunning) return;
 
+    const workflowStore = useWorkflowStore.getState();
+
+    // Validate workflow before execution
+    const validation = workflowStore.validateWorkflow();
+    if (!validation.isValid) {
+      set({ validationErrors: validation });
+      return;
+    }
+
+    // Clear any previous validation errors
+    set({ validationErrors: null });
+
     resetExecution();
     const order = getExecutionOrder();
-    const workflowStore = useWorkflowStore.getState();
 
     set({
       isRunning: true,
@@ -94,7 +110,7 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
       try {
         await executeNode(nodeId);
       } catch (error) {
-        console.error(`Error executing node ${nodeId}:`, error);
+        logger.error(`Error executing node ${nodeId}`, error, { context: 'ExecutionStore' });
         // Continue with other nodes or stop based on error type
       }
     }
@@ -271,6 +287,10 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
       currentNodeId: null,
       executionQueue: [],
     });
+  },
+
+  clearValidationErrors: () => {
+    set({ validationErrors: null });
   },
 
   retryNode: async (nodeId) => {

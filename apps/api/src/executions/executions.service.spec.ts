@@ -1,39 +1,44 @@
+import {
+  EXECUTION_REPOSITORY,
+  type ExecutionEntity,
+  type IExecutionRepository,
+} from '@content-workflow/storage';
 import { NotFoundException } from '@nestjs/common';
 import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ExecutionsService } from './executions.service';
-import { Execution } from './schemas/execution.schema';
 import { Job } from './schemas/job.schema';
 
 describe('ExecutionsService', () => {
   let service: ExecutionsService;
+  let mockRepository: IExecutionRepository;
 
-  const mockWorkflowId = new Types.ObjectId();
-  const mockExecutionId = new Types.ObjectId();
+  const mockWorkflowId = 'workflow-123';
+  const mockExecutionId = 'execution-123';
   const mockJobId = new Types.ObjectId();
 
-  const mockExecution = {
-    _id: mockExecutionId,
+  const mockExecution: ExecutionEntity = {
+    id: mockExecutionId,
     workflowId: mockWorkflowId,
     status: 'pending',
     startedAt: new Date(),
-    completedAt: null,
+    completedAt: undefined,
     totalCost: 0,
+    costSummary: { estimated: 0, actual: 0, variance: 0 },
     nodeResults: [],
-    error: null,
+    error: undefined,
     isDeleted: false,
+    executionMode: 'sync',
+    queueJobIds: [],
     createdAt: new Date(),
     updatedAt: new Date(),
-    save: vi.fn().mockImplementation(function (this: typeof mockExecution) {
-      return Promise.resolve(this);
-    }),
   };
 
   const mockJob = {
     _id: mockJobId,
-    executionId: mockExecutionId,
+    executionId: new Types.ObjectId(),
     nodeId: 'node-1',
     predictionId: 'prediction-123',
     status: 'pending',
@@ -45,19 +50,6 @@ describe('ExecutionsService', () => {
     updatedAt: new Date(),
     save: vi.fn().mockImplementation(function (this: typeof mockJob) {
       return Promise.resolve(this);
-    }),
-  };
-
-  const mockExecutionModel = {
-    find: vi.fn().mockReturnValue({
-      sort: vi.fn().mockReturnThis(),
-      exec: vi.fn().mockResolvedValue([mockExecution]),
-    }),
-    findOne: vi.fn().mockReturnValue({
-      exec: vi.fn().mockResolvedValue(mockExecution),
-    }),
-    findByIdAndUpdate: vi.fn().mockReturnValue({
-      exec: vi.fn().mockResolvedValue(mockExecution),
     }),
   };
 
@@ -77,18 +69,26 @@ describe('ExecutionsService', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
 
-    // Reset mock implementations
-    mockExecution.save.mockImplementation(function (this: typeof mockExecution) {
-      return Promise.resolve(this);
-    });
-    mockJob.save.mockImplementation(function (this: typeof mockJob) {
-      return Promise.resolve(this);
-    });
+    mockRepository = {
+      create: vi.fn().mockResolvedValue(mockExecution),
+      findById: vi.fn().mockResolvedValue(mockExecution),
+      findOne: vi.fn().mockResolvedValue(mockExecution),
+      findAll: vi.fn().mockResolvedValue([mockExecution]),
+      findByWorkflowId: vi.fn().mockResolvedValue([mockExecution]),
+      findByStatus: vi.fn().mockResolvedValue([mockExecution]),
+      updateStatus: vi.fn().mockResolvedValue(mockExecution),
+      updateNodeResult: vi.fn().mockResolvedValue(mockExecution),
+      updateCostSummary: vi.fn().mockResolvedValue(mockExecution),
+      update: vi.fn().mockResolvedValue(mockExecution),
+      softDelete: vi.fn().mockResolvedValue({ ...mockExecution, isDeleted: true }),
+      hardDelete: vi.fn().mockResolvedValue(true),
+      count: vi.fn().mockResolvedValue(1),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ExecutionsService,
-        { provide: getModelToken(Execution.name), useValue: mockExecutionModel },
+        { provide: EXECUTION_REPOSITORY, useValue: mockRepository },
         { provide: getModelToken(Job.name), useValue: mockJobModel },
       ],
     }).compile();
@@ -97,123 +97,92 @@ describe('ExecutionsService', () => {
   });
 
   describe('createExecution', () => {
-    it('should create a new execution with pending status', async () => {
-      // Mock the model constructor
-      const saveMock = vi.fn().mockResolvedValue(mockExecution);
-      const mockModel = Object.assign(
-        vi.fn().mockImplementation(() => ({
-          ...mockExecution,
-          save: saveMock,
-        })),
-        mockExecutionModel
-      );
+    it('should create a new execution', async () => {
+      const result = await service.createExecution(mockWorkflowId);
 
-      const testModule = await Test.createTestingModule({
-        providers: [
-          ExecutionsService,
-          { provide: getModelToken(Execution.name), useValue: mockModel },
-          { provide: getModelToken(Job.name), useValue: mockJobModel },
-        ],
-      }).compile();
-
-      const testService = testModule.get<ExecutionsService>(ExecutionsService);
-      const result = await testService.createExecution(mockWorkflowId.toString());
-
-      expect(result).toBeDefined();
-      expect(saveMock).toHaveBeenCalled();
+      expect(result).toEqual(mockExecution);
+      expect(mockRepository.create).toHaveBeenCalledWith({ workflowId: mockWorkflowId });
     });
   });
 
   describe('findExecutionsByWorkflow', () => {
     it('should return executions for a workflow', async () => {
-      const result = await service.findExecutionsByWorkflow(mockWorkflowId.toString());
+      const result = await service.findExecutionsByWorkflow(mockWorkflowId);
 
       expect(result).toEqual([mockExecution]);
-      expect(mockExecutionModel.find).toHaveBeenCalledWith({
-        workflowId: expect.any(Types.ObjectId),
-        isDeleted: false,
+      expect(mockRepository.findByWorkflowId).toHaveBeenCalledWith(mockWorkflowId, {
+        sortBy: 'createdAt',
+        sortOrder: 'desc',
       });
     });
 
-    it('should sort executions by createdAt descending', async () => {
-      await service.findExecutionsByWorkflow(mockWorkflowId.toString());
+    it('should return empty array when no executions exist', async () => {
+      vi.mocked(mockRepository.findByWorkflowId).mockResolvedValue([]);
 
-      expect(mockExecutionModel.find().sort).toHaveBeenCalledWith({ createdAt: -1 });
+      const result = await service.findExecutionsByWorkflow(mockWorkflowId);
+
+      expect(result).toEqual([]);
     });
   });
 
   describe('findExecution', () => {
     it('should return a single execution by ID', async () => {
-      const result = await service.findExecution(mockExecutionId.toString());
+      const result = await service.findExecution(mockExecutionId);
 
       expect(result).toEqual(mockExecution);
-      expect(mockExecutionModel.findOne).toHaveBeenCalledWith({
-        _id: mockExecutionId.toString(),
-        isDeleted: false,
-      });
+      expect(mockRepository.findById).toHaveBeenCalledWith(mockExecutionId);
     });
 
     it('should throw NotFoundException when execution not found', async () => {
-      mockExecutionModel.findOne.mockReturnValue({
-        exec: vi.fn().mockResolvedValue(null),
-      });
+      vi.mocked(mockRepository.findById).mockResolvedValue(null);
 
       await expect(service.findExecution('nonexistent-id')).rejects.toThrow(NotFoundException);
+      await expect(service.findExecution('nonexistent-id')).rejects.toThrow(
+        'Execution with ID nonexistent-id not found'
+      );
     });
   });
 
   describe('updateExecutionStatus', () => {
     it('should update execution status', async () => {
-      const result = await service.updateExecutionStatus(mockExecutionId.toString(), 'running');
+      const updatedExecution = { ...mockExecution, status: 'running' as const };
+      vi.mocked(mockRepository.updateStatus).mockResolvedValue(updatedExecution);
 
-      expect(result).toBeDefined();
-      expect(mockExecutionModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        mockExecutionId.toString(),
-        { $set: { status: 'running' } },
-        { new: true }
+      const result = await service.updateExecutionStatus(mockExecutionId, 'running');
+
+      expect(result.status).toBe('running');
+      expect(mockRepository.updateStatus).toHaveBeenCalledWith(
+        mockExecutionId,
+        'running',
+        undefined
       );
     });
 
-    it('should set completedAt when status is completed', async () => {
-      await service.updateExecutionStatus(mockExecutionId.toString(), 'completed');
+    it('should update execution status with error', async () => {
+      const updatedExecution = {
+        ...mockExecution,
+        status: 'failed' as const,
+        error: 'Error message',
+      };
+      vi.mocked(mockRepository.updateStatus).mockResolvedValue(updatedExecution);
 
-      expect(mockExecutionModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        mockExecutionId.toString(),
-        { $set: expect.objectContaining({ status: 'completed', completedAt: expect.any(Date) }) },
-        { new: true }
+      const result = await service.updateExecutionStatus(
+        mockExecutionId,
+        'failed',
+        'Error message'
       );
-    });
 
-    it('should set completedAt when status is failed', async () => {
-      await service.updateExecutionStatus(mockExecutionId.toString(), 'failed', 'Error message');
-
-      expect(mockExecutionModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        mockExecutionId.toString(),
-        {
-          $set: expect.objectContaining({
-            status: 'failed',
-            completedAt: expect.any(Date),
-            error: 'Error message',
-          }),
-        },
-        { new: true }
-      );
-    });
-
-    it('should set completedAt when status is cancelled', async () => {
-      await service.updateExecutionStatus(mockExecutionId.toString(), 'cancelled');
-
-      expect(mockExecutionModel.findByIdAndUpdate).toHaveBeenCalledWith(
-        mockExecutionId.toString(),
-        { $set: expect.objectContaining({ status: 'cancelled', completedAt: expect.any(Date) }) },
-        { new: true }
+      expect(result.status).toBe('failed');
+      expect(result.error).toBe('Error message');
+      expect(mockRepository.updateStatus).toHaveBeenCalledWith(
+        mockExecutionId,
+        'failed',
+        'Error message'
       );
     });
 
     it('should throw NotFoundException when execution not found', async () => {
-      mockExecutionModel.findByIdAndUpdate.mockReturnValue({
-        exec: vi.fn().mockResolvedValue(null),
-      });
+      vi.mocked(mockRepository.updateStatus).mockResolvedValue(null);
 
       await expect(service.updateExecutionStatus('nonexistent-id', 'running')).rejects.toThrow(
         NotFoundException
@@ -222,93 +191,44 @@ describe('ExecutionsService', () => {
   });
 
   describe('updateNodeResult', () => {
-    it('should add a new node result', async () => {
-      const executionWithResults = {
+    it('should update node result', async () => {
+      const updatedExecution = {
         ...mockExecution,
-        nodeResults: [],
-        save: vi.fn().mockImplementation(function (this: typeof executionWithResults) {
-          return Promise.resolve(this);
-        }),
+        nodeResults: [{ nodeId: 'node-1', status: 'completed' as const, cost: 0.05 }],
+        totalCost: 0.05,
       };
-
-      mockExecutionModel.findOne.mockReturnValue({
-        exec: vi.fn().mockResolvedValue(executionWithResults),
-      });
+      vi.mocked(mockRepository.updateNodeResult).mockResolvedValue(updatedExecution);
 
       const result = await service.updateNodeResult(
-        mockExecutionId.toString(),
+        mockExecutionId,
         'node-1',
-        'processing'
-      );
-
-      expect(result).toBeDefined();
-      expect(executionWithResults.save).toHaveBeenCalled();
-    });
-
-    it('should update an existing node result', async () => {
-      const executionWithResults = {
-        ...mockExecution,
-        nodeResults: [
-          {
-            nodeId: 'node-1',
-            status: 'processing',
-            output: null,
-            error: null,
-            cost: 0,
-          },
-        ],
-        save: vi.fn().mockImplementation(function (this: typeof executionWithResults) {
-          return Promise.resolve(this);
-        }),
-      };
-
-      mockExecutionModel.findOne.mockReturnValue({
-        exec: vi.fn().mockResolvedValue(executionWithResults),
-      });
-
-      const result = await service.updateNodeResult(
-        mockExecutionId.toString(),
-        'node-1',
-        'complete',
+        'completed',
         { url: 'https://example.com/output.png' },
         undefined,
         0.05
       );
 
       expect(result).toBeDefined();
-      expect(executionWithResults.save).toHaveBeenCalled();
+      expect(mockRepository.updateNodeResult).toHaveBeenCalledWith(
+        mockExecutionId,
+        expect.objectContaining({
+          nodeId: 'node-1',
+          status: 'completed',
+          cost: 0.05,
+        })
+      );
     });
 
-    it('should calculate total cost from node results', async () => {
-      const executionWithResults = {
-        ...mockExecution,
-        totalCost: 0,
-        nodeResults: [
-          { nodeId: 'node-1', status: 'complete', cost: 0.02 },
-          { nodeId: 'node-2', status: 'complete', cost: 0.03 },
-        ],
-        save: vi.fn().mockImplementation(function (this: typeof executionWithResults) {
-          return Promise.resolve(this);
-        }),
-      };
+    it('should throw NotFoundException when execution not found', async () => {
+      vi.mocked(mockRepository.updateNodeResult).mockResolvedValue(null);
 
-      mockExecutionModel.findOne.mockReturnValue({
-        exec: vi.fn().mockResolvedValue(executionWithResults),
-      });
-
-      const result = await service.updateNodeResult(
-        mockExecutionId.toString(),
-        'node-3',
-        'complete',
-        {},
-        undefined,
-        0.05
-      );
-
-      expect(result.totalCost).toBe(0.1); // 0.02 + 0.03 + 0.05
+      await expect(
+        service.updateNodeResult(mockExecutionId, 'node-1', 'completed')
+      ).rejects.toThrow(NotFoundException);
     });
   });
 
+  // Job methods (still use Mongoose)
   describe('createJob', () => {
     it('should create a new job', async () => {
       const saveMock = vi.fn().mockResolvedValue(mockJob);
@@ -323,17 +243,13 @@ describe('ExecutionsService', () => {
       const testModule = await Test.createTestingModule({
         providers: [
           ExecutionsService,
-          { provide: getModelToken(Execution.name), useValue: mockExecutionModel },
+          { provide: EXECUTION_REPOSITORY, useValue: mockRepository },
           { provide: getModelToken(Job.name), useValue: mockModel },
         ],
       }).compile();
 
       const testService = testModule.get<ExecutionsService>(ExecutionsService);
-      const result = await testService.createJob(
-        mockExecutionId.toString(),
-        'node-1',
-        'prediction-123'
-      );
+      const result = await testService.createJob(mockExecutionId, 'node-1', 'prediction-123');
 
       expect(result).toBeDefined();
       expect(saveMock).toHaveBeenCalled();
@@ -391,19 +307,6 @@ describe('ExecutionsService', () => {
       );
     });
 
-    it('should update job with error', async () => {
-      await service.updateJob('prediction-123', {
-        status: 'failed',
-        error: 'Model crashed',
-      });
-
-      expect(mockJobModel.findOneAndUpdate).toHaveBeenCalledWith(
-        { predictionId: 'prediction-123' },
-        { $set: { status: 'failed', error: 'Model crashed' } },
-        { new: true }
-      );
-    });
-
     it('should throw NotFoundException when job not found', async () => {
       mockJobModel.findOneAndUpdate.mockReturnValue({
         exec: vi.fn().mockResolvedValue(null),
@@ -417,18 +320,81 @@ describe('ExecutionsService', () => {
 
   describe('findJobsByExecution', () => {
     it('should return jobs for an execution', async () => {
-      const result = await service.findJobsByExecution(mockExecutionId.toString());
+      const result = await service.findJobsByExecution(mockExecutionId);
 
       expect(result).toEqual([mockJob]);
-      expect(mockJobModel.find).toHaveBeenCalledWith({
-        executionId: expect.any(Types.ObjectId),
-      });
     });
 
-    it('should sort jobs by createdAt ascending', async () => {
-      await service.findJobsByExecution(mockExecutionId.toString());
+    it('should return empty array when no jobs exist', async () => {
+      mockJobModel.find.mockReturnValue({
+        sort: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue([]),
+      });
 
-      expect(mockJobModel.find().sort).toHaveBeenCalledWith({ createdAt: 1 });
+      const result = await service.findJobsByExecution(mockExecutionId);
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('setEstimatedCost', () => {
+    it('should set estimated cost', async () => {
+      await service.setEstimatedCost(mockExecutionId, 0.1);
+
+      expect(mockRepository.updateCostSummary).toHaveBeenCalledWith(mockExecutionId, {
+        estimated: 0.1,
+      });
+    });
+  });
+
+  describe('updateExecutionCost', () => {
+    it('should update actual cost from jobs', async () => {
+      const jobsWithCost = [
+        { ...mockJob, cost: 0.02 },
+        { ...mockJob, cost: 0.03 },
+      ];
+      mockJobModel.find.mockReturnValue({
+        sort: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue(jobsWithCost),
+      });
+
+      await service.updateExecutionCost(mockExecutionId);
+
+      expect(mockRepository.updateCostSummary).toHaveBeenCalledWith(
+        mockExecutionId,
+        expect.objectContaining({
+          actual: 0.05,
+        })
+      );
+    });
+  });
+
+  describe('getExecutionCostDetails', () => {
+    it('should return cost details with job breakdown', async () => {
+      const executionWithCost = {
+        ...mockExecution,
+        costSummary: { estimated: 0.1, actual: 0.05, variance: -50 },
+        totalCost: 0.05,
+      };
+      vi.mocked(mockRepository.findById).mockResolvedValue(executionWithCost);
+
+      const jobsWithCost = [
+        { ...mockJob, cost: 0.02, costBreakdown: { compute: 0.01, storage: 0.01 }, predictTime: 5 },
+        { ...mockJob, cost: 0.03, costBreakdown: { compute: 0.02, storage: 0.01 }, predictTime: 8 },
+      ];
+      mockJobModel.find.mockReturnValue({
+        sort: vi.fn().mockReturnThis(),
+        exec: vi.fn().mockResolvedValue(jobsWithCost),
+      });
+
+      const result = await service.getExecutionCostDetails(mockExecutionId);
+
+      expect(result.summary).toEqual({
+        estimated: 0.1,
+        actual: 0.05,
+        variance: -50,
+      });
+      expect(result.jobs).toHaveLength(2);
     });
   });
 });

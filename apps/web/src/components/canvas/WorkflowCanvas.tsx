@@ -223,10 +223,13 @@ export function WorkflowCanvas() {
         selectionMode={SelectionMode.Partial}
         selectionOnDrag
         panOnDrag={[1, 2]} // Middle/right mouse for pan
+        deleteKeyCode={['Backspace', 'Delete']}
         defaultEdgeOptions={{
           type: 'smoothstep',
           animated: false,
         }}
+        edgesFocusable
+        edgesReconnectable
         proOptions={{ hideAttribution: true }}
       >
         <GroupOverlay />

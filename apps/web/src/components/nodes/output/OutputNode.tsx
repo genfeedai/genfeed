@@ -3,7 +3,9 @@
 import type { OutputNodeData } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { CheckCircle, Download } from 'lucide-react';
+import Image from 'next/image';
 import { memo } from 'react';
+import { Button } from '@/components/ui/button';
 import { BaseNode } from '../BaseNode';
 
 function OutputNodeComponent(props: NodeProps) {
@@ -30,39 +32,39 @@ function OutputNodeComponent(props: NodeProps) {
             {nodeData.inputType === 'video' ? (
               <video
                 src={nodeData.inputMedia}
-                className="w-full h-32 object-cover rounded"
+                className="h-32 w-full rounded-md object-cover"
                 controls
               />
             ) : nodeData.inputType === 'image' ? (
-              <img
+              <Image
                 src={nodeData.inputMedia}
                 alt="Output"
-                className="w-full h-32 object-cover rounded"
+                width={200}
+                height={128}
+                className="h-32 w-full rounded-md object-cover"
+                unoptimized
               />
             ) : (
-              <div className="p-2 bg-[var(--background)] rounded border border-[var(--border)] text-sm max-h-32 overflow-y-auto">
+              <div className="max-h-32 overflow-y-auto rounded-md border border-border bg-background p-2 text-sm">
                 {String(nodeData.inputMedia)}
               </div>
             )}
 
             {/* Success indicator */}
-            <div className="flex items-center gap-2 text-green-400">
-              <CheckCircle className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-chart-2">
+              <CheckCircle className="h-4 w-4" />
               <span className="text-sm">Output Ready</span>
             </div>
 
             {/* Download button */}
-            <button
-              onClick={handleDownload}
-              className="w-full py-2 bg-[var(--accent)] text-white rounded text-sm font-medium hover:opacity-90 transition flex items-center justify-center gap-2"
-            >
-              <Download className="w-4 h-4" />
+            <Button className="w-full" onClick={handleDownload}>
+              <Download className="h-4 w-4" />
               Download
-            </button>
+            </Button>
           </>
         ) : (
-          <div className="h-32 flex flex-col items-center justify-center text-[var(--muted-foreground)]">
-            <CheckCircle className="w-8 h-8 mb-2 opacity-30" />
+          <div className="flex h-32 flex-col items-center justify-center text-muted-foreground">
+            <CheckCircle className="mb-2 h-8 w-8 opacity-30" />
             <span className="text-sm">Waiting for input...</span>
           </div>
         )}

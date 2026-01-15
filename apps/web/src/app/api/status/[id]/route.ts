@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { getPredictionStatus } from '@/lib/replicate/client';
-import { getWebhookResult } from '../../replicate/webhook/route';
+import { getWebhookResult } from '@/lib/replicate/webhook-store';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

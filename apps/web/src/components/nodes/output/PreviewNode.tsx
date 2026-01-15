@@ -3,7 +3,9 @@
 import type { PreviewNodeData } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { Pause, Play, Volume2, VolumeX } from 'lucide-react';
+import Image from 'next/image';
 import { memo, useCallback, useRef } from 'react';
+import { Button } from '@/components/ui/button';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { BaseNode } from '../BaseNode';
 
@@ -14,13 +16,21 @@ function PreviewNodeComponent(props: NodeProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const handlePlayPause = useCallback(() => {
-    if (videoRef.current) {
-      if (nodeData.isPlaying) {
-        videoRef.current.pause();
-      } else {
-        videoRef.current.play();
-      }
-      updateNodeData<PreviewNodeData>(id, { isPlaying: !nodeData.isPlaying });
+    if (!videoRef.current) return;
+
+    if (nodeData.isPlaying) {
+      videoRef.current.pause();
+      updateNodeData<PreviewNodeData>(id, { isPlaying: false });
+    } else {
+      videoRef.current
+        .play()
+        .then(() => {
+          updateNodeData<PreviewNodeData>(id, { isPlaying: true });
+        })
+        .catch(() => {
+          // Play failed (e.g., user interaction required, media error)
+          updateNodeData<PreviewNodeData>(id, { isPlaying: false });
+        });
     }
   }, [id, nodeData.isPlaying, updateNodeData]);
 
@@ -41,43 +51,40 @@ function PreviewNodeComponent(props: NodeProps) {
               <video
                 ref={videoRef}
                 src={nodeData.inputMedia}
-                className="w-full h-32 object-cover rounded"
+                className="h-32 w-full rounded-md object-cover"
                 loop
                 onPlay={() => updateNodeData<PreviewNodeData>(id, { isPlaying: true })}
                 onPause={() => updateNodeData<PreviewNodeData>(id, { isPlaying: false })}
               />
-              <div className="absolute bottom-1 left-1 right-1 flex gap-1">
-                <button
-                  onClick={handlePlayPause}
-                  className="p-1.5 bg-black/70 rounded hover:bg-black/90 transition"
-                >
+              <div className="absolute bottom-1.5 left-1.5 right-1.5 flex gap-1">
+                <Button variant="secondary" size="icon-sm" onClick={handlePlayPause}>
                   {nodeData.isPlaying ? (
-                    <Pause className="w-3 h-3" />
+                    <Pause className="h-3 w-3" />
                   ) : (
-                    <Play className="w-3 h-3" />
+                    <Play className="h-3 w-3" />
                   )}
-                </button>
-                <button
-                  onClick={handleVolumeToggle}
-                  className="p-1.5 bg-black/70 rounded hover:bg-black/90 transition"
-                >
+                </Button>
+                <Button variant="secondary" size="icon-sm" onClick={handleVolumeToggle}>
                   {nodeData.volume > 0 ? (
-                    <Volume2 className="w-3 h-3" />
+                    <Volume2 className="h-3 w-3" />
                   ) : (
-                    <VolumeX className="w-3 h-3" />
+                    <VolumeX className="h-3 w-3" />
                   )}
-                </button>
+                </Button>
               </div>
             </div>
           ) : (
-            <img
+            <Image
               src={nodeData.inputMedia}
               alt="Preview"
-              className="w-full h-32 object-cover rounded"
+              width={200}
+              height={128}
+              className="h-32 w-full rounded-md object-cover"
+              unoptimized
             />
           )
         ) : (
-          <div className="h-32 flex items-center justify-center text-[var(--muted-foreground)] text-sm">
+          <div className="flex h-32 items-center justify-center text-sm text-muted-foreground">
             No preview available
           </div>
         )}

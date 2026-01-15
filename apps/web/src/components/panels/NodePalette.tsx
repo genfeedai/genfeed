@@ -40,11 +40,27 @@ const CATEGORY_LABELS: Record<NodeCategory, string> = {
   output: 'Output',
 };
 
-const CATEGORY_COLORS: Record<NodeCategory, string> = {
-  input: 'bg-emerald-500/20 text-emerald-400',
-  ai: 'bg-purple-500/20 text-purple-400',
-  processing: 'bg-blue-500/20 text-blue-400',
-  output: 'bg-amber-500/20 text-amber-400',
+const CATEGORY_COLORS: Record<NodeCategory, { icon: string; hover: string; cssVar: string }> = {
+  input: {
+    icon: 'bg-[var(--category-input)]/20 text-[var(--category-input)]',
+    hover: 'hover:border-[var(--category-input)]',
+    cssVar: 'var(--category-input)',
+  },
+  ai: {
+    icon: 'bg-[var(--category-ai)]/20 text-[var(--category-ai)]',
+    hover: 'hover:border-[var(--category-ai)]',
+    cssVar: 'var(--category-ai)',
+  },
+  processing: {
+    icon: 'bg-[var(--category-processing)]/20 text-[var(--category-processing)]',
+    hover: 'hover:border-[var(--category-processing)]',
+    cssVar: 'var(--category-processing)',
+  },
+  output: {
+    icon: 'bg-[var(--category-output)]/20 text-[var(--category-output)]',
+    hover: 'hover:border-[var(--category-output)]',
+    cssVar: 'var(--category-output)',
+  },
 };
 
 interface NodeCardProps {
@@ -66,14 +82,16 @@ function NodeCard({ type, label, description, icon, category }: NodeCardProps) {
     [type]
   );
 
+  const colors = CATEGORY_COLORS[category];
+
   return (
     <div
       draggable
       onDragStart={handleDragStart}
-      className="p-3 bg-[var(--card)] border border-[var(--border)] rounded-lg cursor-grab hover:border-[var(--primary)] transition-colors group"
+      className={`p-3 bg-[var(--card)] border border-[var(--border)] rounded-lg cursor-grab transition-colors group ${colors.hover}`}
     >
       <div className="flex items-start gap-3">
-        <div className={`p-2 rounded ${CATEGORY_COLORS[category]}`}>
+        <div className={`p-2 rounded ${colors.icon}`}>
           <Icon className="w-4 h-4" />
         </div>
         <div className="flex-1 min-w-0">
@@ -100,7 +118,7 @@ function CategorySection({ category, isExpanded, onToggle }: CategorySectionProp
     <div className="border-b border-[var(--border)] last:border-0">
       <button
         onClick={onToggle}
-        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[var(--secondary)] transition"
+        className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[var(--secondary)] transition cursor-pointer"
       >
         {isExpanded ? (
           <ChevronDown className="w-4 h-4 text-[var(--muted-foreground)]" />

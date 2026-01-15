@@ -1,29 +1,36 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
+import {
+  type IWorkflowRepository,
+  WORKFLOW_REPOSITORY,
+  type WorkflowEntity,
+} from '@content-workflow/storage';
+import { Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { CreateWorkflowDto } from './dto/create-workflow.dto';
 import type { UpdateWorkflowDto } from './dto/update-workflow.dto';
-import { Workflow, type WorkflowDocument } from './schemas/workflow.schema';
 
 @Injectable()
 export class WorkflowsService {
-  constructor(@InjectModel(Workflow.name) private workflowModel: Model<WorkflowDocument>) {}
+  constructor(
+    @Inject(WORKFLOW_REPOSITORY)
+    private readonly workflowRepository: IWorkflowRepository
+  ) {}
 
-  async create(createWorkflowDto: CreateWorkflowDto): Promise<Workflow> {
-    const workflow = new this.workflowModel({
-      ...createWorkflowDto,
-      nodes: createWorkflowDto.nodes ?? [],
-      edges: createWorkflowDto.edges ?? [],
+  async create(createWorkflowDto: CreateWorkflowDto): Promise<WorkflowEntity> {
+    return this.workflowRepository.create({
+      name: createWorkflowDto.name,
+      description: createWorkflowDto.description,
+      nodes: createWorkflowDto.nodes,
+      edges: createWorkflowDto.edges,
+      edgeStyle: createWorkflowDto.edgeStyle,
+      groups: createWorkflowDto.groups,
     });
-    return workflow.save();
   }
 
-  async findAll(): Promise<Workflow[]> {
-    return this.workflowModel.find({ isDeleted: false }).sort({ updatedAt: -1 }).exec();
+  async findAll(): Promise<WorkflowEntity[]> {
+    return this.workflowRepository.findAllActive({ sortBy: 'updatedAt', sortOrder: 'desc' });
   }
 
-  async findOne(id: string): Promise<Workflow> {
-    const workflow = await this.workflowModel.findOne({ _id: id, isDeleted: false }).exec();
+  async findOne(id: string): Promise<WorkflowEntity> {
+    const workflow = await this.workflowRepository.findById(id);
 
     if (!workflow) {
       throw new NotFoundException(`Workflow with ID ${id} not found`);
@@ -32,10 +39,8 @@ export class WorkflowsService {
     return workflow;
   }
 
-  async update(id: string, updateWorkflowDto: UpdateWorkflowDto): Promise<Workflow> {
-    const workflow = await this.workflowModel
-      .findOneAndUpdate({ _id: id, isDeleted: false }, { $set: updateWorkflowDto }, { new: true })
-      .exec();
+  async update(id: string, updateWorkflowDto: UpdateWorkflowDto): Promise<WorkflowEntity> {
+    const workflow = await this.workflowRepository.update(id, updateWorkflowDto);
 
     if (!workflow) {
       throw new NotFoundException(`Workflow with ID ${id} not found`);
@@ -44,10 +49,8 @@ export class WorkflowsService {
     return workflow;
   }
 
-  async remove(id: string): Promise<Workflow> {
-    const workflow = await this.workflowModel
-      .findOneAndUpdate({ _id: id, isDeleted: false }, { $set: { isDeleted: true } }, { new: true })
-      .exec();
+  async remove(id: string): Promise<WorkflowEntity> {
+    const workflow = await this.workflowRepository.softDelete(id);
 
     if (!workflow) {
       throw new NotFoundException(`Workflow with ID ${id} not found`);
@@ -56,17 +59,7 @@ export class WorkflowsService {
     return workflow;
   }
 
-  async duplicate(id: string): Promise<Workflow> {
-    const original = await this.findOne(id);
-
-    const duplicateData = {
-      name: `${original.name} (Copy)`,
-      description: original.description,
-      nodes: original.nodes,
-      edges: original.edges,
-      edgeStyle: original.edgeStyle,
-    };
-
-    return this.create(duplicateData);
+  async duplicate(id: string): Promise<WorkflowEntity> {
+    return this.workflowRepository.duplicate(id);
   }
 }

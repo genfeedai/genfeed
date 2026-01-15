@@ -6,7 +6,10 @@ import {
   type PromptCategory,
 } from '@content-workflow/types';
 import { BookMarked, Copy, MoreVertical, Plus, Search, Sparkles, Trash2, X } from 'lucide-react';
+import Image from 'next/image';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { usePromptLibraryStore } from '@/store/promptLibraryStore';
 import { useUIStore } from '@/store/uiStore';
 import { CreatePromptModal } from './CreatePromptModal';
@@ -22,6 +25,7 @@ interface PromptCardProps {
 function PromptCard({ item, onSelect, onEdit, onDuplicate, onDelete }: PromptCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const menuId = `prompt-menu-${item._id}`;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -35,86 +39,103 @@ function PromptCard({ item, onSelect, onEdit, onDuplicate, onDelete }: PromptCar
 
   return (
     <div
-      className="group relative p-4 bg-[var(--background)] border border-[var(--border)] rounded-lg hover:border-[var(--primary)] transition cursor-pointer"
+      className="group relative cursor-pointer rounded-lg border border-border bg-background p-4 transition hover:border-primary"
       onClick={() => onSelect(item)}
     >
       {/* Thumbnail or placeholder */}
       {item.thumbnail ? (
-        <img
+        <Image
           src={item.thumbnail}
           alt={item.name}
-          className="w-full h-24 object-cover rounded mb-3"
+          width={200}
+          height={96}
+          className="mb-3 h-24 w-full rounded-md object-cover"
+          unoptimized
         />
       ) : (
-        <div className="w-full h-24 bg-[var(--secondary)] rounded mb-3 flex items-center justify-center">
-          <Sparkles className="w-8 h-8 text-[var(--muted-foreground)]" />
+        <div className="mb-3 flex h-24 w-full items-center justify-center rounded-md bg-secondary">
+          <Sparkles className="h-8 w-8 text-muted-foreground" />
         </div>
       )}
 
       {/* Content */}
-      <h3 className="font-medium text-sm text-[var(--foreground)] truncate">{item.name}</h3>
-      <p className="text-xs text-[var(--muted-foreground)] line-clamp-2 mt-1">{item.promptText}</p>
+      <h3 className="truncate text-sm font-medium text-foreground">{item.name}</h3>
+      <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{item.promptText}</p>
 
       {/* Category badge */}
-      <div className="flex items-center gap-2 mt-2">
-        <span className="text-[10px] px-1.5 py-0.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded">
+      <div className="mt-2 flex items-center gap-2">
+        <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] text-primary">
           {CATEGORY_LABELS[item.category]}
         </span>
         {item.isFeatured && (
-          <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-500 rounded">
+          <span className="rounded bg-chart-3/10 px-1.5 py-0.5 text-[10px] text-chart-3">
             Featured
           </span>
         )}
       </div>
 
       {/* Stats */}
-      <div className="flex items-center gap-3 mt-2 text-[10px] text-[var(--muted-foreground)]">
+      <div className="mt-2 flex items-center gap-3 text-[10px] text-muted-foreground">
         <span>{item.useCount} uses</span>
       </div>
 
       {/* Actions menu */}
-      <div className="absolute top-2 right-2" ref={menuRef}>
-        <button
+      <div className="absolute right-2 top-2" ref={menuRef}>
+        <Button
+          variant="ghost"
+          size="icon-sm"
           onClick={(e) => {
             e.stopPropagation();
             setShowMenu(!showMenu);
           }}
-          className="p-1 opacity-0 group-hover:opacity-100 hover:bg-[var(--secondary)] rounded transition"
+          className="opacity-0 group-hover:opacity-100"
+          aria-haspopup="menu"
+          aria-expanded={showMenu}
+          aria-controls={menuId}
+          aria-label={`Actions for ${item.name}`}
         >
-          <MoreVertical className="w-4 h-4" />
-        </button>
+          <MoreVertical className="h-4 w-4" />
+        </Button>
 
         {showMenu && (
-          <div className="absolute right-0 top-full mt-1 w-32 py-1 bg-[var(--card)] border border-[var(--border)] rounded shadow-lg z-10">
+          <div
+            id={menuId}
+            role="menu"
+            aria-label="Prompt actions"
+            className="absolute right-0 top-full z-10 mt-1 w-32 rounded-md border border-border bg-card py-1 shadow-lg"
+          >
             <button
+              role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(item);
                 setShowMenu(false);
               }}
-              className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--secondary)] flex items-center gap-2"
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-secondary"
             >
-              <BookMarked className="w-3 h-3" /> Edit
+              <BookMarked className="h-3 w-3" /> Edit
             </button>
             <button
+              role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
                 onDuplicate(item._id);
                 setShowMenu(false);
               }}
-              className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--secondary)] flex items-center gap-2"
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-secondary"
             >
-              <Copy className="w-3 h-3" /> Duplicate
+              <Copy className="h-3 w-3" /> Duplicate
             </button>
             <button
+              role="menuitem"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(item._id);
                 setShowMenu(false);
               }}
-              className="w-full px-3 py-1.5 text-left text-sm hover:bg-[var(--secondary)] text-red-400 flex items-center gap-2"
+              className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm text-destructive hover:bg-secondary"
             >
-              <Trash2 className="w-3 h-3" /> Delete
+              <Trash2 className="h-3 w-3" /> Delete
             </button>
           </div>
         )}
@@ -185,33 +206,30 @@ function PromptLibraryModalComponent() {
 
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-50" onClick={closeModal} />
-      <div className="fixed inset-4 md:inset-10 bg-[var(--card)] rounded-lg shadow-xl z-50 flex flex-col overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-black/50" onClick={closeModal} />
+      <div className="fixed inset-4 z-50 flex flex-col overflow-hidden rounded-lg bg-card shadow-xl md:inset-10">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+        <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">
-            <BookMarked className="w-5 h-5 text-[var(--primary)]" />
-            <h2 className="text-lg font-semibold text-[var(--foreground)]">Prompt Library</h2>
+            <BookMarked className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-semibold text-foreground">Prompt Library</h2>
           </div>
-          <button
-            onClick={closeModal}
-            className="p-2 hover:bg-[var(--secondary)] rounded transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
+          <Button variant="ghost" size="icon-sm" onClick={closeModal}>
+            <X className="h-5 w-5" />
+          </Button>
         </div>
 
         {/* Filters */}
-        <div className="px-6 py-4 border-b border-[var(--border)] flex items-center gap-4">
+        <div className="flex items-center gap-4 border-b border-border px-6 py-4">
           {/* Search */}
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--muted-foreground)]" />
-            <input
+          <div className="relative max-w-md flex-1">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search prompts..."
-              className="w-full pl-10 pr-4 py-2 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+              className="pl-10"
             />
           </div>
 
@@ -221,7 +239,7 @@ function PromptLibraryModalComponent() {
             onChange={(e) =>
               setCategoryFilter(e.target.value ? (e.target.value as PromptCategory) : null)
             }
-            className="px-3 py-2 bg-[var(--background)] border border-[var(--border)] rounded text-sm focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            className="flex h-9 rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             <option value="">All Categories</option>
             {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
@@ -232,36 +250,30 @@ function PromptLibraryModalComponent() {
           </select>
 
           {/* Create button */}
-          <button
-            onClick={() => openCreateModal()}
-            className="px-4 py-2 bg-[var(--primary)] text-white rounded text-sm font-medium flex items-center gap-2 hover:opacity-90 transition"
-          >
-            <Plus className="w-4 h-4" />
+          <Button onClick={() => openCreateModal()}>
+            <Plus className="h-4 w-4" />
             New Prompt
-          </button>
+          </Button>
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-auto p-6">
           {isLoading ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="animate-spin w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full" />
+            <div className="flex h-full items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
             </div>
           ) : items.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-[var(--muted-foreground)]">
-              <BookMarked className="w-12 h-12 mb-4" />
+            <div className="flex h-full flex-col items-center justify-center text-muted-foreground">
+              <BookMarked className="mb-4 h-12 w-12" />
               <p className="text-lg font-medium">No prompts yet</p>
               <p className="text-sm">Create your first prompt to get started</p>
-              <button
-                onClick={() => openCreateModal()}
-                className="mt-4 px-4 py-2 bg-[var(--primary)] text-white rounded text-sm font-medium flex items-center gap-2 hover:opacity-90 transition"
-              >
-                <Plus className="w-4 h-4" />
+              <Button className="mt-4" onClick={() => openCreateModal()}>
+                <Plus className="h-4 w-4" />
                 Create Prompt
-              </button>
+              </Button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {items.map((item) => (
                 <PromptCard
                   key={item._id}

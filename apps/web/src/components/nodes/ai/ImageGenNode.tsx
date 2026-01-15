@@ -9,7 +9,10 @@ import type {
 } from '@content-workflow/types';
 import type { NodeProps } from '@xyflow/react';
 import { RefreshCw } from 'lucide-react';
+import Image from 'next/image';
 import { memo, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { BaseNode } from '../BaseNode';
@@ -79,14 +82,14 @@ function ImageGenNodeComponent(props: NodeProps) {
 
   return (
     <BaseNode {...props}>
-      <div className="space-y-3">
+      <div className="flex flex-col gap-3">
         {/* Model Selection */}
-        <div>
-          <label className="text-xs text-[var(--muted-foreground)]">Model</label>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Model</Label>
           <select
             value={nodeData.model}
             onChange={handleModelChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             {MODELS.map((model) => (
               <option key={model.value} value={model.value}>
@@ -97,12 +100,12 @@ function ImageGenNodeComponent(props: NodeProps) {
         </div>
 
         {/* Aspect Ratio */}
-        <div>
-          <label className="text-xs text-[var(--muted-foreground)]">Aspect Ratio</label>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Aspect Ratio</Label>
           <select
             value={nodeData.aspectRatio}
             onChange={handleAspectRatioChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             {ASPECT_RATIOS.map((ratio) => (
               <option key={ratio} value={ratio}>
@@ -114,12 +117,12 @@ function ImageGenNodeComponent(props: NodeProps) {
 
         {/* Resolution (only for Pro) */}
         {nodeData.model === 'nano-banana-pro' && (
-          <div>
-            <label className="text-xs text-[var(--muted-foreground)]">Resolution</label>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Resolution</Label>
             <select
               value={nodeData.resolution}
               onChange={handleResolutionChange}
-              className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             >
               {RESOLUTIONS.map((res) => (
                 <option key={res} value={res}>
@@ -131,12 +134,12 @@ function ImageGenNodeComponent(props: NodeProps) {
         )}
 
         {/* Output Format */}
-        <div>
-          <label className="text-xs text-[var(--muted-foreground)]">Format</label>
+        <div className="space-y-1.5">
+          <Label className="text-xs">Format</Label>
           <select
             value={nodeData.outputFormat}
             onChange={handleFormatChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
           >
             {OUTPUT_FORMATS.map((format) => (
               <option key={format} value={format}>
@@ -148,19 +151,24 @@ function ImageGenNodeComponent(props: NodeProps) {
 
         {/* Output Preview */}
         {nodeData.outputImage && (
-          <div className="relative">
-            <img
+          <div className="relative mt-1">
+            <Image
               src={nodeData.outputImage}
               alt="Generated image"
-              className="w-full h-32 object-cover rounded"
+              width={200}
+              height={128}
+              className="h-32 w-full rounded-md object-cover"
+              unoptimized
             />
-            <button
+            <Button
+              variant="secondary"
+              size="icon-sm"
               onClick={handleGenerate}
               disabled={nodeData.status === 'processing'}
-              className="absolute top-1 right-1 p-1 bg-black/50 rounded-full hover:bg-black/70 transition disabled:opacity-50"
+              className="absolute right-2 top-2"
             >
-              <RefreshCw className="w-3 h-3" />
-            </button>
+              <RefreshCw className="h-3.5 w-3.5" />
+            </Button>
           </div>
         )}
 
@@ -168,7 +176,8 @@ function ImageGenNodeComponent(props: NodeProps) {
         {!nodeData.outputImage && nodeData.status !== 'processing' && (
           <button
             onClick={handleGenerate}
-            className="w-full py-2 bg-[var(--primary)] text-white rounded text-sm font-medium hover:opacity-90 transition"
+            className="mt-1 w-full py-2 rounded-md text-sm font-medium transition-opacity hover:opacity-90"
+            style={{ backgroundColor: 'var(--node-color)', color: 'var(--background)' }}
           >
             Generate Image
           </button>

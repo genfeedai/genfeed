@@ -174,7 +174,8 @@ function AnimationNodeComponent(props: NodeProps) {
         {!nodeData.outputVideo && nodeData.status !== 'processing' && (
           <button
             onClick={handleProcess}
-            className="w-full py-2 bg-[var(--primary)] text-white rounded text-sm font-medium hover:opacity-90 transition flex items-center justify-center gap-2"
+            className="w-full py-2 rounded text-sm font-medium hover:opacity-90 transition flex items-center justify-center gap-2"
+            style={{ backgroundColor: 'var(--node-color)', color: 'var(--background)' }}
           >
             <Wand2 className="w-4 h-4" />
             Apply Animation

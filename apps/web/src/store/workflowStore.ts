@@ -608,7 +608,60 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     const errors: { nodeId: string; message: string; severity: 'error' | 'warning' }[] = [];
     const warnings: { nodeId: string; message: string; severity: 'error' | 'warning' }[] = [];
 
-    // Check for disconnected required inputs
+    // Check for empty workflow
+    if (nodes.length === 0) {
+      errors.push({
+        nodeId: '',
+        message: 'Workflow is empty - add some nodes first',
+        severity: 'error',
+      });
+      return { isValid: false, errors, warnings };
+    }
+
+    // Check for no connections (unless single input node)
+    if (edges.length === 0 && nodes.length > 1) {
+      errors.push({
+        nodeId: '',
+        message: 'No connections - connect your nodes together',
+        severity: 'error',
+      });
+      return { isValid: false, errors, warnings };
+    }
+
+    // Helper to check if a node has output data
+    const hasNodeOutput = (node: WorkflowNode): boolean => {
+      const data = node.data as WorkflowNodeData & {
+        prompt?: string;
+        image?: string;
+        video?: string;
+        audio?: string;
+        rawText?: string;
+        tweetUrl?: string;
+        templateId?: string;
+        outputImage?: string;
+        outputVideo?: string;
+        outputText?: string;
+      };
+
+      switch (node.type as NodeType) {
+        case 'prompt':
+          return Boolean(data.prompt?.trim());
+        case 'imageInput':
+          return Boolean(data.image);
+        case 'videoInput':
+          return Boolean(data.video);
+        case 'audioInput':
+          return Boolean(data.audio);
+        case 'tweetInput':
+          return Boolean(data.tweetUrl?.trim() || data.rawText?.trim());
+        case 'template':
+          return Boolean(data.templateId);
+        default:
+          return true; // AI/processing nodes will produce output when executed
+      }
+    };
+
+    // Check for disconnected required inputs AND empty source data
     for (const node of nodes) {
       const nodeDef = NODE_DEFINITIONS[node.type as NodeType];
       if (!nodeDef) continue;
@@ -617,13 +670,23 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
 
       for (const input of nodeDef.inputs) {
         if (input.required) {
-          const hasConnection = incomingEdges.some((e) => e.targetHandle === input.id);
-          if (!hasConnection) {
+          const connectionEdge = incomingEdges.find((e) => e.targetHandle === input.id);
+          if (!connectionEdge) {
             errors.push({
               nodeId: node.id,
               message: `Missing required input: ${input.label}`,
               severity: 'error',
             });
+          } else {
+            // Check if source node has actual data
+            const sourceNode = nodes.find((n) => n.id === connectionEdge.source);
+            if (sourceNode && !hasNodeOutput(sourceNode)) {
+              errors.push({
+                nodeId: sourceNode.id,
+                message: `${(sourceNode.data as WorkflowNodeData).label} is empty`,
+                severity: 'error',
+              });
+            }
           }
         }
       }
