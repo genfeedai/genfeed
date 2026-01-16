@@ -5,7 +5,7 @@ import type { Model } from 'mongoose';
 import { Types } from 'mongoose';
 import { JOB_STATUS, QUEUE_NAMES } from '../queue.constants';
 import { QueueJob, type QueueJobDocument } from '../schemas/queue-job.schema';
-import type { QueueManagerService } from './queue-manager.service';
+import { QueueManagerService } from './queue-manager.service';
 
 interface StalledJob {
   _id: Types.ObjectId;

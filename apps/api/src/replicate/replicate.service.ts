@@ -1,10 +1,10 @@
 import { PRICING } from '@genfeedai/core';
 import { Injectable, Logger } from '@nestjs/common';
-import type { ConfigService } from '@nestjs/config';
+import { ConfigService } from '@nestjs/config';
 import Replicate from 'replicate';
-import type { CostCalculatorService } from '../cost/cost-calculator.service';
-import type { ExecutionsService } from '../executions/executions.service';
-import type { WorkflowsService } from '../workflows/workflows.service';
+import { CostCalculatorService } from '../cost/cost-calculator.service';
+import { ExecutionsService } from '../executions/executions.service';
+import { WorkflowsService } from '../workflows/workflows.service';
 
 // Model identifiers (Replicate official models)
 export const MODELS = {

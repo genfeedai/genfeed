@@ -1,7 +1,7 @@
 import type { ModelCapability, ProviderModel, ProviderType } from '@genfeedai/types';
 import { Controller, Get, Headers, Query } from '@nestjs/common';
-import type { FalService } from './fal.service';
-import type { HuggingFaceService } from './huggingface.service';
+import { FalService } from './fal.service';
+import { HuggingFaceService } from './huggingface.service';
 
 // Replicate models (hardcoded, actual calls go through ReplicateService)
 const REPLICATE_MODELS: ProviderModel[] = [

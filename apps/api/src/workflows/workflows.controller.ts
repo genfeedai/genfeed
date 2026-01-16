@@ -1,10 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
-import type { CostCalculatorService } from '../cost/cost-calculator.service';
+import { CostCalculatorService } from '../cost/cost-calculator.service';
 import type { CostEstimate, WorkflowNodeForCost } from '../cost/interfaces/cost.interface';
 import type { CreateWorkflowDto } from './dto/create-workflow.dto';
 import type { UpdateWorkflowDto } from './dto/update-workflow.dto';
-import type { GenerateWorkflowDto, WorkflowGeneratorService } from './workflow-generator.service';
-import type { WorkflowsService } from './workflows.service';
+import { type GenerateWorkflowDto, WorkflowGeneratorService } from './workflow-generator.service';
+import { WorkflowsService } from './workflows.service';
 
 @Controller('workflows')
 export class WorkflowsController {

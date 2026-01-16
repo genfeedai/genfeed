@@ -4,7 +4,7 @@ import type { GenerateTextDto } from './dto/generate-text.dto';
 import type { GenerateVideoDto } from './dto/generate-video.dto';
 import type { ProcessDto } from './dto/process.dto';
 import type { WebhookDto } from './dto/webhook.dto';
-import type { ReplicateService } from './replicate.service';
+import { ReplicateService } from './replicate.service';
 
 @Controller('replicate')
 export class ReplicateController {

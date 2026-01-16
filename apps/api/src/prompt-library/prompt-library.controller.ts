@@ -1,7 +1,7 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import type { CreatePromptLibraryItemDto } from './dto/create-prompt-library-item.dto';
 import type { QueryPromptLibraryDto } from './dto/query-prompt-library.dto';
-import type { PromptLibraryService } from './prompt-library.service';
+import { PromptLibraryService } from './prompt-library.service';
 
 @Controller('prompt-library')
 export class PromptLibraryController {

@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
 import type { ExecutionCostDetails } from '../cost/interfaces/cost.interface';
-import type { ExecutionsService } from './executions.service';
+import { ExecutionsService } from './executions.service';
 
 @Controller()
 export class ExecutionsController {

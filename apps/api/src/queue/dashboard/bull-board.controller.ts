@@ -5,8 +5,8 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Controller, Get, type OnModuleInit, Param, Post, Query } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { QUEUE_NAMES } from '../queue.constants';
-import type { JobRecoveryService } from '../services/job-recovery.service';
-import type { QueueManagerService } from '../services/queue-manager.service';
+import { JobRecoveryService } from '../services/job-recovery.service';
+import { QueueManagerService } from '../services/queue-manager.service';
 
 /**
  * Controller for queue management and Bull Board dashboard
