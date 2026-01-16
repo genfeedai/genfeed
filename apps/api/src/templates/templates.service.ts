@@ -1,13 +1,8 @@
-import {
-  type ITemplateRepository,
-  TEMPLATE_REPOSITORY,
-  type TemplateEntity,
-  type WorkflowEdgeEntity,
-  type WorkflowNodeEntity,
-} from '@genfeedai/storage';
-import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
-import { throwIfNotFound } from '../common/utils';
+import { Injectable, Logger, NotFoundException, type OnModuleInit } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import type { Model } from 'mongoose';
 import type { CreateTemplateDto } from './dto/create-template.dto';
+import { Template, type TemplateDocument } from './schemas/template.schema';
 import { SYSTEM_TEMPLATES } from './templates.seed';
 
 @Injectable()
@@ -15,8 +10,8 @@ export class TemplatesService implements OnModuleInit {
   private readonly logger = new Logger(TemplatesService.name);
 
   constructor(
-    @Inject(TEMPLATE_REPOSITORY)
-    private readonly templateRepository: ITemplateRepository
+    @InjectModel(Template.name)
+    private readonly templateModel: Model<TemplateDocument>
   ) {}
 
   async onModuleInit() {
@@ -25,60 +20,64 @@ export class TemplatesService implements OnModuleInit {
 
   async seedSystemTemplates(): Promise<void> {
     for (const template of SYSTEM_TEMPLATES) {
-      await this.templateRepository.upsertSystemTemplate({
-        ...template,
-        isSystem: true,
-      });
+      const existing = await this.templateModel
+        .findOne({ name: template.name, isSystem: true })
+        .exec();
+
+      if (existing) {
+        await this.templateModel.updateOne({ _id: existing._id }, { $set: template }).exec();
+      } else {
+        await this.templateModel.create({ ...template, isSystem: true });
+      }
       this.logger.log(`Seeded template: ${template.name}`);
     }
   }
 
-  async create(createTemplateDto: CreateTemplateDto): Promise<TemplateEntity> {
-    return this.templateRepository.create({
-      name: createTemplateDto.name,
-      description: createTemplateDto.description,
-      category: createTemplateDto.category,
-      nodes: (createTemplateDto.nodes ?? []) as unknown as WorkflowNodeEntity[],
-      edges: (createTemplateDto.edges ?? []) as unknown as WorkflowEdgeEntity[],
-      thumbnail: createTemplateDto.thumbnail,
+  async create(dto: CreateTemplateDto): Promise<TemplateDocument> {
+    const template = new this.templateModel({
+      name: dto.name,
+      description: dto.description ?? '',
+      category: dto.category,
+      nodes: dto.nodes ?? [],
+      edges: dto.edges ?? [],
+      thumbnail: dto.thumbnail,
     });
+    return template.save();
   }
 
-  async findAll(category?: string): Promise<TemplateEntity[]> {
+  async findAll(category?: string): Promise<TemplateDocument[]> {
+    const filter: Record<string, unknown> = { isDeleted: false };
     if (category && category !== 'all') {
-      return this.templateRepository.findByCategory(category, {
-        sortBy: 'name',
-        sortOrder: 'asc',
-      });
+      filter.category = category;
     }
-    return this.templateRepository.findAll({
-      sortBy: 'name',
-      sortOrder: 'asc',
-    });
+    return this.templateModel.find(filter).sort({ name: 1 }).exec();
   }
 
-  async findOne(id: string): Promise<TemplateEntity> {
-    const template = await this.templateRepository.findById(id);
-    return throwIfNotFound(template, 'Template', id);
+  async findOne(id: string): Promise<TemplateDocument> {
+    const template = await this.templateModel.findOne({ _id: id, isDeleted: false }).exec();
+    if (!template) {
+      throw new NotFoundException(`Template ${id} not found`);
+    }
+    return template;
   }
 
-  async update(id: string, updateTemplateDto: Partial<CreateTemplateDto>): Promise<TemplateEntity> {
-    const updateData = {
-      ...updateTemplateDto,
-      nodes: updateTemplateDto.nodes
-        ? (updateTemplateDto.nodes as unknown as WorkflowNodeEntity[])
-        : undefined,
-      edges: updateTemplateDto.edges
-        ? (updateTemplateDto.edges as unknown as WorkflowEdgeEntity[])
-        : undefined,
-    };
-
-    const template = await this.templateRepository.update(id, updateData);
-    return throwIfNotFound(template, 'Template', id);
+  async update(id: string, dto: Partial<CreateTemplateDto>): Promise<TemplateDocument> {
+    const template = await this.templateModel
+      .findOneAndUpdate({ _id: id, isDeleted: false }, { $set: dto }, { new: true })
+      .exec();
+    if (!template) {
+      throw new NotFoundException(`Template ${id} not found`);
+    }
+    return template;
   }
 
-  async remove(id: string): Promise<TemplateEntity> {
-    const template = await this.templateRepository.softDelete(id);
-    return throwIfNotFound(template, 'Template', id);
+  async remove(id: string): Promise<TemplateDocument> {
+    const template = await this.templateModel
+      .findOneAndUpdate({ _id: id, isDeleted: false }, { $set: { isDeleted: true } }, { new: true })
+      .exec();
+    if (!template) {
+      throw new NotFoundException(`Template ${id} not found`);
+    }
+    return template;
   }
 }

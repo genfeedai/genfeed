@@ -1,52 +1,64 @@
-import {
-  EXECUTION_REPOSITORY,
-  type ExecutionEntity,
-  type IExecutionRepository,
-} from '@genfeedai/storage';
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import type { Model } from 'mongoose';
-import { Types } from 'mongoose';
-import { throwIfNotFound } from '../common/utils';
+import { type Model, Types } from 'mongoose';
 import type {
   CostSummary,
   ExecutionCostDetails,
   JobCostBreakdown,
 } from '../cost/interfaces/cost.interface';
+import { Execution, type ExecutionDocument } from './schemas/execution.schema';
 import { Job, type JobDocument } from './schemas/job.schema';
 
 @Injectable()
 export class ExecutionsService {
   constructor(
-    @Inject(EXECUTION_REPOSITORY)
-    private readonly executionRepository: IExecutionRepository,
-    @InjectModel(Job.name) private jobModel: Model<JobDocument>
+    @InjectModel(Execution.name)
+    private readonly executionModel: Model<ExecutionDocument>,
+    @InjectModel(Job.name)
+    private readonly jobModel: Model<JobDocument>
   ) {}
 
   // Execution methods
-  async createExecution(workflowId: string): Promise<ExecutionEntity> {
-    return this.executionRepository.create({ workflowId });
-  }
-
-  async findExecutionsByWorkflow(workflowId: string): Promise<ExecutionEntity[]> {
-    return this.executionRepository.findByWorkflowId(workflowId, {
-      sortBy: 'createdAt',
-      sortOrder: 'desc',
+  async createExecution(workflowId: string): Promise<ExecutionDocument> {
+    const execution = new this.executionModel({
+      workflowId: new Types.ObjectId(workflowId),
+      status: 'pending',
     });
+    return execution.save();
   }
 
-  async findExecution(id: string): Promise<ExecutionEntity> {
-    const execution = await this.executionRepository.findById(id);
-    return throwIfNotFound(execution, 'Execution', id);
+  async findExecutionsByWorkflow(workflowId: string): Promise<ExecutionDocument[]> {
+    return this.executionModel
+      .find({ workflowId: new Types.ObjectId(workflowId), isDeleted: false })
+      .sort({ createdAt: -1 })
+      .exec();
+  }
+
+  async findExecution(id: string): Promise<ExecutionDocument> {
+    const execution = await this.executionModel.findOne({ _id: id, isDeleted: false }).exec();
+    if (!execution) {
+      throw new NotFoundException(`Execution ${id} not found`);
+    }
+    return execution;
   }
 
   async updateExecutionStatus(
     id: string,
     status: string,
     error?: string
-  ): Promise<ExecutionEntity> {
-    const execution = await this.executionRepository.updateStatus(id, status, error);
-    return throwIfNotFound(execution, 'Execution', id);
+  ): Promise<ExecutionDocument> {
+    const updates: Record<string, unknown> = { status };
+    if (error) updates.error = error;
+    if (status === 'running') updates.startedAt = new Date();
+    if (status === 'completed' || status === 'failed') updates.completedAt = new Date();
+
+    const execution = await this.executionModel
+      .findOneAndUpdate({ _id: id, isDeleted: false }, { $set: updates }, { new: true })
+      .exec();
+    if (!execution) {
+      throw new NotFoundException(`Execution ${id} not found`);
+    }
+    return execution;
   }
 
   async updateNodeResult(
@@ -56,10 +68,10 @@ export class ExecutionsService {
     output?: Record<string, unknown>,
     error?: string,
     cost?: number
-  ): Promise<ExecutionEntity> {
+  ): Promise<ExecutionDocument> {
     const nodeResult = {
       nodeId,
-      status: status as 'pending' | 'running' | 'completed' | 'failed' | 'skipped',
+      status,
       output,
       error,
       cost: cost ?? 0,
@@ -67,8 +79,26 @@ export class ExecutionsService {
       completedAt: status === 'complete' || status === 'error' ? new Date() : undefined,
     };
 
-    const execution = await this.executionRepository.updateNodeResult(executionId, nodeResult);
-    return throwIfNotFound(execution, 'Execution', executionId);
+    // Try to update existing node result, or add new one
+    const execution = await this.executionModel
+      .findOneAndUpdate(
+        { _id: executionId, 'nodeResults.nodeId': nodeId },
+        { $set: { 'nodeResults.$': nodeResult } },
+        { new: true }
+      )
+      .exec();
+
+    if (execution) return execution;
+
+    // Node result doesn't exist, push new one
+    const newExecution = await this.executionModel
+      .findOneAndUpdate({ _id: executionId }, { $push: { nodeResults: nodeResult } }, { new: true })
+      .exec();
+
+    if (!newExecution) {
+      throw new NotFoundException(`Execution ${executionId} not found`);
+    }
+    return newExecution;
   }
 
   // Job methods
@@ -101,7 +131,10 @@ export class ExecutionsService {
     const job = await this.jobModel
       .findOneAndUpdate({ predictionId }, { $set: updates }, { new: true })
       .exec();
-    return throwIfNotFound(job, 'Job', predictionId);
+    if (!job) {
+      throw new NotFoundException(`Job with predictionId ${predictionId} not found`);
+    }
+    return job;
   }
 
   async findJobsByExecution(executionId: string): Promise<Job[]> {
@@ -115,7 +148,9 @@ export class ExecutionsService {
    * Set estimated cost before execution starts
    */
   async setEstimatedCost(executionId: string, estimated: number): Promise<void> {
-    await this.executionRepository.updateCostSummary(executionId, { estimated });
+    await this.executionModel
+      .updateOne({ _id: executionId }, { $set: { 'costSummary.estimated': estimated } })
+      .exec();
   }
 
   /**
@@ -129,10 +164,12 @@ export class ExecutionsService {
     const estimated = execution.costSummary?.estimated ?? 0;
     const variance = estimated > 0 ? ((actual - estimated) / estimated) * 100 : 0;
 
-    await this.executionRepository.updateCostSummary(executionId, {
-      actual,
-      variance,
-    });
+    await this.executionModel
+      .updateOne(
+        { _id: executionId },
+        { $set: { 'costSummary.actual': actual, 'costSummary.variance': variance } }
+      )
+      .exec();
   }
 
   /**

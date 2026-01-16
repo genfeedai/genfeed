@@ -29,13 +29,21 @@ const MODELS_TO_SYNC = [
   // Video generation
   { id: 'google/veo-3.1-fast', name: 'Veo31Fast', category: 'video' },
   { id: 'google/veo-3.1', name: 'Veo31', category: 'video' },
+  { id: 'kwaivgi/kling-v2.5-turbo-pro', name: 'KlingV25TurboPro', category: 'video' },
+  { id: 'kwaivgi/kling-v2.6-motion-control', name: 'KlingV26MotionControl', category: 'video' },
+
   // LLM
   { id: 'meta/meta-llama-3.1-405b-instruct', name: 'MetaLlama31', category: 'llm' },
+
+  // Luma reframe
+  { id: 'luma/reframe-image', name: 'LumaReframeImage', category: 'reframe' },
+  { id: 'luma/reframe-video', name: 'LumaReframeVideo', category: 'reframe' },
+
   // Lip-sync models
   { id: 'sync/lipsync-2', name: 'Lipsync2', category: 'lipsync' },
   { id: 'sync/lipsync-2-pro', name: 'Lipsync2Pro', category: 'lipsync' },
   { id: 'bytedance/latentsync', name: 'LatentSync', category: 'lipsync' },
-  { id: 'pixverse-ai/lipsync', name: 'PixverseLipsync', category: 'lipsync' },
+  { id: 'pixverse/lipsync', name: 'PixverseLipsync', category: 'lipsync' },
 ] as const;
 
 // ============================================================================

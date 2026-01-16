@@ -1,4 +1,13 @@
-import { Bot, Clipboard, Image, Maximize, MessageSquare, Monitor, Video } from 'lucide-react';
+import {
+  Bot,
+  Clipboard,
+  Image,
+  LayoutGrid,
+  Maximize,
+  MessageSquare,
+  Monitor,
+  Video,
+} from 'lucide-react';
 import type { ContextMenuItemConfig } from '../ContextMenu';
 
 interface PaneMenuOptions {
@@ -9,6 +18,7 @@ interface PaneMenuOptions {
   onPaste: () => void;
   onSelectAll: () => void;
   onFitView: () => void;
+  onAutoLayout: () => void;
 }
 
 export function getPaneMenuItems({
@@ -19,6 +29,7 @@ export function getPaneMenuItems({
   onPaste,
   onSelectAll,
   onFitView,
+  onAutoLayout,
 }: PaneMenuOptions): ContextMenuItemConfig[] {
   return [
     {
@@ -83,6 +94,13 @@ export function getPaneMenuItems({
       icon: <Maximize className="w-4 h-4" />,
       shortcut: 'F',
       onClick: onFitView,
+    },
+    {
+      id: 'auto-layout',
+      label: 'Auto-layout Nodes',
+      icon: <LayoutGrid className="w-4 h-4" />,
+      shortcut: 'L',
+      onClick: onAutoLayout,
     },
   ];
 }

@@ -1,9 +1,8 @@
 'use client';
 
-import { Check, ExternalLink, Eye, EyeOff, Settings, Trash2, X } from 'lucide-react';
-import { memo, useCallback, useState } from 'react';
+import { Settings, X } from 'lucide-react';
+import { memo, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -11,19 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  type EdgeStyle,
-  PROVIDER_INFO,
-  type ProviderType,
-  useSettingsStore,
-} from '@/store/settingsStore';
+import { type EdgeStyle, type ProviderType, useSettingsStore } from '@/store/settingsStore';
 import { useUIStore } from '@/store/uiStore';
 
 // =============================================================================
 // TYPES
 // =============================================================================
 
-type TabId = 'providers' | 'defaults' | 'appearance';
+type TabId = 'defaults' | 'appearance';
 
 interface Tab {
   id: TabId;
@@ -31,135 +25,9 @@ interface Tab {
 }
 
 const TABS: Tab[] = [
-  { id: 'providers', label: 'Providers' },
   { id: 'defaults', label: 'Defaults' },
   { id: 'appearance', label: 'Appearance' },
 ];
-
-// =============================================================================
-// PROVIDER KEY INPUT
-// =============================================================================
-
-interface ProviderKeyInputProps {
-  provider: ProviderType;
-}
-
-function ProviderKeyInput({ provider }: ProviderKeyInputProps) {
-  const { providers, setProviderKey, clearProviderKey } = useSettingsStore();
-  const config = providers[provider];
-  const info = PROVIDER_INFO[provider];
-
-  const [showKey, setShowKey] = useState(false);
-  const [localKey, setLocalKey] = useState(config.apiKey ?? '');
-  const [isSaved, setIsSaved] = useState(!!config.apiKey);
-
-  const handleSave = useCallback(() => {
-    if (localKey.trim()) {
-      setProviderKey(provider, localKey.trim());
-      setIsSaved(true);
-    }
-  }, [localKey, provider, setProviderKey]);
-
-  const handleClear = useCallback(() => {
-    clearProviderKey(provider);
-    setLocalKey('');
-    setIsSaved(false);
-  }, [provider, clearProviderKey]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        handleSave();
-      }
-    },
-    [handleSave]
-  );
-
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="flex items-start justify-between">
-        <div>
-          <h3 className="font-medium text-foreground">{info.name}</h3>
-          <p className="mt-0.5 text-sm text-muted-foreground">{info.description}</p>
-        </div>
-        <a
-          href={info.docsUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <ExternalLink className="h-4 w-4" />
-        </a>
-      </div>
-
-      <div className="mt-4 flex items-center gap-2">
-        <div className="relative flex-1">
-          <Input
-            type={showKey ? 'text' : 'password'}
-            value={localKey}
-            onChange={(e) => {
-              setLocalKey(e.target.value);
-              setIsSaved(false);
-            }}
-            onKeyDown={handleKeyDown}
-            placeholder={`Enter ${info.name} API key`}
-            className="pr-10"
-          />
-          <button
-            type="button"
-            onClick={() => setShowKey(!showKey)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-          >
-            {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-          </button>
-        </div>
-
-        {localKey && !isSaved && (
-          <Button size="sm" onClick={handleSave}>
-            <Check className="h-4 w-4" />
-            Save
-          </Button>
-        )}
-
-        {isSaved && (
-          <Button size="sm" variant="ghost" onClick={handleClear}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        )}
-      </div>
-
-      {isSaved && (
-        <div className="mt-2 flex items-center gap-1 text-xs text-chart-2">
-          <Check className="h-3 w-3" />
-          API key configured
-        </div>
-      )}
-    </div>
-  );
-}
-
-// =============================================================================
-// PROVIDERS TAB
-// =============================================================================
-
-function ProvidersTab() {
-  const providers: ProviderType[] = ['replicate', 'fal', 'huggingface'];
-
-  return (
-    <div className="space-y-4">
-      <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-4">
-        <p className="text-sm text-amber-600 dark:text-amber-400">
-          API keys are stored locally in your browser. They are sent securely to our backend for
-          provider requests and are never logged or stored on our servers.
-        </p>
-      </div>
-
-      {providers.map((provider) => (
-        <ProviderKeyInput key={provider} provider={provider} />
-      ))}
-    </div>
-  );
-}
 
 // =============================================================================
 // DEFAULTS TAB
@@ -254,6 +122,20 @@ function DefaultsTab() {
           Replicate is recommended for best model availability and reliability.
         </p>
       </div>
+
+      {/* API Setup Instructions */}
+      <div className="mt-8 rounded-lg border border-border bg-secondary/30 p-4">
+        <h4 className="font-medium text-foreground">API Configuration</h4>
+        <p className="mt-1 text-sm text-muted-foreground">
+          API keys are configured via environment variables. Add your keys to the{' '}
+          <code className="rounded bg-background px-1.5 py-0.5 text-xs">.env</code> file:
+        </p>
+        <pre className="mt-3 overflow-x-auto rounded bg-background p-3 text-xs text-muted-foreground">
+          {`REPLICATE_API_TOKEN=r8_...
+FAL_API_KEY=...
+HF_API_TOKEN=hf_...`}
+        </pre>
+      </div>
     </div>
   );
 }
@@ -269,10 +151,32 @@ const EDGE_STYLES: { value: EdgeStyle; label: string; description: string }[] = 
 ];
 
 function AppearanceTab() {
-  const { edgeStyle, setEdgeStyle } = useSettingsStore();
+  const { edgeStyle, setEdgeStyle, showMinimap, setShowMinimap } = useSettingsStore();
 
   return (
     <div className="space-y-6">
+      {/* Minimap Toggle */}
+      <div className="flex items-center justify-between">
+        <div>
+          <label className="text-sm font-medium text-foreground">Show Minimap</label>
+          <p className="text-xs text-muted-foreground">
+            Display a miniature overview of the workflow canvas
+          </p>
+        </div>
+        <button
+          onClick={() => setShowMinimap(!showMinimap)}
+          className={`relative h-6 w-11 rounded-full transition-colors ${
+            showMinimap ? 'bg-primary' : 'bg-border'
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+              showMinimap ? 'translate-x-5' : 'translate-x-0'
+            }`}
+          />
+        </button>
+      </div>
+
       {/* Edge Style */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-foreground">Edge Style</label>
@@ -339,7 +243,7 @@ function AppearanceTab() {
 
 function SettingsModalComponent() {
   const { activeModal, closeModal } = useUIStore();
-  const [activeTab, setActiveTab] = useState<TabId>('providers');
+  const [activeTab, setActiveTab] = useState<TabId>('defaults');
 
   const isOpen = activeModal === 'settings';
 
@@ -385,7 +289,6 @@ function SettingsModalComponent() {
 
         {/* Content */}
         <div className="flex-1 overflow-auto p-6">
-          {activeTab === 'providers' && <ProvidersTab />}
           {activeTab === 'defaults' && <DefaultsTab />}
           {activeTab === 'appearance' && <AppearanceTab />}
         </div>

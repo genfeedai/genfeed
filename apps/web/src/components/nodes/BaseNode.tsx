@@ -23,6 +23,7 @@ import {
   Maximize2,
   MessageSquare,
   RefreshCw,
+  Rss,
   Scissors,
   Share2,
   Sparkles,
@@ -55,6 +56,7 @@ const ICON_MAP: Record<string, typeof Image> = {
   RefreshCw,
   Crop,
   Maximize,
+  Rss,
 };
 
 // Handle color classes
@@ -103,23 +105,19 @@ function BaseNodeComponent({ id, type, data, selected, children }: BaseNodeProps
   // Category colors - using CSS variables for button access
   const categoryStyles: Record<string, { className: string; cssVar: string }> = {
     input: {
-      className:
-        'border-[var(--category-input)] bg-[color-mix(in_oklch,var(--category-input)_15%,var(--card))]',
+      className: 'border-[var(--category-input)] bg-card',
       cssVar: 'var(--category-input)',
     },
     ai: {
-      className:
-        'border-[var(--category-ai)] bg-[color-mix(in_oklch,var(--category-ai)_15%,var(--card))]',
+      className: 'border-[var(--category-ai)] bg-card',
       cssVar: 'var(--category-ai)',
     },
     processing: {
-      className:
-        'border-[var(--category-processing)] bg-[color-mix(in_oklch,var(--category-processing)_15%,var(--card))]',
+      className: 'border-[var(--category-processing)] bg-card',
       cssVar: 'var(--category-processing)',
     },
     output: {
-      className:
-        'border-[var(--category-output)] bg-[color-mix(in_oklch,var(--category-output)_15%,var(--card))]',
+      className: 'border-[var(--category-output)] bg-card',
       cssVar: 'var(--category-output)',
     },
   };
@@ -129,7 +127,7 @@ function BaseNodeComponent({ id, type, data, selected, children }: BaseNodeProps
   return (
     <div
       className={clsx(
-        'relative min-w-[220px] rounded-lg border-2 shadow-lg transition-all',
+        'relative min-w-[220px] rounded-lg border shadow-lg transition-all',
         categoryStyle.className,
         isSelected && 'ring-2 ring-offset-2 ring-offset-background',
         isLocked && 'opacity-60'

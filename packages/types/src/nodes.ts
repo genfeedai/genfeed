@@ -52,28 +52,6 @@ export interface SelectedModel {
 }
 
 // =============================================================================
-// GROUP TYPES
-// =============================================================================
-
-export type GroupColor =
-  | 'purple'
-  | 'blue'
-  | 'green'
-  | 'yellow'
-  | 'orange'
-  | 'red'
-  | 'pink'
-  | 'gray';
-
-export interface NodeGroup {
-  id: string;
-  name: string;
-  nodeIds: string[];
-  color: GroupColor;
-  isLocked: boolean;
-}
-
-// =============================================================================
 // NODE TYPES
 // =============================================================================
 
@@ -85,6 +63,7 @@ export type NodeType =
   | 'prompt'
   | 'template'
   | 'tweetInput'
+  | 'rssInput'
   // AI generation nodes
   | 'imageGen'
   | 'videoGen'
@@ -107,7 +86,6 @@ export type NodeType =
   // Output nodes
   | 'output'
   | 'preview'
-  | 'download'
   | 'socialPublish';
 
 export type NodeCategory = 'input' | 'ai' | 'processing' | 'output';
@@ -168,6 +146,22 @@ export interface TweetInputNodeData extends BaseNodeData {
   rawText: string;
   extractedTweet: string | null;
   authorHandle: string | null;
+}
+
+export interface RssFeedItem {
+  title: string;
+  description: string;
+  link: string;
+  pubDate: string | null;
+}
+
+export interface RssInputNodeData extends BaseNodeData {
+  inputMode: 'url' | 'text';
+  feedUrl: string;
+  rawXml: string;
+  feedTitle: string | null;
+  feedItems: RssFeedItem[] | null;
+  selectedItemIndex: number;
 }
 
 export interface AudioInputNodeData extends BaseNodeData {
@@ -323,7 +317,7 @@ export type LipSyncModel =
   | 'sync/lipsync-2-pro'
   | 'sync/lipsync-2'
   | 'bytedance/latentsync'
-  | 'pixverse-ai/lipsync';
+  | 'pixverse/lipsync';
 
 export type LipSyncMode = 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
 
@@ -440,11 +434,13 @@ export interface ResizeNodeData extends BaseNodeData {
   // Output
   outputMedia: string | null;
 
-  // Resize config
-  targetAspectRatio: AspectRatio;
-  targetWidth: number | null;
-  targetHeight: number | null;
-  fitMode: 'contain' | 'cover' | 'fill';
+  // Resize config (uses Luma models)
+  targetAspectRatio: LumaAspectRatio;
+  prompt: string;
+  gridPosition: GridPosition;
+
+  // Job state
+  jobId: string | null;
 }
 
 export interface VideoTrimNodeData extends BaseNodeData {
@@ -612,17 +608,14 @@ export interface PreviewNodeData extends BaseNodeData {
   volume: number;
 }
 
-export interface DownloadNodeData extends BaseNodeData {
-  // Inputs from connections
-  inputMedia: string | null;
-  inputType: 'image' | 'video' | null;
-
-  // Download config
-  filename: string;
-  format: string;
-}
-
-export type SocialPlatform = 'youtube' | 'tiktok' | 'instagram' | 'twitter';
+export type SocialPlatform =
+  | 'youtube'
+  | 'tiktok'
+  | 'instagram'
+  | 'twitter'
+  | 'linkedin'
+  | 'facebook'
+  | 'threads';
 export type SocialVisibility = 'public' | 'private' | 'unlisted';
 
 export interface SocialPublishNodeData extends BaseNodeData {
@@ -655,6 +648,7 @@ export type WorkflowNodeData =
   | PromptNodeData
   | TemplateNodeData
   | TweetInputNodeData
+  | RssInputNodeData
   | ImageGenNodeData
   | VideoGenNodeData
   | LLMNodeData
@@ -674,7 +668,6 @@ export type WorkflowNodeData =
   | AnnotationNodeData
   | OutputNodeData
   | PreviewNodeData
-  | DownloadNodeData
   | SocialPublishNodeData;
 
 // =============================================================================
@@ -770,6 +763,25 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       rawText: '',
       extractedTweet: null,
       authorHandle: null,
+    },
+  },
+  rssInput: {
+    type: 'rssInput',
+    label: 'RSS Input',
+    description: 'Fetch content from an RSS feed URL',
+    category: 'input',
+    icon: 'Rss',
+    inputs: [],
+    outputs: [{ id: 'text', type: 'text', label: 'Feed Item' }],
+    defaultData: {
+      label: 'RSS Input',
+      status: 'idle',
+      inputMode: 'url',
+      feedUrl: '',
+      rawXml: '',
+      feedTitle: null,
+      feedItems: null,
+      selectedItemIndex: 0,
     },
   },
   audioInput: {
@@ -977,7 +989,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
   resize: {
     type: 'resize',
     label: 'Resize',
-    description: 'Resize images or videos',
+    description: 'Resize images or videos to different aspect ratios using Luma AI',
     category: 'processing',
     icon: 'Maximize2',
     inputs: [{ id: 'media', type: 'image', label: 'Media', required: true }],
@@ -989,9 +1001,9 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       inputType: null,
       outputMedia: null,
       targetAspectRatio: '16:9',
-      targetWidth: null,
-      targetHeight: null,
-      fitMode: 'cover',
+      prompt: '',
+      gridPosition: { x: 0.5, y: 0.5 },
+      jobId: null,
     },
   },
   animation: {
@@ -1208,27 +1220,10 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       volume: 1,
     },
   },
-  download: {
-    type: 'download',
-    label: 'Download',
-    description: 'Download output file',
-    category: 'output',
-    icon: 'Download',
-    inputs: [{ id: 'media', type: 'image', label: 'Media', required: true }],
-    outputs: [],
-    defaultData: {
-      label: 'Download',
-      status: 'idle',
-      inputMedia: null,
-      inputType: null,
-      filename: 'output',
-      format: 'mp4',
-    },
-  },
   socialPublish: {
     type: 'socialPublish',
     label: 'Social Publish',
-    description: 'Publish video to YouTube, TikTok, or Instagram',
+    description: 'Publish video to YouTube, TikTok, Instagram, LinkedIn, Facebook, or Threads',
     category: 'output',
     icon: 'Share2',
     inputs: [{ id: 'video', type: 'video', label: 'Video', required: true }],

@@ -41,18 +41,24 @@ interface SettingsStore {
 
   // UI Preferences
   edgeStyle: EdgeStyle;
+  showMinimap: boolean;
 
   // Recent models (for model browser)
   recentModels: RecentModel[];
+
+  // Onboarding
+  hasSeenWelcome: boolean;
 
   // Actions
   setProviderKey: (provider: ProviderType, key: string | null) => void;
   setProviderEnabled: (provider: ProviderType, enabled: boolean) => void;
   setDefaultModel: (type: 'image' | 'video', model: string, provider: ProviderType) => void;
   setEdgeStyle: (style: EdgeStyle) => void;
+  setShowMinimap: (show: boolean) => void;
   addRecentModel: (model: Omit<RecentModel, 'timestamp'>) => void;
   clearProviderKey: (provider: ProviderType) => void;
   clearAllKeys: () => void;
+  setHasSeenWelcome: (seen: boolean) => void;
 
   // Computed
   isProviderConfigured: (provider: ProviderType) => boolean;
@@ -79,7 +85,9 @@ const DEFAULT_SETTINGS = {
     videoProvider: 'replicate' as ProviderType,
   },
   edgeStyle: 'bezier' as EdgeStyle,
+  showMinimap: true,
   recentModels: [] as RecentModel[],
+  hasSeenWelcome: false,
 };
 
 // =============================================================================
@@ -97,7 +105,9 @@ function loadFromStorage(): Partial<typeof DEFAULT_SETTINGS> {
         providers: { ...DEFAULT_SETTINGS.providers, ...parsed.providers },
         defaults: { ...DEFAULT_SETTINGS.defaults, ...parsed.defaults },
         edgeStyle: parsed.edgeStyle ?? DEFAULT_SETTINGS.edgeStyle,
+        showMinimap: parsed.showMinimap ?? DEFAULT_SETTINGS.showMinimap,
         recentModels: parsed.recentModels ?? [],
+        hasSeenWelcome: parsed.hasSeenWelcome ?? false,
       };
     }
   } catch {
@@ -110,7 +120,9 @@ function saveToStorage(state: {
   providers: ProviderSettings;
   defaults: DefaultModelSettings;
   edgeStyle: EdgeStyle;
+  showMinimap: boolean;
   recentModels: RecentModel[];
+  hasSeenWelcome: boolean;
 }) {
   if (typeof window === 'undefined') return;
 
@@ -133,7 +145,9 @@ function saveToStorage(state: {
       },
       defaults: state.defaults,
       edgeStyle: state.edgeStyle,
+      showMinimap: state.showMinimap,
       recentModels: state.recentModels.slice(0, MAX_RECENT_MODELS),
+      hasSeenWelcome: state.hasSeenWelcome,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch {
@@ -151,7 +165,9 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   providers: initialState.providers,
   defaults: initialState.defaults,
   edgeStyle: initialState.edgeStyle,
+  showMinimap: initialState.showMinimap,
   recentModels: initialState.recentModels,
+  hasSeenWelcome: initialState.hasSeenWelcome,
 
   setProviderKey: (provider, key) => {
     set((state) => {
@@ -209,6 +225,14 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
     });
   },
 
+  setShowMinimap: (show) => {
+    set((state) => {
+      const newState = { showMinimap: show };
+      saveToStorage({ ...state, ...newState });
+      return newState;
+    });
+  },
+
   addRecentModel: (model) => {
     set((state) => {
       // Remove existing entry for same model
@@ -252,6 +276,14 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
           huggingface: { ...state.providers.huggingface, apiKey: null },
         },
       };
+      saveToStorage({ ...state, ...newState });
+      return newState;
+    });
+  },
+
+  setHasSeenWelcome: (seen) => {
+    set((state) => {
+      const newState = { hasSeenWelcome: seen };
       saveToStorage({ ...state, ...newState });
       return newState;
     });

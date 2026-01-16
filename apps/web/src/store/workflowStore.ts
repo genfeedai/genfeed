@@ -115,6 +115,7 @@ interface WorkflowStore {
   listWorkflows: (signal?: AbortSignal) => Promise<WorkflowData[]>;
   deleteWorkflow: (id: string, signal?: AbortSignal) => Promise<void>;
   duplicateWorkflowApi: (id: string, signal?: AbortSignal) => Promise<WorkflowData>;
+  createNewWorkflow: (signal?: AbortSignal) => Promise<string>;
   setWorkflowName: (name: string) => void;
 
   // Helpers
@@ -275,6 +276,7 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
         predicate(n.id)
           ? {
               ...n,
+              draggable: !lock,
               data: {
                 ...n.data,
                 isLocked: lock,
@@ -777,5 +779,32 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
   duplicateWorkflowApi: async (id, signal) => {
     const workflow = await workflowsApi.duplicate(id, signal);
     return workflow;
+  },
+
+  createNewWorkflow: async (signal) => {
+    const { edgeStyle } = get();
+
+    const workflow = await workflowsApi.create(
+      {
+        name: 'Untitled Workflow',
+        nodes: [],
+        edges: [],
+        edgeStyle,
+        groups: [],
+      },
+      signal
+    );
+
+    set({
+      nodes: [],
+      edges: [],
+      workflowName: workflow.name,
+      workflowId: workflow._id,
+      isDirty: false,
+      groups: [],
+      selectedNodeIds: [],
+    });
+
+    return workflow._id;
   },
 }));

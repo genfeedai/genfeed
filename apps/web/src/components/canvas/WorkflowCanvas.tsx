@@ -4,6 +4,7 @@ import {
   Background,
   BackgroundVariant,
   type Connection,
+  ConnectionMode,
   Controls,
   MiniMap,
   type Node,
@@ -14,6 +15,7 @@ import { useCallback, useEffect } from 'react';
 import '@xyflow/react/dist/style.css';
 
 import type { NodeType, WorkflowEdge, WorkflowNode } from '@genfeedai/types';
+import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { GroupOverlay } from '@/components/canvas/GroupOverlay';
 import { ContextMenu } from '@/components/context-menu';
 import { nodeTypes } from '@/components/nodes';
@@ -40,8 +42,8 @@ export function WorkflowCanvas() {
     groups,
   } = useWorkflowStore();
 
-  const { showMinimap, selectNode } = useUIStore();
-  const { edgeStyle } = useSettingsStore();
+  const { selectNode } = useUIStore();
+  const { edgeStyle, showMinimap } = useSettingsStore();
 
   const {
     isOpen: isContextMenuOpen,
@@ -222,6 +224,7 @@ export function WorkflowCanvas() {
         fitView
         snapToGrid
         snapGrid={[16, 16]}
+        connectionMode={ConnectionMode.Loose}
         selectionMode={SelectionMode.Partial}
         selectionOnDrag
         panOnDrag={[1, 2]} // Middle/right mouse for pan
@@ -238,7 +241,24 @@ export function WorkflowCanvas() {
         <Background variant={BackgroundVariant.Dots} gap={16} size={1} />
         <Controls />
         {showMinimap && (
-          <MiniMap nodeStrokeWidth={3} zoomable pannable className="!bg-[var(--card)]" />
+          <MiniMap
+            nodeStrokeWidth={0}
+            nodeColor={(node) => {
+              const nodeType = node.type as NodeType;
+              const category = NODE_DEFINITIONS[nodeType]?.category ?? 'input';
+              const colors: Record<string, string> = {
+                input: '#3b82f6',
+                ai: '#a855f7',
+                processing: '#f59e0b',
+                output: '#22c55e',
+              };
+              return colors[category] ?? '#6b7280';
+            }}
+            zoomable
+            pannable
+            maskColor="rgba(0, 0, 0, 0.8)"
+            className="!bg-transparent !border-[var(--border)] !rounded-lg"
+          />
         )}
       </ReactFlow>
       {isContextMenuOpen && (

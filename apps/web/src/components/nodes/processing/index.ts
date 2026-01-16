@@ -3,6 +3,7 @@ export { AnnotationNode } from './AnnotationNode';
 export { ImageGridSplitNode } from './ImageGridSplitNode';
 export { LumaReframeImageNode } from './LumaReframeImageNode';
 export { LumaReframeVideoNode } from './LumaReframeVideoNode';
+export { ResizeNode } from './ResizeNode';
 export { TopazImageUpscaleNode } from './TopazImageUpscaleNode';
 export { TopazVideoUpscaleNode } from './TopazVideoUpscaleNode';
 export { VideoStitchNode } from './VideoStitchNode';

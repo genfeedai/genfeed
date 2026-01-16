@@ -1,10 +1,6 @@
 'use client';
 
-import {
-  VIDEO_VIDEO_ASPECT_RATIOS,
-  VIDEO_VIDEO_DURATIONS,
-  VIDEO_VIDEO_RESOLUTIONS,
-} from '@genfeedai/core';
+import { VIDEO_ASPECT_RATIOS, VIDEO_DURATIONS, VIDEO_RESOLUTIONS } from '@genfeedai/core';
 import type {
   AspectRatio,
   ProviderModel,

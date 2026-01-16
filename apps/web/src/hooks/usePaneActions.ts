@@ -1,10 +1,11 @@
 import type { NodeType } from '@genfeedai/types';
 import { useReactFlow } from '@xyflow/react';
 import { useCallback } from 'react';
+import { getLayoutedNodes } from '@/lib/autoLayout';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 export function usePaneActions() {
-  const { addNode, nodes } = useWorkflowStore();
+  const { addNode, nodes, edges } = useWorkflowStore();
   const reactFlow = useReactFlow();
 
   const addNodeAtPosition = useCallback(
@@ -29,9 +30,22 @@ export function usePaneActions() {
     reactFlow.fitView({ padding: 0.2 });
   }, [reactFlow]);
 
+  const autoLayout = useCallback(
+    (direction: 'TB' | 'LR' = 'LR') => {
+      const layoutedNodes = getLayoutedNodes(nodes, edges, { direction });
+      reactFlow.setNodes(layoutedNodes);
+      // Fit view after layout with a small delay to allow DOM update
+      setTimeout(() => {
+        reactFlow.fitView({ padding: 0.2 });
+      }, 50);
+    },
+    [nodes, edges, reactFlow]
+  );
+
   return {
     addNodeAtPosition,
     selectAll,
     fitView,
+    autoLayout,
   };
 }

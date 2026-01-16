@@ -13,6 +13,9 @@ const PLATFORMS: { value: SocialPlatform; label: string; icon: string }[] = [
   { value: 'tiktok', label: 'TikTok', icon: 'tt' },
   { value: 'instagram', label: 'Instagram', icon: 'ig' },
   { value: 'twitter', label: 'X / Twitter', icon: 'x' },
+  { value: 'linkedin', label: 'LinkedIn', icon: 'li' },
+  { value: 'facebook', label: 'Facebook', icon: 'fb' },
+  { value: 'threads', label: 'Threads', icon: 'th' },
 ];
 
 const VISIBILITY_OPTIONS: { value: SocialVisibility; label: string }[] = [
@@ -74,12 +77,12 @@ function SocialPublishNodeComponent(props: NodeProps) {
     <BaseNode {...props}>
       <div className="space-y-3">
         {/* Platform Selection */}
-        <div className="flex gap-1 p-1 bg-[var(--background)] rounded">
+        <div className="grid grid-cols-4 gap-1 p-1 bg-[var(--background)] rounded">
           {PLATFORMS.map((p) => (
             <button
               key={p.value}
               onClick={() => handlePlatformChange(p.value)}
-              className={`flex-1 py-1.5 px-1 text-xs rounded transition ${
+              className={`py-1.5 px-1 text-xs rounded transition ${
                 nodeData.platform === p.value
                   ? 'bg-[var(--primary)] text-white'
                   : 'text-[var(--muted-foreground)] hover:bg-[var(--border)]'

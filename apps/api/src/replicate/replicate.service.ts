@@ -14,6 +14,8 @@ export const MODELS = {
   // Video generation
   veoFast: 'google/veo-3.1-fast',
   veo: 'google/veo-3.1',
+  klingTurboPro: 'kwaivgi/kling-v2.5-turbo-pro',
+  klingMotionControl: 'kwaivgi/kling-v2.6-motion-control',
   // LLM
   llama: 'meta/meta-llama-3.1-405b-instruct',
   // Luma Reframe

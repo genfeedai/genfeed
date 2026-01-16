@@ -16,7 +16,7 @@ export const MODELS = {
   lipsync2: 'sync/lipsync-2',
   lipsync2Pro: 'sync/lipsync-2-pro',
   latentSync: 'bytedance/latentsync',
-  pixverseLipsync: 'pixverse-ai/lipsync',
+  pixverseLipsync: 'pixverse/lipsync',
 } as const;
 
 // Pricing per unit
@@ -40,7 +40,7 @@ export const PRICING = {
   'sync/lipsync-2': 0.05,
   'sync/lipsync-2-pro': 0.08325,
   'bytedance/latentsync': 0.03,
-  'pixverse-ai/lipsync': 0.04,
+  'pixverse/lipsync': 0.04,
 } as const;
 
 // Type definitions
@@ -78,7 +78,7 @@ export type LipSyncModel =
   | 'sync/lipsync-2-pro'
   | 'sync/lipsync-2'
   | 'bytedance/latentsync'
-  | 'pixverse-ai/lipsync';
+  | 'pixverse/lipsync';
 
 export type LipSyncMode = 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
 
@@ -199,7 +199,7 @@ export async function generateLipSync(
     'sync/lipsync-2': MODELS.lipsync2,
     'sync/lipsync-2-pro': MODELS.lipsync2Pro,
     'bytedance/latentsync': MODELS.latentSync,
-    'pixverse-ai/lipsync': MODELS.pixverseLipsync,
+    'pixverse/lipsync': MODELS.pixverseLipsync,
   };
 
   const modelId = modelMap[model];

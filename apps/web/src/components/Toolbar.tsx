@@ -9,23 +9,55 @@ import {
   CloudOff,
   DollarSign,
   FolderOpen,
+  Home,
+  LayoutGrid,
   LayoutTemplate,
   Loader2,
   PanelLeftClose,
   PanelRightClose,
   Play,
+  Plus,
   Save,
   Settings,
   Sparkles,
   Square,
   X,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useCallback, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { usePaneActions } from '@/hooks/usePaneActions';
 import { logger } from '@/lib/logger';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
+
+/**
+ * Icon button with tooltip
+ */
+interface IconButtonProps {
+  icon: React.ReactNode;
+  tooltip: string;
+  onClick: () => void;
+  active?: boolean;
+  variant?: 'ghost' | 'secondary';
+}
+
+function IconButton({ icon, tooltip, onClick, active, variant = 'ghost' }: IconButtonProps) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant={active ? 'secondary' : variant} size="icon-sm" onClick={onClick}>
+          {icon}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p>{tooltip}</p>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
 
 /**
  * Auto-save status indicator
@@ -38,14 +70,20 @@ function SaveIndicator() {
 
   if (!autoSaveEnabled) {
     return (
-      <button
-        onClick={toggleAutoSave}
-        className="flex items-center gap-1.5 text-muted-foreground text-xs hover:text-foreground transition-colors"
-        title="Click to enable auto-save"
-      >
-        <CloudOff className="h-3.5 w-3.5" />
-        <span>Auto-save off</span>
-      </button>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <button
+            onClick={toggleAutoSave}
+            className="flex items-center gap-1.5 text-muted-foreground text-xs hover:text-foreground transition-colors"
+          >
+            <CloudOff className="h-3.5 w-3.5" />
+            <span>Auto-save off</span>
+          </button>
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>Click to enable auto-save</p>
+        </TooltipContent>
+      </Tooltip>
     );
   }
 
@@ -68,14 +106,20 @@ function SaveIndicator() {
   }
 
   return (
-    <button
-      onClick={toggleAutoSave}
-      className="flex items-center gap-1.5 text-green-500 text-xs hover:text-green-400 transition-colors"
-      title="Click to disable auto-save"
-    >
-      <Check className="h-3.5 w-3.5" />
-      <span>Saved</span>
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          onClick={toggleAutoSave}
+          className="flex items-center gap-1.5 text-green-500 text-xs hover:text-green-400 transition-colors"
+        >
+          <Check className="h-3.5 w-3.5" />
+          <span>Saved</span>
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom">
+        <p>Click to disable auto-save</p>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
@@ -114,7 +158,7 @@ function isValidWorkflow(data: unknown): data is WorkflowFile {
 }
 
 export function Toolbar() {
-  const { workflowName, isDirty, exportWorkflow, clearWorkflow } = useWorkflowStore();
+  const { workflowName, isDirty, exportWorkflow } = useWorkflowStore();
   const {
     isRunning,
     executeWorkflow,
@@ -133,6 +177,7 @@ export function Toolbar() {
     toggleAIGenerator,
     openModal,
   } = useUIStore();
+  const { autoLayout } = usePaneActions();
 
   // Memoize deduped error messages
   const uniqueErrorMessages = useMemo(() => {
@@ -195,12 +240,24 @@ export function Toolbar() {
   }, [isRunning, executeWorkflow, stopExecution]);
 
   return (
-    <div className="flex h-14 items-center gap-4 border-b border-border bg-card px-4">
-      {/* Logo / Title */}
-      <div className="flex items-center gap-2">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-4">
-          <span className="text-sm font-bold text-primary-foreground">GF</span>
-        </div>
+    <TooltipProvider delayDuration={300}>
+      <div className="flex h-14 items-center gap-4 border-b border-border bg-card px-4">
+        {/* Logo / Home Link */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link
+              href="/"
+              className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-chart-4 hover:opacity-90 transition"
+            >
+              <Home className="h-4 w-4 text-primary-foreground" />
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Go to Dashboard</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Workflow Title */}
         <div>
           <h1 className="text-sm font-semibold text-foreground">
             {workflowName}
@@ -208,149 +265,178 @@ export function Toolbar() {
           </h1>
           <p className="text-xs text-muted-foreground">Genfeed</p>
         </div>
-      </div>
 
-      {/* Divider */}
-      <div className="h-8 w-px bg-border" />
+        {/* Divider */}
+        <div className="h-8 w-px bg-border" />
 
-      {/* Panel Toggles */}
-      <div className="flex items-center gap-1">
-        <Button
-          variant={showPalette ? 'secondary' : 'ghost'}
-          size="icon-sm"
-          onClick={togglePalette}
-          title="Toggle Node Palette"
-        >
-          <PanelLeftClose className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={showConfigPanel ? 'secondary' : 'ghost'}
-          size="icon-sm"
-          onClick={toggleConfigPanel}
-          title="Toggle Config Panel"
-        >
-          <PanelRightClose className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Divider */}
-      <div className="h-8 w-px bg-border" />
-
-      {/* File Operations */}
-      <div className="flex items-center gap-1">
-        <Button variant="ghost" size="icon-sm" onClick={handleSave} title="Save Workflow">
-          <Save className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="icon-sm" onClick={handleLoad} title="Load Workflow">
-          <FolderOpen className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => openModal('templates')}
-          title="Templates"
-        >
-          <LayoutTemplate className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => openModal('promptLibrary')}
-          title="Prompt Library"
-        >
-          <BookMarked className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={showAIGenerator ? 'secondary' : 'ghost'}
-          size="icon-sm"
-          onClick={toggleAIGenerator}
-          title="AI Workflow Generator"
-        >
-          <Sparkles className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* Divider */}
-      <div className="h-8 w-px bg-border" />
-
-      {/* Settings */}
-      <Button variant="ghost" size="icon-sm" onClick={() => openModal('settings')} title="Settings">
-        <Settings className="h-4 w-4" />
-      </Button>
-
-      {/* Divider */}
-      <div className="h-8 w-px bg-border" />
-
-      {/* Cost Indicator */}
-      <button
-        onClick={() => openModal('cost')}
-        className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition hover:bg-secondary"
-        title="View cost breakdown"
-      >
-        <DollarSign className="h-4 w-4 text-chart-2" />
-        <span className="font-medium tabular-nums">
-          {actualCost > 0 ? actualCost.toFixed(2) : estimatedCost.toFixed(2)}
-        </span>
-        {actualCost > 0 && estimatedCost > 0 && actualCost !== estimatedCost && (
-          <span className="text-xs text-muted-foreground">(est. {estimatedCost.toFixed(2)})</span>
-        )}
-      </button>
-
-      {/* Divider */}
-      <div className="h-8 w-px bg-border" />
-
-      {/* Auto-Save Indicator */}
-      <SaveIndicator />
-
-      {/* Spacer */}
-      <div className="flex-1" />
-
-      {/* Run Controls */}
-      <Button variant={isRunning ? 'destructive' : 'default'} onClick={handleRunStop}>
-        {isRunning ? (
-          <>
-            <Square className="h-4 w-4" />
-            Stop
-          </>
-        ) : (
-          <>
-            <Play className="h-4 w-4 fill-current" />
-            Run Workflow
-          </>
-        )}
-      </Button>
-
-      {/* New Workflow */}
-      <Button variant="secondary" onClick={clearWorkflow}>
-        New
-      </Button>
-
-      {/* Validation Errors Toast */}
-      {uniqueErrorMessages.length > 0 && (
-        <div className="fixed right-4 top-20 z-50 max-w-sm rounded-lg border border-destructive/30 bg-destructive/10 p-4 shadow-xl">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
-            <div className="min-w-0 flex-1">
-              <h4 className="mb-2 text-sm font-medium text-destructive">Cannot run workflow</h4>
-              <ul className="space-y-1">
-                {uniqueErrorMessages.slice(0, 5).map((message) => (
-                  <li key={message} className="text-xs text-destructive/80">
-                    {message}
-                  </li>
-                ))}
-                {uniqueErrorMessages.length > 5 && (
-                  <li className="text-xs text-destructive/60">
-                    +{uniqueErrorMessages.length - 5} more errors
-                  </li>
-                )}
-              </ul>
-            </div>
-            <Button variant="ghost" size="icon-sm" onClick={clearValidationErrors}>
-              <X className="h-4 w-4 text-destructive" />
-            </Button>
-          </div>
+        {/* Panel Toggles */}
+        <div className="flex items-center gap-1">
+          <IconButton
+            icon={<PanelLeftClose className="h-4 w-4" />}
+            tooltip="Toggle Node Palette"
+            onClick={togglePalette}
+            active={showPalette}
+          />
+          <IconButton
+            icon={<PanelRightClose className="h-4 w-4" />}
+            tooltip="Toggle Config Panel"
+            onClick={toggleConfigPanel}
+            active={showConfigPanel}
+          />
         </div>
-      )}
-    </div>
+
+        {/* Divider */}
+        <div className="h-8 w-px bg-border" />
+
+        {/* Layout */}
+        <IconButton
+          icon={<LayoutGrid className="h-4 w-4" />}
+          tooltip="Auto-layout Nodes"
+          onClick={() => autoLayout('LR')}
+        />
+
+        {/* Divider */}
+        <div className="h-8 w-px bg-border" />
+
+        {/* File Operations */}
+        <div className="flex items-center gap-1">
+          <IconButton
+            icon={<Save className="h-4 w-4" />}
+            tooltip="Export Workflow (JSON)"
+            onClick={handleSave}
+          />
+          <IconButton
+            icon={<FolderOpen className="h-4 w-4" />}
+            tooltip="Import Workflow"
+            onClick={handleLoad}
+          />
+          <IconButton
+            icon={<LayoutTemplate className="h-4 w-4" />}
+            tooltip="Templates"
+            onClick={() => openModal('templates')}
+          />
+          <IconButton
+            icon={<BookMarked className="h-4 w-4" />}
+            tooltip="Prompt Library"
+            onClick={() => openModal('promptLibrary')}
+          />
+          <IconButton
+            icon={<Sparkles className="h-4 w-4" />}
+            tooltip="AI Workflow Generator"
+            onClick={toggleAIGenerator}
+            active={showAIGenerator}
+          />
+        </div>
+
+        {/* Divider */}
+        <div className="h-8 w-px bg-border" />
+
+        {/* Settings */}
+        <IconButton
+          icon={<Settings className="h-4 w-4" />}
+          tooltip="Settings"
+          onClick={() => openModal('settings')}
+        />
+
+        {/* Divider */}
+        <div className="h-8 w-px bg-border" />
+
+        {/* Cost Indicator */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={() => openModal('cost')}
+              className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm transition hover:bg-secondary"
+            >
+              <DollarSign className="h-4 w-4 text-chart-2" />
+              <span className="font-medium tabular-nums">
+                {actualCost > 0 ? actualCost.toFixed(2) : estimatedCost.toFixed(2)}
+              </span>
+              {actualCost > 0 && estimatedCost > 0 && actualCost !== estimatedCost && (
+                <span className="text-xs text-muted-foreground">
+                  (est. {estimatedCost.toFixed(2)})
+                </span>
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>View cost breakdown</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Divider */}
+        <div className="h-8 w-px bg-border" />
+
+        {/* Auto-Save Indicator */}
+        <SaveIndicator />
+
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Run Controls */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant={isRunning ? 'destructive' : 'default'} onClick={handleRunStop}>
+              {isRunning ? (
+                <>
+                  <Square className="h-4 w-4" />
+                  Stop
+                </>
+              ) : (
+                <>
+                  <Play className="h-4 w-4 fill-current" />
+                  Run Workflow
+                </>
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{isRunning ? 'Stop execution' : 'Execute all nodes'}</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* New Workflow */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link href="/w/new">
+              <Button variant="secondary">
+                <Plus className="h-4 w-4 mr-1" />
+                New
+              </Button>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Create new workflow</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Validation Errors Toast */}
+        {uniqueErrorMessages.length > 0 && (
+          <div className="fixed right-4 top-20 z-50 max-w-sm rounded-lg border border-destructive/30 bg-destructive/10 p-4 shadow-xl">
+            <div className="flex items-start gap-3">
+              <AlertCircle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
+              <div className="min-w-0 flex-1">
+                <h4 className="mb-2 text-sm font-medium text-destructive">Cannot run workflow</h4>
+                <ul className="space-y-1">
+                  {uniqueErrorMessages.slice(0, 5).map((message) => (
+                    <li key={message} className="text-xs text-destructive/80">
+                      {message}
+                    </li>
+                  ))}
+                  {uniqueErrorMessages.length > 5 && (
+                    <li className="text-xs text-destructive/60">
+                      +{uniqueErrorMessages.length - 5} more errors
+                    </li>
+                  )}
+                </ul>
+              </div>
+              <Button variant="ghost" size="icon-sm" onClick={clearValidationErrors}>
+                <X className="h-4 w-4 text-destructive" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </TooltipProvider>
   );
 }

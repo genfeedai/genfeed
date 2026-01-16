@@ -35,7 +35,7 @@ export function useContextMenu() {
     deleteMultipleNodes,
     duplicateMultipleNodes,
   } = useNodeActions();
-  const { addNodeAtPosition, selectAll, fitView } = usePaneActions();
+  const { addNodeAtPosition, selectAll, fitView, autoLayout } = usePaneActions();
 
   const lockNode = useCallback(
     (nodeId: string) => {
@@ -138,6 +138,7 @@ export function useContextMenu() {
           onPaste: pasteNodes,
           onSelectAll: selectAll,
           onFitView: fitView,
+          onAutoLayout: () => autoLayout('LR'),
         });
 
       case 'selection':
@@ -174,6 +175,7 @@ export function useContextMenu() {
     pasteNodes,
     selectAll,
     fitView,
+    autoLayout,
     groupNodes,
     duplicateMultipleNodes,
     lockAllNodes,

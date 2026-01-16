@@ -1,10 +1,5 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.3.11/schema.json",
-  "vcs": {
-    "enabled": true,
-    "clientKind": "git",
-    "useIgnoreFile": true
-  },
   "assist": {
     "actions": {
       "source": {
@@ -34,24 +29,36 @@
     "lineWidth": 100
   },
   "javascript": {
-    "parser": {
-      "unsafeParameterDecoratorsEnabled": true
-    },
     "formatter": {
       "quoteStyle": "single",
       "semicolons": "always",
       "trailingCommas": "es5"
+    },
+    "parser": {
+      "unsafeParameterDecoratorsEnabled": true
     }
   },
   "linter": {
     "enabled": true,
     "rules": {
+      "a11y": {
+        "noLabelWithoutControl": "off",
+        "noRedundantAlt": "off",
+        "noStaticElementInteractions": "off",
+        "noSvgWithoutTitle": "off",
+        "useButtonType": "off",
+        "useKeyWithClickEvents": "off",
+        "useMediaCaption": "off"
+      },
       "complexity": {
         "noForEach": "off",
         "noStaticOnlyClass": "off"
       },
       "correctness": {
         "noUnusedFunctionParameters": "off"
+      },
+      "performance": {
+        "noImgElement": "off"
       },
       "recommended": true,
       "style": {
@@ -61,19 +68,12 @@
         "noArrayIndexKey": "off",
         "noExplicitAny": "warn",
         "noImplicitAnyLet": "off"
-      },
-      "a11y": {
-        "noStaticElementInteractions": "off",
-        "noLabelWithoutControl": "off",
-        "useButtonType": "off",
-        "useKeyWithClickEvents": "off",
-        "noRedundantAlt": "off",
-        "useMediaCaption": "off",
-        "noSvgWithoutTitle": "off"
-      },
-      "performance": {
-        "noImgElement": "off"
       }
     }
+  },
+  "vcs": {
+    "clientKind": "git",
+    "enabled": true,
+    "useIgnoreFile": true
   }
 }

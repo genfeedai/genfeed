@@ -14,8 +14,10 @@ import {
   Sparkles,
   Video,
   Wand2,
+  X,
 } from 'lucide-react';
 import { useCallback, useState } from 'react';
+import { useUIStore } from '@/store/uiStore';
 
 // Icon mapping
 const ICONS: Record<string, typeof Image> = {
@@ -150,6 +152,7 @@ function CategorySection({ category, isExpanded, onToggle }: CategorySectionProp
 }
 
 export function NodePalette() {
+  const { togglePalette } = useUIStore();
   const [expandedCategories, setExpandedCategories] = useState<Set<NodeCategory>>(
     new Set(['input', 'ai'])
   );
@@ -170,9 +173,17 @@ export function NodePalette() {
 
   return (
     <div className="w-64 h-full bg-[var(--background)] border-r border-[var(--border)] flex flex-col overflow-hidden">
-      <div className="px-4 py-3 border-b border-[var(--border)]">
-        <h2 className="font-semibold text-sm text-[var(--foreground)]">Nodes</h2>
-        <p className="text-xs text-[var(--muted-foreground)] mt-1">Drag nodes onto the canvas</p>
+      <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
+        <div>
+          <h2 className="font-semibold text-sm text-[var(--foreground)]">Nodes</h2>
+          <p className="text-xs text-[var(--muted-foreground)] mt-1">Drag nodes onto the canvas</p>
+        </div>
+        <button
+          onClick={togglePalette}
+          className="p-1 hover:bg-[var(--secondary)] rounded transition"
+        >
+          <X className="w-4 h-4" />
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto">
