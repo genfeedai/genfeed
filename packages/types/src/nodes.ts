@@ -62,13 +62,10 @@ export type NodeType =
   | 'videoInput'
   | 'prompt'
   | 'template'
-  | 'tweetInput'
-  | 'rssInput'
   // AI generation nodes
   | 'imageGen'
   | 'videoGen'
   | 'llm'
-  | 'tweetRemix'
   | 'lipSync'
   | 'voiceChange'
   | 'textToSpeech'
@@ -85,10 +82,10 @@ export type NodeType =
   | 'topazVideoUpscale'
   | 'imageGridSplit'
   | 'annotation'
+  | 'subtitle'
   // Output nodes
   | 'output'
-  | 'preview'
-  | 'socialPublish';
+  | 'preview';
 
 export type NodeCategory = 'input' | 'ai' | 'processing' | 'output';
 
@@ -140,30 +137,6 @@ export interface TemplateNodeData extends BaseNodeData {
   templateName: string;
   variables: Record<string, string>;
   resolvedPrompt: string | null;
-}
-
-export interface TweetInputNodeData extends BaseNodeData {
-  inputMode: 'url' | 'text';
-  tweetUrl: string;
-  rawText: string;
-  extractedTweet: string | null;
-  authorHandle: string | null;
-}
-
-export interface RssFeedItem {
-  title: string;
-  description: string;
-  link: string;
-  pubDate: string | null;
-}
-
-export interface RssInputNodeData extends BaseNodeData {
-  inputMode: 'url' | 'text';
-  feedUrl: string;
-  rawXml: string;
-  feedTitle: string | null;
-  feedItems: RssFeedItem[] | null;
-  selectedItemIndex: number;
 }
 
 export interface AudioInputNodeData extends BaseNodeData {
@@ -285,31 +258,6 @@ export interface LLMNodeData extends BaseNodeData {
   temperature: number;
   maxTokens: number;
   topP: number;
-
-  // Job state
-  jobId: string | null;
-}
-
-export type TweetTone = 'professional' | 'casual' | 'witty' | 'viral';
-
-export interface TweetVariation {
-  id: string;
-  text: string;
-  charCount: number;
-}
-
-export interface TweetRemixNodeData extends BaseNodeData {
-  // Input from connection
-  inputTweet: string | null;
-
-  // Variations output
-  variations: TweetVariation[];
-  selectedIndex: number | null;
-  outputTweet: string | null;
-
-  // Config
-  tone: TweetTone;
-  maxLength: number;
 
   // Job state
   jobId: string | null;
@@ -674,6 +622,29 @@ export interface AnnotationNodeData extends BaseNodeData {
   hasAnnotations: boolean;
 }
 
+export type SubtitleStyle = 'default' | 'modern' | 'minimal' | 'bold';
+export type SubtitlePosition = 'top' | 'center' | 'bottom';
+
+export interface SubtitleNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputText: string | null;
+
+  // Output
+  outputVideo: string | null;
+
+  // Config
+  style: SubtitleStyle;
+  position: SubtitlePosition;
+  fontSize: number;
+  fontColor: string;
+  backgroundColor: string | null;
+  fontFamily: string;
+
+  // Job state
+  jobId: string | null;
+}
+
 // =============================================================================
 // OUTPUT NODE DATA
 // =============================================================================
@@ -697,35 +668,6 @@ export interface PreviewNodeData extends BaseNodeData {
   volume: number;
 }
 
-export type SocialPlatform =
-  | 'youtube'
-  | 'tiktok'
-  | 'instagram'
-  | 'twitter'
-  | 'linkedin'
-  | 'facebook'
-  | 'threads';
-export type SocialVisibility = 'public' | 'private' | 'unlisted';
-
-export interface SocialPublishNodeData extends BaseNodeData {
-  // Inputs from connections
-  inputVideo: string | null;
-
-  // Publish config
-  platform: SocialPlatform;
-  title: string;
-  description: string;
-  tags: string[];
-  visibility: SocialVisibility;
-  scheduledTime: string | null;
-
-  // Output
-  publishedUrl: string | null;
-
-  // Job state
-  jobId: string | null;
-}
-
 // =============================================================================
 // NODE DATA UNION
 // =============================================================================
@@ -736,12 +678,9 @@ export type WorkflowNodeData =
   | VideoInputNodeData
   | PromptNodeData
   | TemplateNodeData
-  | TweetInputNodeData
-  | RssInputNodeData
   | ImageGenNodeData
   | VideoGenNodeData
   | LLMNodeData
-  | TweetRemixNodeData
   | LipSyncNodeData
   | VoiceChangeNodeData
   | TextToSpeechNodeData
@@ -757,9 +696,9 @@ export type WorkflowNodeData =
   | TopazVideoUpscaleNodeData
   | ImageGridSplitNodeData
   | AnnotationNodeData
+  | SubtitleNodeData
   | OutputNodeData
-  | PreviewNodeData
-  | SocialPublishNodeData;
+  | PreviewNodeData;
 
 // =============================================================================
 // WORKFLOW NODE & EDGE
@@ -836,43 +775,6 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       templateName: '',
       variables: {},
       resolvedPrompt: null,
-    },
-  },
-  tweetInput: {
-    type: 'tweetInput',
-    label: 'Tweet',
-    description: 'Enter a Twitter URL or paste tweet text',
-    category: 'input',
-    icon: 'AtSign',
-    inputs: [],
-    outputs: [{ id: 'text', type: 'text', label: 'Tweet Text' }],
-    defaultData: {
-      label: 'Tweet',
-      status: 'idle',
-      inputMode: 'url',
-      tweetUrl: '',
-      rawText: '',
-      extractedTweet: null,
-      authorHandle: null,
-    },
-  },
-  rssInput: {
-    type: 'rssInput',
-    label: 'RSS',
-    description: 'Fetch content from an RSS feed URL',
-    category: 'input',
-    icon: 'Rss',
-    inputs: [],
-    outputs: [{ id: 'text', type: 'text', label: 'Feed Item' }],
-    defaultData: {
-      label: 'RSS',
-      status: 'idle',
-      inputMode: 'url',
-      feedUrl: '',
-      rawXml: '',
-      feedTitle: null,
-      feedItems: null,
-      selectedItemIndex: 0,
     },
   },
   audioInput: {
@@ -982,26 +884,6 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       temperature: 0.7,
       maxTokens: 1024,
       topP: 0.9,
-      jobId: null,
-    },
-  },
-  tweetRemix: {
-    type: 'tweetRemix',
-    label: 'Tweet Remix',
-    description: 'Generate 3 tweet variations with your brand voice',
-    category: 'ai',
-    icon: 'RefreshCw',
-    inputs: [{ id: 'tweet', type: 'text', label: 'Original Tweet', required: true }],
-    outputs: [{ id: 'text', type: 'text', label: 'Selected Tweet' }],
-    defaultData: {
-      label: 'Tweet Remix',
-      status: 'idle',
-      inputTweet: null,
-      variations: [],
-      selectedIndex: null,
-      outputTweet: null,
-      tone: 'professional',
-      maxLength: 280,
       jobId: null,
     },
   },
@@ -1317,6 +1199,32 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       hasAnnotations: false,
     },
   },
+  subtitle: {
+    type: 'subtitle',
+    label: 'Subtitle',
+    description: 'Burn subtitles into video using FFmpeg',
+    category: 'processing',
+    icon: 'Subtitles',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video', required: true },
+      { id: 'text', type: 'text', label: 'Subtitle Text', required: true },
+    ],
+    outputs: [{ id: 'video', type: 'video', label: 'Video with Subtitles' }],
+    defaultData: {
+      label: 'Subtitle',
+      status: 'idle',
+      inputVideo: null,
+      inputText: null,
+      outputVideo: null,
+      style: 'modern',
+      position: 'bottom',
+      fontSize: 24,
+      fontColor: '#FFFFFF',
+      backgroundColor: 'rgba(0,0,0,0.7)',
+      fontFamily: 'Arial',
+      jobId: null,
+    },
+  },
 
   // Output nodes
   output: {
@@ -1350,28 +1258,6 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       inputType: null,
       isPlaying: false,
       volume: 1,
-    },
-  },
-  socialPublish: {
-    type: 'socialPublish',
-    label: 'Social Publish',
-    description: 'Publish video to YouTube, TikTok, Instagram, LinkedIn, Facebook, or Threads',
-    category: 'output',
-    icon: 'Share2',
-    inputs: [{ id: 'video', type: 'video', label: 'Video', required: true }],
-    outputs: [],
-    defaultData: {
-      label: 'Social Publish',
-      status: 'idle',
-      inputVideo: null,
-      platform: 'youtube',
-      title: '',
-      description: '',
-      tags: [],
-      visibility: 'public',
-      scheduledTime: null,
-      publishedUrl: null,
-      jobId: null,
     },
   },
 };

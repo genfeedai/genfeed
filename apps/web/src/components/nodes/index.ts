@@ -12,20 +12,11 @@ import {
   LLMNode,
   TextToSpeechNode,
   TranscribeNode,
-  TweetRemixNode,
   VideoGenNode,
   VoiceChangeNode,
 } from './ai';
-import {
-  AudioInputNode,
-  ImageInputNode,
-  PromptNode,
-  RssInputNode,
-  TemplateNode,
-  TweetInputNode,
-  VideoInputNode,
-} from './input';
-import { OutputNode, PreviewNode, SocialPublishNode } from './output';
+import { AudioInputNode, ImageInputNode, PromptNode, TemplateNode, VideoInputNode } from './input';
+import { OutputNode, PreviewNode } from './output';
 import {
   AnimationNode,
   AnnotationNode,
@@ -33,6 +24,7 @@ import {
   LumaReframeImageNode,
   LumaReframeVideoNode,
   ResizeNode,
+  SubtitleNode,
   TopazImageUpscaleNode,
   TopazVideoUpscaleNode,
   VideoFrameExtractNode,
@@ -46,12 +38,9 @@ export const nodeTypes: NodeTypes = {
   videoInput: VideoInputNode,
   prompt: PromptNode,
   template: TemplateNode,
-  tweetInput: TweetInputNode,
-  rssInput: RssInputNode,
   imageGen: ImageGenNode,
   videoGen: VideoGenNode,
   llm: LLMNode,
-  tweetRemix: TweetRemixNode,
   lipSync: LipSyncNode,
   voiceChange: VoiceChangeNode,
   textToSpeech: TextToSpeechNode,
@@ -67,7 +56,7 @@ export const nodeTypes: NodeTypes = {
   lumaReframeVideo: LumaReframeVideoNode,
   topazImageUpscale: TopazImageUpscaleNode,
   topazVideoUpscale: TopazVideoUpscaleNode,
+  subtitle: SubtitleNode,
   output: OutputNode,
   preview: PreviewNode,
-  socialPublish: SocialPublishNode,
 };

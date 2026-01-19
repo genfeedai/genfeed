@@ -165,6 +165,31 @@ export class ProcessingProcessor extends WorkerHost {
           };
         }
 
+        case 'subtitle': {
+          // Subtitle burning uses FFmpeg
+          const subtitleResult = await this.ffmpegService.addSubtitles(executionId, nodeId, {
+            video: nodeData.video,
+            text: nodeData.text,
+            style: nodeData.style,
+            position: nodeData.position,
+            fontSize: nodeData.fontSize,
+            fontColor: nodeData.fontColor,
+            backgroundColor: nodeData.backgroundColor,
+            fontFamily: nodeData.fontFamily,
+          });
+
+          await job.updateProgress({ percent: 100, message: 'Completed' });
+          await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
+            result: { videoUrl: subtitleResult.videoUrl } as unknown as Record<string, unknown>,
+          });
+          await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
+
+          return {
+            success: true,
+            output: { video: subtitleResult.videoUrl } as Record<string, unknown>,
+          };
+        }
+
         default:
           throw new Error(`Unknown processing node type: ${nodeType}`);
       }

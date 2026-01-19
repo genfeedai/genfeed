@@ -1,13 +1,10 @@
 import type { WorkflowFile } from '@genfeedai/types';
 
-// NOTE: This template uses placeholder node types (subtitle, youtubeUpload)
-// that need to be implemented in apps/web/src/types/nodes.ts before use.
-// Using type assertion to allow template definition while nodes are pending.
-export const YOUTUBE_VIDEO_GENERATOR_TEMPLATE = {
+export const YOUTUBE_VIDEO_GENERATOR_TEMPLATE: WorkflowFile = {
   version: 1,
   name: 'YouTube 10-Min Video Generator',
   description:
-    'Generate a complete 10-minute YouTube video: script → images → videos with camera movements → stitch → music → subtitles → publish',
+    'Generate a complete 10-minute YouTube video: script → images → videos with camera movements → stitch → music → subtitles',
   nodes: [
     // Stage 1: Script Input & Generation
     {
@@ -145,11 +142,28 @@ Ensure visual continuity between scenes. Total runtime: 10 minutes (20 × 30 sec
       },
     },
 
-    // Stage 6: Subtitle (placeholder - needs implementation)
+    // Stage 6: Voice Change (Audio Mixer)
+    {
+      id: 'voice-change',
+      type: 'voiceChange',
+      position: { x: 2050, y: 500 },
+      data: {
+        label: 'Audio Mixer',
+        status: 'idle',
+        inputVideo: null,
+        inputAudio: null,
+        outputVideo: null,
+        preserveOriginalAudio: false,
+        audioMixLevel: 0.3,
+        jobId: null,
+      },
+    },
+
+    // Stage 7: Subtitle
     {
       id: 'subtitle',
       type: 'subtitle',
-      position: { x: 2050, y: 500 },
+      position: { x: 2400, y: 500 },
       data: {
         label: 'Subtitles',
         status: 'idle',
@@ -161,43 +175,8 @@ Ensure visual continuity between scenes. Total runtime: 10 minutes (20 × 30 sec
         fontSize: 24,
         fontColor: '#FFFFFF',
         backgroundColor: 'rgba(0,0,0,0.7)',
-      },
-    },
-
-    // Stage 7: Voice Change (Audio Mixer)
-    {
-      id: 'voice-change',
-      type: 'voiceChange',
-      position: { x: 2050, y: 700 },
-      data: {
-        label: 'Audio Mixer',
-        status: 'idle',
-        inputVideo: null,
-        inputAudio: null,
-        outputVideo: null,
-        preserveOriginalAudio: false,
-        audioMixLevel: 0.3,
-      },
-    },
-
-    // Stage 8: YouTube Upload (placeholder - needs implementation)
-    {
-      id: 'youtube',
-      type: 'youtubeUpload',
-      position: { x: 2400, y: 600 },
-      data: {
-        label: 'YouTube Upload',
-        status: 'idle',
-        inputVideo: null,
-        title: '',
-        description: '',
-        tags: [],
-        category: 'Education',
-        visibility: 'private',
-        scheduledTime: null,
-        thumbnailImage: null,
-        uploadStatus: null,
-        videoUrl: null,
+        fontFamily: 'Arial',
+        jobId: null,
       },
     },
 
@@ -205,7 +184,7 @@ Ensure visual continuity between scenes. Total runtime: 10 minutes (20 × 30 sec
     {
       id: 'output',
       type: 'output',
-      position: { x: 2750, y: 600 },
+      position: { x: 2750, y: 500 },
       data: {
         label: 'Final Video',
         status: 'idle',
@@ -284,7 +263,7 @@ Ensure visual continuity between scenes. Total runtime: 10 minutes (20 × 30 sec
       targetHandle: 'audio',
     },
 
-    // Script → Subtitle
+    // Script → Subtitle (for subtitle text)
     {
       id: 'e-script-subtitle',
       source: 'llm-script',
@@ -302,19 +281,10 @@ Ensure visual continuity between scenes. Total runtime: 10 minutes (20 × 30 sec
       targetHandle: 'video',
     },
 
-    // Subtitle → YouTube
+    // Subtitle → Output
     {
-      id: 'e-subtitle-youtube',
+      id: 'e-subtitle-output',
       source: 'subtitle',
-      target: 'youtube',
-      sourceHandle: 'video',
-      targetHandle: 'video',
-    },
-
-    // YouTube → Output
-    {
-      id: 'e-youtube-output',
-      source: 'youtube',
       target: 'output',
       sourceHandle: 'video',
       targetHandle: 'media',
@@ -323,4 +293,4 @@ Ensure visual continuity between scenes. Total runtime: 10 minutes (20 × 30 sec
   edgeStyle: 'smoothstep',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
-} as WorkflowFile;
+};

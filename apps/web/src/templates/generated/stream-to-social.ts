@@ -2,9 +2,9 @@ import type { WorkflowFile } from '@genfeedai/types';
 
 export const STREAM_TO_SOCIAL_TEMPLATE: WorkflowFile = {
   version: 1,
-  name: 'Stream to Multi-Platform Content',
+  name: 'Stream to Short-Form Content',
   description:
-    'Transform a 1-hour stream into engaging short-form content: transcribe → extract hot takes → generate intro + trim highlights → stitch → publish to YouTube, TikTok, and Instagram',
+    'Transform a 1-hour stream into engaging short-form content: transcribe → extract hot takes → generate intro + trim highlights → stitch → export',
   nodes: [
     // Stage 1: Video Input
     {
@@ -146,71 +146,11 @@ Focus on content that will hook viewers in the first 3 seconds.`,
       },
     },
 
-    // Stage 6a: Publish to YouTube
-    {
-      id: 'publish-youtube',
-      type: 'socialPublish',
-      position: { x: 1700, y: 200 },
-      data: {
-        label: 'YouTube',
-        status: 'idle',
-        inputVideo: null,
-        platform: 'youtube',
-        title: '',
-        description: '',
-        tags: [],
-        visibility: 'public',
-        scheduledTime: null,
-        publishedUrl: null,
-        jobId: null,
-      },
-    },
-
-    // Stage 6b: Publish to TikTok
-    {
-      id: 'publish-tiktok',
-      type: 'socialPublish',
-      position: { x: 1700, y: 400 },
-      data: {
-        label: 'TikTok',
-        status: 'idle',
-        inputVideo: null,
-        platform: 'tiktok',
-        title: '',
-        description: '',
-        tags: [],
-        visibility: 'public',
-        scheduledTime: null,
-        publishedUrl: null,
-        jobId: null,
-      },
-    },
-
-    // Stage 6c: Publish to Instagram
-    {
-      id: 'publish-instagram',
-      type: 'socialPublish',
-      position: { x: 1700, y: 600 },
-      data: {
-        label: 'Instagram',
-        status: 'idle',
-        inputVideo: null,
-        platform: 'instagram',
-        title: '',
-        description: '',
-        tags: [],
-        visibility: 'public',
-        scheduledTime: null,
-        publishedUrl: null,
-        jobId: null,
-      },
-    },
-
-    // Final Output/Preview
+    // Stage 6: Final Output
     {
       id: 'output',
       type: 'output',
-      position: { x: 2050, y: 400 },
+      position: { x: 1700, y: 400 },
       data: {
         label: 'Final Output',
         status: 'idle',
@@ -291,33 +231,6 @@ Focus on content that will hook viewers in the first 3 seconds.`,
       target: 'stitch',
       sourceHandle: 'video',
       targetHandle: 'videos',
-    },
-
-    // Stitch → YouTube
-    {
-      id: 'e-stitch-youtube',
-      source: 'stitch',
-      target: 'publish-youtube',
-      sourceHandle: 'video',
-      targetHandle: 'video',
-    },
-
-    // Stitch → TikTok
-    {
-      id: 'e-stitch-tiktok',
-      source: 'stitch',
-      target: 'publish-tiktok',
-      sourceHandle: 'video',
-      targetHandle: 'video',
-    },
-
-    // Stitch → Instagram
-    {
-      id: 'e-stitch-instagram',
-      source: 'stitch',
-      target: 'publish-instagram',
-      sourceHandle: 'video',
-      targetHandle: 'video',
     },
 
     // Stitch → Output

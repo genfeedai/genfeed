@@ -81,14 +81,14 @@ export const TEMPLATE_INFO: TemplateInfo[] = [
     id: 'youtube-video-generator',
     name: 'YouTube 10-Min Video Generator',
     description:
-      'Generate a complete 10-minute YouTube video: script → images → videos with camera movements → stitch → music → subtitles → publish',
+      'Generate a complete 10-minute YouTube video: script → images → videos with camera movements → stitch → music → subtitles',
     category: 'full-pipeline',
   },
   {
     id: 'stream-to-social',
-    name: 'Stream to Multi-Platform Content',
+    name: 'Stream to Short-Form Content',
     description:
-      'Transform a 1-hour stream into short-form content: transcribe → extract hot takes → generate intro + trim highlights → publish to YouTube, TikTok, and Instagram',
+      'Transform a 1-hour stream into short-form content: transcribe → extract hot takes → generate intro + trim highlights → export',
     category: 'full-pipeline',
   },
   {

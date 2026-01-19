@@ -31,6 +31,21 @@ export interface ReplaceAudioResult {
   videoUrl: string;
 }
 
+export interface SubtitleInput {
+  video: string;
+  text: string;
+  style: 'default' | 'modern' | 'minimal' | 'bold';
+  position: 'top' | 'center' | 'bottom';
+  fontSize: number;
+  fontColor: string;
+  backgroundColor: string | null;
+  fontFamily: string;
+}
+
+export interface SubtitleResult {
+  videoUrl: string;
+}
+
 @Injectable()
 export class FFmpegService {
   private readonly logger = new Logger(FFmpegService.name);
@@ -219,5 +234,182 @@ export class FFmpegService {
 
       throw error;
     }
+  }
+
+  /**
+   * Burn subtitles into video using FFmpeg drawtext filter
+   */
+  async addSubtitles(
+    executionId: string,
+    nodeId: string,
+    input: SubtitleInput
+  ): Promise<SubtitleResult> {
+    this.logger.log(`Adding subtitles for node ${nodeId}`);
+
+    const tempDir = join(tmpdir(), 'genfeed-ffmpeg');
+    const outputPath = join(tempDir, `subtitle-${nodeId}-${Date.now()}.mp4`);
+    const subtitlePath = join(tempDir, `subtitle-${nodeId}-${Date.now()}.srt`);
+
+    try {
+      // Ensure temp directory exists
+      await mkdir(tempDir, { recursive: true });
+
+      // Convert plain text to simple SRT format
+      const srtContent = this.textToSrt(input.text);
+      const { writeFile } = await import('node:fs/promises');
+      await writeFile(subtitlePath, srtContent, 'utf-8');
+
+      // Build subtitle style based on input
+      const { fontsize, fontcolor, boxcolor, yPosition } = this.getSubtitleStyle(input);
+
+      // Build FFmpeg command with subtitles filter
+      // Use subtitles filter for SRT files
+      const escapedSubtitlePath = subtitlePath.replace(/'/g, "'\\''").replace(/:/g, '\\:');
+
+      const ffmpegCmd = `ffmpeg -y -i "${input.video}" -vf "subtitles='${escapedSubtitlePath}':force_style='FontSize=${fontsize},FontName=${input.fontFamily},PrimaryColour=${fontcolor},BackColour=${boxcolor},BorderStyle=4,Outline=0,Shadow=0,MarginV=${yPosition}'" -c:a copy "${outputPath}"`;
+
+      this.logger.debug(`Running FFmpeg: ${ffmpegCmd}`);
+
+      // Execute FFmpeg
+      const { stderr } = await execAsync(ffmpegCmd, {
+        timeout: 600000, // 10 minute timeout for subtitle burning
+      });
+
+      if (stderr?.includes('Error') && !stderr.includes('deprecated')) {
+        this.logger.warn(`FFmpeg stderr: ${stderr}`);
+      }
+
+      // Read the output file and convert to base64 data URL
+      const videoBuffer = await readFile(outputPath);
+      const videoBase64 = videoBuffer.toString('base64');
+      const videoDataUrl = `data:video/mp4;base64,${videoBase64}`;
+
+      // Update execution with result
+      await this.executionsService.updateNodeResult(executionId, nodeId, 'complete', {
+        video: videoDataUrl,
+      });
+
+      this.logger.log(`Subtitles added successfully for node ${nodeId}`);
+
+      // Clean up temp files
+      await unlink(outputPath).catch(() => {});
+      await unlink(subtitlePath).catch(() => {});
+
+      return {
+        videoUrl: videoDataUrl,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Failed to add subtitles for node ${nodeId}: ${errorMessage}`);
+
+      // Clean up temp files on error
+      await unlink(outputPath).catch(() => {});
+      await unlink(subtitlePath).catch(() => {});
+
+      await this.executionsService.updateNodeResult(
+        executionId,
+        nodeId,
+        'error',
+        undefined,
+        errorMessage
+      );
+
+      throw error;
+    }
+  }
+
+  /**
+   * Convert plain text to SRT subtitle format
+   * Each line becomes a subtitle entry
+   */
+  private textToSrt(text: string): string {
+    const lines = text.split('\n').filter((line) => line.trim());
+    const srtLines: string[] = [];
+
+    // Assume ~3 seconds per line of text
+    const secondsPerLine = 3;
+
+    lines.forEach((line, index) => {
+      const startTime = index * secondsPerLine;
+      const endTime = startTime + secondsPerLine;
+
+      srtLines.push(`${index + 1}`);
+      srtLines.push(`${this.formatSrtTime(startTime)} --> ${this.formatSrtTime(endTime)}`);
+      srtLines.push(line.trim());
+      srtLines.push('');
+    });
+
+    return srtLines.join('\n');
+  }
+
+  /**
+   * Format seconds to SRT time format (HH:MM:SS,mmm)
+   */
+  private formatSrtTime(seconds: number): string {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    const millis = Math.floor((seconds % 1) * 1000);
+
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')},${millis.toString().padStart(3, '0')}`;
+  }
+
+  /**
+   * Get subtitle style parameters for FFmpeg
+   */
+  private getSubtitleStyle(input: SubtitleInput): {
+    fontsize: number;
+    fontcolor: string;
+    boxcolor: string;
+    yPosition: number;
+  } {
+    // Convert hex color to ASS color format (&HAABBGGRR)
+    const hexToAssColor = (hex: string): string => {
+      const clean = hex.replace('#', '');
+      const r = clean.substring(0, 2);
+      const g = clean.substring(2, 4);
+      const b = clean.substring(4, 6);
+      return `&H00${b}${g}${r}`;
+    };
+
+    // Parse background color
+    let boxcolor = '&H80000000'; // Default semi-transparent black
+    if (input.backgroundColor) {
+      const rgba = input.backgroundColor.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (rgba) {
+        const r = Number.parseInt(rgba[1]).toString(16).padStart(2, '0');
+        const g = Number.parseInt(rgba[2]).toString(16).padStart(2, '0');
+        const b = Number.parseInt(rgba[3]).toString(16).padStart(2, '0');
+        const a = rgba[4]
+          ? Math.round(Number.parseFloat(rgba[4]) * 255)
+              .toString(16)
+              .padStart(2, '0')
+          : '80';
+        boxcolor = `&H${a}${b}${g}${r}`;
+      }
+    }
+
+    // Calculate Y position based on position setting
+    let yPosition = 20; // Default for bottom
+    if (input.position === 'top') {
+      yPosition = 400;
+    } else if (input.position === 'center') {
+      yPosition = 200;
+    }
+
+    // Apply style multipliers
+    let fontsize = input.fontSize;
+    if (input.style === 'bold') {
+      fontsize = Math.round(fontsize * 1.2);
+    } else if (input.style === 'minimal') {
+      fontsize = Math.round(fontsize * 0.9);
+    }
+
+    return {
+      fontsize,
+      fontcolor: hexToAssColor(input.fontColor),
+      boxcolor,
+      yPosition,
+    };
   }
 }

@@ -4,6 +4,7 @@ export { ImageGridSplitNode } from './ImageGridSplitNode';
 export { LumaReframeImageNode } from './LumaReframeImageNode';
 export { LumaReframeVideoNode } from './LumaReframeVideoNode';
 export { ResizeNode } from './ResizeNode';
+export { SubtitleNode } from './SubtitleNode';
 export { TopazImageUpscaleNode } from './TopazImageUpscaleNode';
 export { TopazVideoUpscaleNode } from './TopazVideoUpscaleNode';
 export { VideoFrameExtractNode } from './VideoFrameExtractNode';

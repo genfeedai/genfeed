@@ -188,6 +188,23 @@ export interface TextToSpeechJobData extends NodeJobData {
 }
 
 /**
+ * Subtitle job data
+ */
+export interface SubtitleJobData extends NodeJobData {
+  nodeType: 'subtitle';
+  nodeData: {
+    video: string;
+    text: string;
+    style: 'default' | 'modern' | 'minimal' | 'bold';
+    position: 'top' | 'center' | 'bottom';
+    fontSize: number;
+    fontColor: string;
+    backgroundColor: string | null;
+    fontFamily: string;
+  };
+}
+
+/**
  * Union type for all processing job data
  */
 export type ProcessingJobData =
@@ -198,7 +215,8 @@ export type ProcessingJobData =
   | VideoFrameExtractJobData
   | LipSyncJobData
   | VoiceChangeJobData
-  | TextToSpeechJobData;
+  | TextToSpeechJobData
+  | SubtitleJobData;
 
 /**
  * Job result interface

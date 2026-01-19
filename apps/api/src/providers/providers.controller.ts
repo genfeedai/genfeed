@@ -1,7 +1,5 @@
 import type { ModelCapability, ProviderModel, ProviderType } from '@genfeedai/types';
 import { Controller, Get, Headers, Query } from '@nestjs/common';
-import { FalService } from './fal.service';
-import { HuggingFaceService } from './huggingface.service';
 
 // Replicate models (hardcoded, actual calls go through ReplicateService)
 const REPLICATE_MODELS: ProviderModel[] = [
@@ -79,20 +77,13 @@ interface ListModelsQuery {
 
 @Controller('providers')
 export class ProvidersController {
-  constructor(
-    private readonly falService: FalService,
-    private readonly huggingFaceService: HuggingFaceService
-  ) {}
-
   /**
-   * List available models from all or specific providers
+   * List available models from Replicate
    */
   @Get('models')
   listModels(
     @Query() queryParams: ListModelsQuery,
-    @Headers('X-Replicate-Key') _replicateKey?: string,
-    @Headers('X-Fal-Key') _falKey?: string,
-    @Headers('X-HF-Key') _hfKey?: string
+    @Headers('X-Replicate-Key') _replicateKey?: string
   ): ProviderModel[] {
     const { provider, capabilities: capabilitiesStr, query } = queryParams;
 
@@ -103,17 +94,9 @@ export class ProvidersController {
 
     const models: ProviderModel[] = [];
 
-    // Get models from each provider
+    // Only Replicate is supported in OSS
     if (!provider || provider === 'replicate') {
       models.push(...this.filterModels(REPLICATE_MODELS, capabilities, query));
-    }
-
-    if (!provider || provider === 'fal') {
-      models.push(...this.falService.listModels(capabilities, query));
-    }
-
-    if (!provider || provider === 'huggingface') {
-      models.push(...this.huggingFaceService.listModels(capabilities, query));
     }
 
     return models;
@@ -127,38 +110,24 @@ export class ProvidersController {
     @Query('provider') provider: ProviderType,
     @Query('modelId') modelId: string
   ): ProviderModel | undefined {
-    switch (provider) {
-      case 'replicate':
-        return REPLICATE_MODELS.find((m) => m.id === modelId);
-      case 'fal':
-        return this.falService.getModel(modelId);
-      case 'huggingface':
-        return this.huggingFaceService.getModel(modelId);
-      default:
-        return undefined;
+    if (provider === 'replicate') {
+      return REPLICATE_MODELS.find((m) => m.id === modelId);
     }
+    return undefined;
   }
 
   /**
-   * Validate API key for a provider
+   * Validate API key for Replicate
    */
   @Get('validate')
   async validateKey(
     @Query('provider') provider: ProviderType,
-    @Headers('X-Replicate-Key') replicateKey?: string,
-    @Headers('X-Fal-Key') falKey?: string,
-    @Headers('X-HF-Key') hfKey?: string
+    @Headers('X-Replicate-Key') replicateKey?: string
   ): Promise<{ valid: boolean; message?: string }> {
-    switch (provider) {
-      case 'replicate':
-        return this.validateReplicateKey(replicateKey);
-      case 'fal':
-        return this.validateFalKey(falKey);
-      case 'huggingface':
-        return this.validateHuggingFaceKey(hfKey);
-      default:
-        return { valid: false, message: 'Unknown provider' };
+    if (provider === 'replicate') {
+      return this.validateReplicateKey(replicateKey);
     }
+    return { valid: false, message: 'Unknown provider. OSS only supports Replicate.' };
   }
 
   private filterModels(
@@ -193,46 +162,6 @@ export class ProvidersController {
     try {
       const response = await fetch('https://api.replicate.com/v1/account', {
         headers: { Authorization: `Token ${key}` },
-      });
-      return { valid: response.ok };
-    } catch {
-      return { valid: false, message: 'Failed to validate key' };
-    }
-  }
-
-  private async validateFalKey(key?: string): Promise<{ valid: boolean; message?: string }> {
-    if (!key) {
-      // fal.ai works without a key (rate-limited)
-      return { valid: true, message: 'fal.ai works without API key (rate-limited)' };
-    }
-
-    try {
-      const response = await fetch('https://fal.run/fal-ai/flux/dev', {
-        method: 'POST',
-        headers: {
-          Authorization: `Key ${key}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ inputs: 'test', parameters: { num_images: 0 } }),
-      });
-      // 400 means key is valid but request was bad (expected)
-      // 401 means invalid key
-      return { valid: response.status !== 401 };
-    } catch {
-      return { valid: false, message: 'Failed to validate key' };
-    }
-  }
-
-  private async validateHuggingFaceKey(
-    key?: string
-  ): Promise<{ valid: boolean; message?: string }> {
-    if (!key) {
-      return { valid: false, message: 'No API key provided' };
-    }
-
-    try {
-      const response = await fetch('https://huggingface.co/api/whoami-v2', {
-        headers: { Authorization: `Bearer ${key}` },
       });
       return { valid: response.ok };
     } catch {
