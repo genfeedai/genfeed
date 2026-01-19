@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { setWebhookResult } from '@/lib/replicate/webhook-store';
 
 export async function POST(request: NextRequest) {
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ received: true });
   } catch (error) {
-    console.error('Webhook error:', error);
+    logger.error('Webhook error', error, { context: 'api/replicate/webhook' });
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }

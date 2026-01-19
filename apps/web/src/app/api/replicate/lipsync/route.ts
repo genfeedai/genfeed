@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { generateLipSync, type LipSyncModel } from '@/lib/replicate/client';
 
 export async function POST(request: NextRequest) {
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
       status: prediction.status,
     });
   } catch (error) {
-    console.error('Lip-sync generation error:', error);
+    logger.error('Lip-sync generation error', error, { context: 'api/replicate/lipsync' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Lip-sync generation failed' },
       { status: 500 }

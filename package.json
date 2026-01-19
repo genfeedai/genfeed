@@ -1,6 +1,7 @@
 {
   "devDependencies": {
     "@biomejs/biome": "2.3.11",
+    "@ngrok/ngrok": "^1.7.0",
     "@types/bun": "1.3.6",
     "husky": "9.1.7",
     "lint-staged": "16.2.7",
@@ -21,6 +22,7 @@
     "check:fix": "biome check --write .",
     "dev": "bunx concurrently \"bun run dev:api\" \"bun run dev:web\"",
     "dev:api": "bun run --filter @genfeedai/api start:dev",
+    "dev:tunnel": "bun run scripts/dev-tunnel.ts",
     "dev:web": "bun run --filter @genfeedai/web dev",
     "format": "biome format --write .",
     "format:check": "biome format .",

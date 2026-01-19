@@ -9,6 +9,7 @@ import { ProvidersModule } from './providers/providers.module';
 import { QueueModule } from './queue/queue.module';
 import { ReplicateModule } from './replicate/replicate.module';
 import { TemplatesModule } from './templates/templates.module';
+import { TTSModule } from './tts/tts.module';
 import { WorkflowsModule } from './workflows/workflows.module';
 
 @Module({
@@ -33,6 +34,7 @@ import { WorkflowsModule } from './workflows/workflows.module';
     TemplatesModule,
     ExecutionsModule,
     ReplicateModule,
+    TTSModule,
     PromptLibraryModule,
     ProvidersModule,
 

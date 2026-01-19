@@ -12,6 +12,7 @@ import {
 } from '@genfeedai/types';
 import { X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { usePromptLibraryStore } from '@/store/promptLibraryStore';
 
 function CreatePromptModalComponent() {
@@ -74,7 +75,7 @@ function CreatePromptModalComponent() {
         await createItem(formData);
       }
     } catch (error) {
-      console.error('Failed to save prompt:', error);
+      logger.error('Failed to save prompt', error, { context: 'CreatePromptModal' });
     }
   }, [formData, isEditing, editingItem, createItem, updateItem]);
 

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { generateText } from '@/lib/replicate/client';
 
 const SYSTEM_PROMPT = `You are a workflow generator for a visual node-based content creation tool. Given a user's request, output ONLY valid JSON for a workflow.
@@ -204,7 +205,7 @@ export async function POST(request: NextRequest) {
       workflow: completeWorkflow,
     });
   } catch (error) {
-    console.error('Workflow generation error:', error);
+    logger.error('Workflow generation error', error, { context: 'api/ai/generate-workflow' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Generation failed' },
       { status: 500 }

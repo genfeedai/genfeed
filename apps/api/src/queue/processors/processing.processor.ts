@@ -2,7 +2,9 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject, Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import type { ExecutionsService } from '../../executions/executions.service';
+import type { FFmpegService } from '../../ffmpeg/ffmpeg.service';
 import type { ReplicateService } from '../../replicate/replicate.service';
+import type { TTSService } from '../../tts/tts.service';
 import type { JobResult, ProcessingJobData } from '../interfaces/job-data.interface';
 import { JOB_STATUS, QUEUE_CONCURRENCY, QUEUE_NAMES } from '../queue.constants';
 import type { QueueManagerService } from '../services/queue-manager.service';
@@ -19,7 +21,11 @@ export class ProcessingProcessor extends WorkerHost {
     @Inject(forwardRef(() => 'ExecutionsService'))
     private readonly executionsService: ExecutionsService,
     @Inject(forwardRef(() => 'ReplicateService'))
-    private readonly replicateService: ReplicateService
+    private readonly replicateService: ReplicateService,
+    @Inject(forwardRef(() => 'TTSService'))
+    private readonly ttsService: TTSService,
+    @Inject(forwardRef(() => 'FFmpegService'))
+    private readonly ffmpegService: FFmpegService
   ) {
     super();
   }
@@ -82,6 +88,83 @@ export class ProcessingProcessor extends WorkerHost {
           });
           break;
 
+        case 'videoFrameExtract': {
+          // Frame extraction uses FFmpeg - no Replicate needed
+          const frameResult = await this.ffmpegService.extractFrame(executionId, nodeId, {
+            video: nodeData.video,
+            selectionMode: nodeData.selectionMode as 'first' | 'last' | 'timestamp' | 'percentage',
+            timestampSeconds: nodeData.timestampSeconds,
+            percentagePosition: nodeData.percentagePosition,
+          });
+
+          await job.updateProgress({ percent: 100, message: 'Completed' });
+          await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
+            result: { imageUrl: frameResult.imageUrl } as unknown as Record<string, unknown>,
+          });
+          await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
+
+          return {
+            success: true,
+            output: { image: frameResult.imageUrl } as Record<string, unknown>,
+          };
+        }
+
+        case 'lipSync':
+          prediction = await this.replicateService.generateLipSync(executionId, nodeId, {
+            image: nodeData.image,
+            video: nodeData.video,
+            audio: nodeData.audio,
+            model: nodeData.model,
+            syncMode: nodeData.syncMode,
+            temperature: nodeData.temperature,
+            activeSpeaker: nodeData.activeSpeaker,
+          });
+          break;
+
+        case 'textToSpeech': {
+          // TTS doesn't use Replicate - handle directly
+          const ttsResult = await this.ttsService.generateSpeech(executionId, nodeId, {
+            text: nodeData.text,
+            voice: nodeData.voice,
+            provider: nodeData.provider,
+            stability: nodeData.stability,
+            similarityBoost: nodeData.similarityBoost,
+            speed: nodeData.speed,
+          });
+
+          await job.updateProgress({ percent: 100, message: 'Completed' });
+          await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
+            result: { audioUrl: ttsResult.audioUrl } as unknown as Record<string, unknown>,
+          });
+          await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
+
+          return {
+            success: true,
+            output: { audio: ttsResult.audioUrl } as Record<string, unknown>,
+          };
+        }
+
+        case 'voiceChange': {
+          // Voice change uses FFmpeg to replace/mix audio
+          const voiceResult = await this.ffmpegService.replaceAudio(executionId, nodeId, {
+            video: nodeData.video,
+            audio: nodeData.audio,
+            preserveOriginalAudio: nodeData.preserveOriginalAudio,
+            audioMixLevel: nodeData.audioMixLevel,
+          });
+
+          await job.updateProgress({ percent: 100, message: 'Completed' });
+          await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
+            result: { videoUrl: voiceResult.videoUrl } as unknown as Record<string, unknown>,
+          });
+          await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
+
+          return {
+            success: true,
+            output: { video: voiceResult.videoUrl } as Record<string, unknown>,
+          };
+        }
+
         default:
           throw new Error(`Unknown processing node type: ${nodeType}`);
       }
@@ -138,7 +221,9 @@ export class ProcessingProcessor extends WorkerHost {
     job: Job<ProcessingJobData>
   ): Promise<JobResult> {
     const isVideoOperation =
-      job.data.nodeType === 'topazVideoUpscale' || job.data.nodeType === 'lumaReframeVideo';
+      job.data.nodeType === 'topazVideoUpscale' ||
+      job.data.nodeType === 'lumaReframeVideo' ||
+      job.data.nodeType === 'lipSync';
 
     // Video: 30 minutes with 10s intervals, Image: 15 minutes with 5s intervals
     const maxAttempts = isVideoOperation ? 180 : 180;

@@ -5,13 +5,18 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ExecutionsModule } from '../executions/executions.module';
 import { ExecutionsService } from '../executions/executions.service';
+import { FFmpegModule } from '../ffmpeg/ffmpeg.module';
+import { FFmpegService } from '../ffmpeg/ffmpeg.service';
 import { ReplicateModule } from '../replicate/replicate.module';
 import { ReplicateService } from '../replicate/replicate.service';
+import { TTSModule } from '../tts/tts.module';
+import { TTSService } from '../tts/tts.service';
 import { WorkflowsModule } from '../workflows/workflows.module';
 import { WorkflowsService } from '../workflows/workflows.service';
 import { BullBoardController } from './dashboard/bull-board.controller';
 import { ImageProcessor } from './processors/image.processor';
 import { LLMProcessor } from './processors/llm.processor';
+import { ProcessingProcessor } from './processors/processing.processor';
 import { VideoProcessor } from './processors/video.processor';
 import { WorkflowProcessor } from './processors/workflow.processor';
 import { DEFAULT_JOB_OPTIONS, QUEUE_NAMES } from './queue.constants';
@@ -60,6 +65,10 @@ import { QueueManagerService } from './services/queue-manager.service';
       {
         name: QUEUE_NAMES.LLM_GENERATION,
         defaultJobOptions: DEFAULT_JOB_OPTIONS[QUEUE_NAMES.LLM_GENERATION],
+      },
+      {
+        name: QUEUE_NAMES.PROCESSING,
+        defaultJobOptions: DEFAULT_JOB_OPTIONS[QUEUE_NAMES.PROCESSING],
       }
     ),
 
@@ -70,6 +79,8 @@ import { QueueManagerService } from './services/queue-manager.service';
     forwardRef(() => ExecutionsModule),
     forwardRef(() => WorkflowsModule),
     forwardRef(() => ReplicateModule),
+    forwardRef(() => TTSModule),
+    forwardRef(() => FFmpegModule),
   ],
   providers: [
     // Services
@@ -81,6 +92,7 @@ import { QueueManagerService } from './services/queue-manager.service';
     ImageProcessor,
     VideoProcessor,
     LLMProcessor,
+    ProcessingProcessor,
 
     // Aliased providers for forwardRef injection in processors
     {
@@ -98,6 +110,14 @@ import { QueueManagerService } from './services/queue-manager.service';
     {
       provide: 'ReplicateService',
       useExisting: ReplicateService,
+    },
+    {
+      provide: 'TTSService',
+      useExisting: TTSService,
+    },
+    {
+      provide: 'FFmpegService',
+      useExisting: FFmpegService,
     },
   ],
   controllers: [BullBoardController],

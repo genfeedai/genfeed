@@ -1,6 +1,6 @@
 'use client';
 
-import { Clock, Copy, MoreHorizontal, Plus, Trash2, Workflow } from 'lucide-react';
+import { Clock, Copy, Images, MoreHorizontal, Plus, Trash2, Workflow } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
@@ -164,13 +164,22 @@ export default function DashboardPage() {
             </div>
             <h1 className="text-xl font-semibold text-[var(--foreground)]">Genfeed</h1>
           </div>
-          <Link
-            href="/w/new"
-            className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white rounded-lg text-sm font-medium hover:opacity-90 transition"
-          >
-            <Plus className="w-4 h-4" />
-            New Workflow
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link
+              href="/gallery"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--secondary)] text-[var(--foreground)] rounded-lg text-sm font-medium hover:bg-[var(--secondary)]/80 transition"
+            >
+              <Images className="w-4 h-4" />
+              Gallery
+            </Link>
+            <Link
+              href="/w/new"
+              className="flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-white rounded-lg text-sm font-medium hover:opacity-90 transition"
+            >
+              <Plus className="w-4 h-4" />
+              New Workflow
+            </Link>
+          </div>
         </div>
       </header>
 

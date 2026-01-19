@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { generateText } from '@/lib/replicate/client';
 
 const REMIX_SYSTEM_PROMPT = `You are a social media expert who remixes tweets with different voices and tones.
@@ -58,7 +59,10 @@ Generate 3 unique variations of this tweet. Respond with JSON only.`;
         throw new Error('No JSON found in response');
       }
     } catch (_parseError) {
-      console.error('Failed to parse LLM response:', output);
+      logger.error('Failed to parse LLM response', _parseError, {
+        context: 'api/tweet/remix',
+        metadata: { output },
+      });
       return NextResponse.json({ error: 'Failed to parse AI response' }, { status: 500 });
     }
 
@@ -70,7 +74,7 @@ Generate 3 unique variations of this tweet. Respond with JSON only.`;
 
     return NextResponse.json({ variations });
   } catch (error) {
-    console.error('Tweet remix error:', error);
+    logger.error('Tweet remix error', error, { context: 'api/tweet/remix' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Remix failed' },
       { status: 500 }

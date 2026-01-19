@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { generateVideo } from '@/lib/replicate/client';
 
 export async function POST(request: NextRequest) {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       status: prediction.status,
     });
   } catch (error) {
-    console.error('Video generation error:', error);
+    logger.error('Video generation error', error, { context: 'api/replicate/video' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Generation failed' },
       { status: 500 }

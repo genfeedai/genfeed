@@ -5,6 +5,7 @@ import { Clock, ExternalLink, Search, Sparkles, X } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
 
 // =============================================================================
@@ -188,7 +189,7 @@ function ModelBrowserModalComponent({
         }
       } catch (error) {
         if (error instanceof Error && error.name !== 'AbortError') {
-          console.error('Failed to fetch models:', error);
+          logger.error('Failed to fetch models', error, { context: 'ModelBrowserModal' });
         }
       } finally {
         setIsLoading(false);

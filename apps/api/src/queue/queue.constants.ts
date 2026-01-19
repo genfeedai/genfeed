@@ -105,6 +105,10 @@ export const NODE_TYPE_TO_QUEUE: Record<string, QueueName> = {
   lumaReframeVideo: QUEUE_NAMES.PROCESSING,
   topazImageUpscale: QUEUE_NAMES.PROCESSING,
   topazVideoUpscale: QUEUE_NAMES.PROCESSING,
+  videoFrameExtract: QUEUE_NAMES.PROCESSING,
+  lipSync: QUEUE_NAMES.PROCESSING,
+  voiceChange: QUEUE_NAMES.PROCESSING,
+  textToSpeech: QUEUE_NAMES.PROCESSING,
 };
 
 /**

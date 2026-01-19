@@ -1,5 +1,6 @@
 import type { WorkflowFile } from '@genfeedai/types';
 import { FULL_PIPELINE_TEMPLATE } from './full-pipeline';
+import { EXTENDED_VIDEO_TEMPLATE } from './generated/extended-video';
 import { GRID_TO_VIDEO_TEMPLATE } from './generated/grid-to-video';
 import { SOCIAL_BRAND_KIT_TEMPLATE } from './generated/social-brand-kit';
 import { STREAM_TO_SOCIAL_TEMPLATE } from './generated/stream-to-social';
@@ -21,6 +22,7 @@ export const TEMPLATE_REGISTRY: Record<string, WorkflowFile> = {
   'image-series': IMAGE_SERIES_TEMPLATE,
   'image-to-video': IMAGE_TO_VIDEO_TEMPLATE,
   'full-pipeline': FULL_PIPELINE_TEMPLATE,
+  'extended-video': EXTENDED_VIDEO_TEMPLATE,
   'grid-to-video': GRID_TO_VIDEO_TEMPLATE,
   'voice-to-video': VOICE_TO_VIDEO_TEMPLATE,
   'youtube-thumbnail-script': YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE,
@@ -47,6 +49,13 @@ export const TEMPLATE_INFO: TemplateInfo[] = [
     name: 'Full Content Pipeline',
     description: 'Complete workflow: concept → images → videos → animation → stitched output',
     category: 'full-pipeline',
+  },
+  {
+    id: 'extended-video',
+    name: 'Extended Video Pipeline',
+    description:
+      'Generate longer videos by chaining segments: extract last frame, generate continuation prompt, create next segment, and stitch together',
+    category: 'video',
   },
   {
     id: 'grid-to-video',
@@ -104,6 +113,7 @@ export {
   IMAGE_SERIES_TEMPLATE,
   IMAGE_TO_VIDEO_TEMPLATE,
   FULL_PIPELINE_TEMPLATE,
+  EXTENDED_VIDEO_TEMPLATE,
   GRID_TO_VIDEO_TEMPLATE,
   VOICE_TO_VIDEO_TEMPLATE,
   YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE,

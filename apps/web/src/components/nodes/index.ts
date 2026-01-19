@@ -6,7 +6,16 @@ export * from './processing';
 
 // Node type mapping for React Flow
 import type { NodeTypes } from '@xyflow/react';
-import { ImageGenNode, LLMNode, TranscribeNode, TweetRemixNode, VideoGenNode } from './ai';
+import {
+  ImageGenNode,
+  LipSyncNode,
+  LLMNode,
+  TextToSpeechNode,
+  TranscribeNode,
+  TweetRemixNode,
+  VideoGenNode,
+  VoiceChangeNode,
+} from './ai';
 import {
   AudioInputNode,
   ImageInputNode,
@@ -26,6 +35,7 @@ import {
   ResizeNode,
   TopazImageUpscaleNode,
   TopazVideoUpscaleNode,
+  VideoFrameExtractNode,
   VideoStitchNode,
   VideoTrimNode,
 } from './processing';
@@ -42,6 +52,9 @@ export const nodeTypes: NodeTypes = {
   videoGen: VideoGenNode,
   llm: LLMNode,
   tweetRemix: TweetRemixNode,
+  lipSync: LipSyncNode,
+  voiceChange: VoiceChangeNode,
+  textToSpeech: TextToSpeechNode,
   transcribe: TranscribeNode,
   resize: ResizeNode,
   animation: AnimationNode,
@@ -49,6 +62,7 @@ export const nodeTypes: NodeTypes = {
   imageGridSplit: ImageGridSplitNode,
   videoStitch: VideoStitchNode,
   videoTrim: VideoTrimNode,
+  videoFrameExtract: VideoFrameExtractNode,
   lumaReframeImage: LumaReframeImageNode,
   lumaReframeVideo: LumaReframeVideoNode,
   topazImageUpscale: TopazImageUpscaleNode,

@@ -5,10 +5,28 @@
  * Downloads OpenAPI schemas from Replicate models and generates TypeScript types.
  * Run with: bun run sync:replicate
  *
- * Requires REPLICATE_API_TOKEN environment variable.
+ * Reads REPLICATE_API_TOKEN from apps/api/.env
  */
 
 /// <reference types="bun-types" />
+
+import { join } from 'node:path';
+
+// Load env from apps/api/.env
+const envPath = join(import.meta.dirname, '../apps/api/.env');
+const envFile = Bun.file(envPath);
+if (await envFile.exists()) {
+  const content = await envFile.text();
+  for (const line of content.split('\n')) {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const [key, ...valueParts] = trimmed.split('=');
+      if (key && valueParts.length > 0) {
+        process.env[key] = valueParts.join('=');
+      }
+    }
+  }
+}
 
 // ============================================================================
 // Configuration

@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 function extractTweetId(url: string): string | null {
   const patterns = [/twitter\.com\/\w+\/status\/(\d+)/, /x\.com\/\w+\/status\/(\d+)/];
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest) {
       tweetId,
     });
   } catch (error) {
-    console.error('Tweet fetch error:', error);
+    logger.error('Tweet fetch error', error, { context: 'api/tweet/fetch' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch tweet' },
       { status: 500 }

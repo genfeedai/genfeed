@@ -71,12 +71,14 @@ export type NodeType =
   | 'tweetRemix'
   | 'lipSync'
   | 'voiceChange'
+  | 'textToSpeech'
   | 'transcribe'
   // Processing nodes
   | 'resize'
   | 'animation'
   | 'videoStitch'
   | 'videoTrim'
+  | 'videoFrameExtract'
   | 'lumaReframeImage'
   | 'lumaReframeVideo'
   | 'topazImageUpscale'
@@ -356,6 +358,71 @@ export interface VoiceChangeNodeData extends BaseNodeData {
   jobId: string | null;
 }
 
+export type TTSProvider = 'elevenlabs' | 'openai';
+
+export type TTSVoice =
+  | 'rachel'
+  | 'drew'
+  | 'clyde'
+  | 'paul'
+  | 'domi'
+  | 'dave'
+  | 'fin'
+  | 'sarah'
+  | 'antoni'
+  | 'thomas'
+  | 'charlie'
+  | 'george'
+  | 'emily'
+  | 'elli'
+  | 'callum'
+  | 'patrick'
+  | 'harry'
+  | 'liam'
+  | 'dorothy'
+  | 'josh'
+  | 'arnold'
+  | 'charlotte'
+  | 'matilda'
+  | 'matthew'
+  | 'james'
+  | 'joseph'
+  | 'jeremy'
+  | 'michael'
+  | 'ethan'
+  | 'gigi'
+  | 'freya'
+  | 'grace'
+  | 'daniel'
+  | 'lily'
+  | 'serena'
+  | 'adam'
+  | 'nicole'
+  | 'jessie'
+  | 'ryan'
+  | 'sam'
+  | 'glinda'
+  | 'giovanni'
+  | 'mimi';
+
+export interface TextToSpeechNodeData extends BaseNodeData {
+  // Input from connection
+  inputText: string | null;
+
+  // Output
+  outputAudio: string | null;
+
+  // Config
+  provider: TTSProvider;
+  voice: TTSVoice;
+  stability: number;
+  similarityBoost: number;
+  speed: number;
+
+  // Job state
+  jobId: string | null;
+}
+
 export type TranscribeLanguage = 'auto' | 'en' | 'es' | 'fr' | 'de' | 'ja' | 'zh' | 'ko' | 'pt';
 
 export interface TranscribeNodeData extends BaseNodeData {
@@ -454,6 +521,28 @@ export interface VideoTrimNodeData extends BaseNodeData {
   startTime: number;
   endTime: number;
   duration: number | null;
+
+  // Job state
+  jobId: string | null;
+}
+
+// Frame selection mode for video frame extraction
+export type FrameSelectionMode = 'first' | 'last' | 'timestamp' | 'percentage';
+
+export interface VideoFrameExtractNodeData extends BaseNodeData {
+  // Input from connection
+  inputVideo: string | null;
+
+  // Output
+  outputImage: string | null;
+
+  // Config
+  selectionMode: FrameSelectionMode;
+  timestampSeconds: number;
+  percentagePosition: number;
+
+  // Video metadata (populated from input)
+  videoDuration: number | null;
 
   // Job state
   jobId: string | null;
@@ -655,11 +744,13 @@ export type WorkflowNodeData =
   | TweetRemixNodeData
   | LipSyncNodeData
   | VoiceChangeNodeData
+  | TextToSpeechNodeData
   | TranscribeNodeData
   | AnimationNodeData
   | VideoStitchNodeData
   | ResizeNodeData
   | VideoTrimNodeData
+  | VideoFrameExtractNodeData
   | LumaReframeImageNodeData
   | LumaReframeVideoNodeData
   | TopazImageUpscaleNodeData
@@ -962,6 +1053,27 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       jobId: null,
     },
   },
+  textToSpeech: {
+    type: 'textToSpeech',
+    label: 'Text to Speech',
+    description: 'Convert text to natural-sounding speech using ElevenLabs',
+    category: 'ai',
+    icon: 'AudioLines',
+    inputs: [{ id: 'text', type: 'text', label: 'Text', required: true }],
+    outputs: [{ id: 'audio', type: 'audio', label: 'Audio' }],
+    defaultData: {
+      label: 'Text to Speech',
+      status: 'idle',
+      inputText: null,
+      outputAudio: null,
+      provider: 'elevenlabs',
+      voice: 'rachel',
+      stability: 0.5,
+      similarityBoost: 0.75,
+      speed: 1.0,
+      jobId: null,
+    },
+  },
   transcribe: {
     type: 'transcribe',
     label: 'Transcribe',
@@ -1059,6 +1171,26 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       startTime: 0,
       endTime: 60,
       duration: null,
+      jobId: null,
+    },
+  },
+  videoFrameExtract: {
+    type: 'videoFrameExtract',
+    label: 'Frame Extract',
+    description: 'Extract a specific frame from video as image',
+    category: 'processing',
+    icon: 'Film',
+    inputs: [{ id: 'video', type: 'video', label: 'Video', required: true }],
+    outputs: [{ id: 'image', type: 'image', label: 'Extracted Frame' }],
+    defaultData: {
+      label: 'Frame Extract',
+      status: 'idle',
+      inputVideo: null,
+      outputImage: null,
+      selectionMode: 'last',
+      timestampSeconds: 0,
+      percentagePosition: 100,
+      videoDuration: null,
       jobId: null,
     },
   },

@@ -24,6 +24,11 @@ export const MODELS = {
   // Topaz Upscale
   topazImageUpscale: 'topazlabs/image-upscale',
   topazVideoUpscale: 'topazlabs/video-upscale',
+  // Lip sync
+  lipSync2: 'sync/lipsync-2',
+  lipSync2Pro: 'sync/lipsync-2-pro',
+  latentSync: 'bytedance/latentsync',
+  pixverseLipSync: 'pixverse/lipsync',
 } as const;
 
 export interface ImageGenInput {
@@ -84,6 +89,16 @@ export interface TopazVideoUpscaleInput {
   video: string;
   targetResolution: string;
   targetFps: number;
+}
+
+export interface LipSyncInput {
+  image?: string;
+  video?: string;
+  audio: string;
+  model: 'sync/lipsync-2' | 'sync/lipsync-2-pro' | 'bytedance/latentsync' | 'pixverse/lipsync';
+  syncMode?: 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
+  temperature?: number;
+  activeSpeaker?: boolean;
 }
 
 export interface PredictionResult {
@@ -321,6 +336,64 @@ export class ReplicateService {
 
     await this.executionsService.createJob(executionId, nodeId, prediction.id);
     this.logger.log(`Created Topaz video upscale prediction ${prediction.id} for node ${nodeId}`);
+
+    return prediction as PredictionResult;
+  }
+
+  /**
+   * Generate lip-synced video from image/video and audio
+   */
+  async generateLipSync(
+    executionId: string,
+    nodeId: string,
+    input: LipSyncInput
+  ): Promise<PredictionResult> {
+    // Map model name to Replicate model identifier
+    const modelMap: Record<string, string> = {
+      'sync/lipsync-2': MODELS.lipSync2,
+      'sync/lipsync-2-pro': MODELS.lipSync2Pro,
+      'bytedance/latentsync': MODELS.latentSync,
+      'pixverse/lipsync': MODELS.pixverseLipSync,
+    };
+
+    const modelId = modelMap[input.model] ?? MODELS.lipSync2;
+
+    // Build input based on model - different models have different input formats
+    const modelInput: Record<string, unknown> = {
+      audio: input.audio,
+    };
+
+    // Add image or video based on what's provided
+    if (input.image) {
+      modelInput.image = input.image;
+    }
+    if (input.video) {
+      modelInput.video = input.video;
+    }
+
+    // Add model-specific options for sync labs models
+    if (input.model.startsWith('sync/')) {
+      if (input.syncMode) {
+        modelInput.sync_mode = input.syncMode;
+      }
+      if (input.activeSpeaker !== undefined) {
+        modelInput.active_speaker = input.activeSpeaker;
+      }
+    }
+
+    // Add temperature for models that support it
+    if (input.temperature !== undefined) {
+      modelInput.temperature = input.temperature;
+    }
+
+    const prediction = await this.replicate.predictions.create({
+      model: modelId,
+      input: modelInput,
+      ...this.getWebhookConfig(),
+    });
+
+    await this.executionsService.createJob(executionId, nodeId, prediction.id);
+    this.logger.log(`Created lip sync prediction ${prediction.id} for node ${nodeId}`);
 
     return prediction as PredictionResult;
   }

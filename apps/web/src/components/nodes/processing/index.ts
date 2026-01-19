@@ -6,5 +6,6 @@ export { LumaReframeVideoNode } from './LumaReframeVideoNode';
 export { ResizeNode } from './ResizeNode';
 export { TopazImageUpscaleNode } from './TopazImageUpscaleNode';
 export { TopazVideoUpscaleNode } from './TopazVideoUpscaleNode';
+export { VideoFrameExtractNode } from './VideoFrameExtractNode';
 export { VideoStitchNode } from './VideoStitchNode';
 export { VideoTrimNode } from './VideoTrimNode';

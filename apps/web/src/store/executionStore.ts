@@ -262,9 +262,15 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
           ...inputsObj,
         });
       } else if (
-        ['lumaReframeImage', 'lumaReframeVideo', 'topazImageUpscale', 'topazVideoUpscale'].includes(
-          nodeType
-        )
+        [
+          'lumaReframeImage',
+          'lumaReframeVideo',
+          'topazImageUpscale',
+          'topazVideoUpscale',
+          'lipSync',
+          'voiceChange',
+          'textToSpeech',
+        ].includes(nodeType)
       ) {
         result = await apiClient.post('/replicate/processing', {
           nodeId,
@@ -468,11 +474,22 @@ function getOutputUpdate(
 
   // Video output nodes
   if (
-    ['videoGen', 'animation', 'videoStitch', 'lumaReframeVideo', 'topazVideoUpscale'].includes(
-      nodeType
-    )
+    [
+      'videoGen',
+      'animation',
+      'videoStitch',
+      'lumaReframeVideo',
+      'topazVideoUpscale',
+      'lipSync',
+      'voiceChange',
+    ].includes(nodeType)
   ) {
     return { outputVideo: output };
+  }
+
+  // Audio output nodes
+  if (nodeType === 'textToSpeech') {
+    return { outputAudio: output };
   }
 
   // LLM nodes

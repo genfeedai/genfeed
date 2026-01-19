@@ -131,13 +131,74 @@ export interface TopazVideoUpscaleJobData extends NodeJobData {
 }
 
 /**
+ * Video Frame Extract job data
+ */
+export interface VideoFrameExtractJobData extends NodeJobData {
+  nodeType: 'videoFrameExtract';
+  nodeData: {
+    video: string;
+    selectionMode: 'first' | 'last' | 'timestamp' | 'percentage';
+    timestampSeconds?: number;
+    percentagePosition?: number;
+  };
+}
+
+/**
+ * Lip Sync job data
+ */
+export interface LipSyncJobData extends NodeJobData {
+  nodeType: 'lipSync';
+  nodeData: {
+    image?: string;
+    video?: string;
+    audio: string;
+    model: 'sync/lipsync-2' | 'sync/lipsync-2-pro' | 'bytedance/latentsync' | 'pixverse/lipsync';
+    syncMode?: 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
+    temperature?: number;
+    activeSpeaker?: boolean;
+  };
+}
+
+/**
+ * Voice Change job data
+ */
+export interface VoiceChangeJobData extends NodeJobData {
+  nodeType: 'voiceChange';
+  nodeData: {
+    video: string;
+    audio: string;
+    preserveOriginalAudio?: boolean;
+    audioMixLevel?: number;
+  };
+}
+
+/**
+ * Text to Speech job data
+ */
+export interface TextToSpeechJobData extends NodeJobData {
+  nodeType: 'textToSpeech';
+  nodeData: {
+    text: string;
+    provider: 'elevenlabs' | 'openai';
+    voice: string;
+    stability?: number;
+    similarityBoost?: number;
+    speed?: number;
+  };
+}
+
+/**
  * Union type for all processing job data
  */
 export type ProcessingJobData =
   | LumaReframeImageJobData
   | LumaReframeVideoJobData
   | TopazImageUpscaleJobData
-  | TopazVideoUpscaleJobData;
+  | TopazVideoUpscaleJobData
+  | VideoFrameExtractJobData
+  | LipSyncJobData
+  | VoiceChangeJobData
+  | TextToSpeechJobData;
 
 /**
  * Job result interface

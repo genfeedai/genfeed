@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import sharp from 'sharp';
+import { logger } from '@/lib/logger';
 
 interface SplitResult {
   index: number;
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
       images: results,
     });
   } catch (error) {
-    console.error('Grid split error:', error);
+    logger.error('Grid split error', error, { context: 'api/tools/grid-split' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Grid split failed' },
       { status: 500 }

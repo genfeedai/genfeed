@@ -57,7 +57,8 @@ async function bootstrap(): Promise<void> {
   logger.log('Press Ctrl+C to stop');
 }
 
+const logger = new Logger('WorkerBootstrap');
 bootstrap().catch((error) => {
-  console.error('Failed to start worker:', error);
+  logger.error('Failed to start worker:', error);
   process.exit(1);
 });

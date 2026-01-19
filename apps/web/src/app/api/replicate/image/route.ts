@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { generateImage } from '@/lib/replicate/client';
 
 export async function POST(request: NextRequest) {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
       status: prediction.status,
     });
   } catch (error) {
-    console.error('Image generation error:', error);
+    logger.error('Image generation error', error, { context: 'api/replicate/image' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Generation failed' },
       { status: 500 }

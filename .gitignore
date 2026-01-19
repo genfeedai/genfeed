@@ -47,3 +47,11 @@ coverage/
 *.local
 .vercel
 .netlify
+
+# Generated output (keep structure with .gitkeep)
+output/images/*
+output/videos/*
+output/audio/*
+!output/images/.gitkeep
+!output/videos/.gitkeep
+!output/audio/.gitkeep

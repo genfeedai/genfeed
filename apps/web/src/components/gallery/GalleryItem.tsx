@@ -1,0 +1,58 @@
+'use client';
+
+import { Film, ImageIcon, Music } from 'lucide-react';
+import { memo } from 'react';
+import type { GalleryItem as GalleryItemType } from '@/lib/gallery/types';
+
+interface GalleryItemProps {
+  item: GalleryItemType;
+  onSelect: (item: GalleryItemType) => void;
+}
+
+const TYPE_ICONS = {
+  image: ImageIcon,
+  video: Film,
+  audio: Music,
+};
+
+const TYPE_BADGES = {
+  image: 'IMG',
+  video: 'VID',
+  audio: 'AUD',
+};
+
+export const GalleryItem = memo(function GalleryItem({ item, onSelect }: GalleryItemProps) {
+  const mediaUrl = `/api/gallery/${item.path}`;
+  const Icon = TYPE_ICONS[item.type];
+
+  return (
+    <div
+      onClick={() => onSelect(item)}
+      className="group relative aspect-square rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--card)] cursor-pointer hover:border-[var(--primary)] transition"
+    >
+      {/* Thumbnail */}
+      {item.type === 'image' && (
+        <img src={mediaUrl} alt={item.name} className="w-full h-full object-cover" loading="lazy" />
+      )}
+      {item.type === 'video' && (
+        <video src={mediaUrl} className="w-full h-full object-cover" muted preload="metadata" />
+      )}
+      {item.type === 'audio' && (
+        <div className="w-full h-full flex items-center justify-center bg-[var(--secondary)]">
+          <Music className="w-12 h-12 text-[var(--muted-foreground)]" />
+        </div>
+      )}
+
+      {/* Hover overlay */}
+      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center p-2">
+        <Icon className="w-6 h-6 text-white mb-2" />
+        <p className="text-xs text-white text-center truncate w-full px-2">{item.name}</p>
+      </div>
+
+      {/* Type badge */}
+      <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded text-[10px] font-medium uppercase bg-black/50 text-white">
+        {TYPE_BADGES[item.type]}
+      </div>
+    </div>
+  );
+});

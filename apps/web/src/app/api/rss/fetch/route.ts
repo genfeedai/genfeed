@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 interface RssFeedItem {
   title: string;
@@ -153,7 +154,7 @@ export async function POST(request: NextRequest) {
       itemCount: items.length,
     });
   } catch (error) {
-    console.error('RSS fetch error:', error);
+    logger.error('RSS fetch error', error, { context: 'api/rss/fetch' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch feed' },
       { status: 500 }

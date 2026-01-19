@@ -7,6 +7,7 @@ import { clsx } from 'clsx';
 import {
   AlertCircle,
   AtSign,
+  AudioLines,
   Brain,
   CheckCircle,
   CheckCircle2,
@@ -15,6 +16,7 @@ import {
   Eye,
   FileText,
   FileVideo,
+  Film,
   Image,
   Layers,
   Loader2,
@@ -22,6 +24,7 @@ import {
   Maximize,
   Maximize2,
   MessageSquare,
+  Mic,
   RefreshCw,
   Rss,
   Scissors,
@@ -29,6 +32,7 @@ import {
   Sparkles,
   Unlock,
   Video,
+  Volume2,
   Wand2,
 } from 'lucide-react';
 import { memo, type ReactNode } from 'react';
@@ -41,6 +45,7 @@ const ICON_MAP: Record<string, typeof Image> = {
   MessageSquare,
   FileText,
   FileVideo,
+  Film,
   Sparkles,
   Video,
   Brain,
@@ -57,6 +62,9 @@ const ICON_MAP: Record<string, typeof Image> = {
   Crop,
   Maximize,
   Rss,
+  Mic,
+  AudioLines,
+  Volume2,
 };
 
 // Handle color classes
@@ -65,6 +73,7 @@ const HANDLE_COLORS: Record<string, string> = {
   video: 'handle-video',
   text: 'handle-text',
   number: 'handle-number',
+  audio: 'handle-audio',
 };
 
 // Status indicator component

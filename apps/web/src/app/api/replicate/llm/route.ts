@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 import { generateText } from '@/lib/replicate/client';
 
 export async function POST(request: NextRequest) {
@@ -28,7 +29,7 @@ export async function POST(request: NextRequest) {
       status: 'succeeded',
     });
   } catch (error) {
-    console.error('LLM generation error:', error);
+    logger.error('LLM generation error', error, { context: 'api/replicate/llm' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Generation failed' },
       { status: 500 }

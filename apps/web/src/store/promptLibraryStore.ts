@@ -6,6 +6,7 @@ import type {
 } from '@genfeedai/types';
 import { create } from 'zustand';
 import { promptLibraryApi } from '@/lib/api';
+import { logger } from '@/lib/logger';
 
 interface PromptLibraryStore {
   // State
@@ -110,7 +111,7 @@ export const usePromptLibraryStore = create<PromptLibraryStore>((set, get) => ({
       set({ featuredItems });
     } catch (error) {
       if ((error as Error).name !== 'AbortError') {
-        console.error('Failed to load featured items:', error);
+        logger.error('Failed to load featured items', error, { context: 'promptLibraryStore' });
       }
     }
   },

@@ -1,98 +1,96 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Genfeed API
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+NestJS backend service for the Genfeed.ai content creation platform. Handles workflow execution, AI model orchestration, and media processing.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Architecture
 
-## Description
-
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
-
-## Project setup
-
-```bash
-$ npm install
+```
+src/
+├── executions/       # Workflow execution management
+├── workflows/        # Workflow CRUD operations
+├── queue/           # BullMQ job processing
+│   ├── processors/  # Job processors by type
+│   └── services/    # Queue management
+├── replicate/       # Replicate AI integration
+├── ffmpeg/          # Local media processing
+├── tts/             # Text-to-speech services
+└── cost/            # Usage cost calculation
 ```
 
-## Compile and run the project
+## Queue System
 
-```bash
-# development
-$ npm run start
+The API uses BullMQ with Redis for job processing:
 
-# watch mode
-$ npm run start:dev
+| Queue | Purpose |
+|-------|---------|
+| `workflow-orchestrator` | Coordinates workflow execution |
+| `image-generation` | Image generation jobs (Replicate) |
+| `video-generation` | Video generation jobs (Replicate) |
+| `llm-generation` | LLM text generation |
+| `processing` | Media processing (FFmpeg, TTS, upscaling) |
 
-# production mode
-$ npm run start:prod
+## Processing Nodes
+
+### Video Frame Extract
+
+Extracts frames from videos using FFmpeg. Useful for chaining video segments:
+
+```
+VideoGen → FrameExtract → LLM (continuation) → VideoGen → VideoStitch
 ```
 
-## Run tests
+**Selection Modes:**
+- `first` - Extract the first frame
+- `last` - Extract the last frame
+- `timestamp` - Extract at specific timestamp (seconds)
+- `percentage` - Extract at percentage position (0-100)
+
+**Requirements:**
+- FFmpeg must be installed on the server
+- Videos are processed locally (no external API calls)
+
+**Output:** Base64 data URL (`data:image/jpeg;base64,...`)
+
+### Other Processing Nodes
+
+| Node | Description | Backend |
+|------|-------------|---------|
+| `lumaReframeImage` | AI image reframing | Replicate |
+| `lumaReframeVideo` | AI video reframing | Replicate |
+| `topazImageUpscale` | Image upscaling | Replicate |
+| `topazVideoUpscale` | Video upscaling | Replicate |
+| `lipSync` | Lip sync audio to video | Replicate |
+| `textToSpeech` | TTS generation | ElevenLabs/OpenAI |
+
+## Environment Variables
 
 ```bash
-# unit tests
-$ npm run test
+# Required
+MONGODB_URI=mongodb://localhost:27017/genfeed
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REPLICATE_API_TOKEN=r8_xxx
 
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+# Optional
+REDIS_PASSWORD=
+WEBHOOK_BASE_URL=https://api.example.com
 ```
 
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## Development
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+# Install dependencies
+bun install
+
+# Start in development mode
+bun run dev
+
+# Start API service only
+bun run dev -- --projects=api
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+## Deployment Notes
 
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- FFmpeg is required for video frame extraction
+- Redis is required for BullMQ job queues
+- MongoDB is required for data persistence

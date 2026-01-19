@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from 'next/server';
+import { logger } from '@/lib/logger';
 
 /**
  * Video processing endpoint
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: `Unknown node type: ${nodeType}` }, { status: 400 });
     }
   } catch (error) {
-    console.error('Video processing error:', error);
+    logger.error('Video processing error', error, { context: 'api/video/process' });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Processing failed' },
       { status: 500 }
