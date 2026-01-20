@@ -13,10 +13,10 @@ import type { NodeProps } from '@xyflow/react';
 import { Play, RefreshCw, Search } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 const MODELS: { value: VideoModel; label: string; description: string }[] = [
   { value: 'veo-3.1-fast', label: 'Veo 3.1 Fast', description: 'Fast, $0.10-0.15/sec' },

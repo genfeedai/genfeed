@@ -5,10 +5,10 @@ import type { NodeProps } from '@xyflow/react';
 import { Pencil, Shapes } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
 import { useAnnotationStore } from '@/store/annotationStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 function AnnotationNodeComponent(props: NodeProps) {
   const { id, data } = props;

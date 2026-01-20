@@ -1,5 +1,5 @@
 import { Copy, Lock, LockOpen, Scissors, Trash2 } from 'lucide-react';
-import type { ContextMenuItemConfig } from '../ContextMenu';
+import type { ContextMenuItemConfig } from '@/components/context-menu/ContextMenu';
 
 interface NodeMenuOptions {
   nodeId: string;

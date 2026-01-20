@@ -2,7 +2,7 @@
 
 import { ReactFlowProvider } from '@xyflow/react';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnnotationModal } from '@/components/annotation/AnnotationModal';
 import { WorkflowCanvas } from '@/components/canvas/WorkflowCanvas';
 import { AIGeneratorPanel } from '@/components/panels/AIGeneratorPanel';
@@ -35,16 +35,12 @@ export default function WorkflowEditorPage() {
   } = useWorkflowStore();
 
   const [error, setError] = useState<string | null>(null);
-  const initRef = useRef(false);
 
   // Initialize auto-save (triggers 5s after last change)
   useAutoSave(autoSaveEnabled);
 
   // Load workflow on mount
   useEffect(() => {
-    if (initRef.current) return;
-    initRef.current = true;
-
     const controller = new AbortController();
 
     async function init() {

@@ -20,6 +20,7 @@ import { GroupOverlay } from '@/components/canvas/GroupOverlay';
 import { ContextMenu } from '@/components/context-menu';
 import { nodeTypes } from '@/components/nodes';
 import { useContextMenu } from '@/hooks/useContextMenu';
+import { CATEGORY_COLORS, DEFAULT_NODE_COLOR } from '@/lib/constants/colors';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -32,6 +33,7 @@ export function WorkflowCanvas() {
     onEdgesChange,
     onConnect,
     isValidConnection,
+    findCompatibleHandle,
     addNode,
     selectedNodeIds,
     setSelectedNodeIds,
@@ -189,6 +191,45 @@ export function WorkflowCanvas() {
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
+  // Handle connection end - auto-connect when dropping on a node
+  const handleConnectEnd = useCallback(
+    (event: MouseEvent | TouchEvent, connectionState: unknown) => {
+      const state = connectionState as {
+        fromNode?: { id: string } | null;
+        fromHandle?: { id?: string | null } | null;
+      };
+      const sourceNodeId = state.fromNode?.id;
+      const sourceHandleId = state.fromHandle?.id;
+      if (!sourceNodeId || !sourceHandleId) return;
+
+      // Get the element under the cursor
+      const target = event.target as HTMLElement;
+      const nodeElement = target.closest('.react-flow__node');
+      if (!nodeElement) return;
+
+      // Get target node ID from the element
+      const targetNodeId = nodeElement.getAttribute('data-id');
+      if (!targetNodeId || targetNodeId === sourceNodeId) return;
+
+      // Check if we dropped on a handle (let normal connection handling work)
+      const droppedOnHandle = target.closest('.react-flow__handle');
+      if (droppedOnHandle) return;
+
+      // Find a compatible handle on the target node
+      const compatibleHandle = findCompatibleHandle(sourceNodeId, sourceHandleId, targetNodeId);
+      if (!compatibleHandle) return;
+
+      // Create the connection
+      onConnect({
+        source: sourceNodeId,
+        sourceHandle: sourceHandleId,
+        target: targetNodeId,
+        targetHandle: compatibleHandle,
+      });
+    },
+    [findCompatibleHandle, onConnect]
+  );
+
   // Wrapper for isValidConnection that handles both Connection and Edge types
   const checkValidConnection = useCallback(
     (connection: Connection | WorkflowEdge): boolean => {
@@ -212,6 +253,7 @@ export function WorkflowCanvas() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectEnd={handleConnectEnd as never}
         onNodeClick={handleNodeClick}
         onPaneClick={handlePaneClick}
         onSelectionChange={handleSelectionChange}
@@ -246,13 +288,7 @@ export function WorkflowCanvas() {
             nodeColor={(node) => {
               const nodeType = node.type as NodeType;
               const category = NODE_DEFINITIONS[nodeType]?.category ?? 'input';
-              const colors: Record<string, string> = {
-                input: '#3b82f6',
-                ai: '#a855f7',
-                processing: '#f59e0b',
-                output: '#22c55e',
-              };
-              return colors[category] ?? '#6b7280';
+              return CATEGORY_COLORS[category] ?? DEFAULT_NODE_COLOR;
             }}
             zoomable
             pannable

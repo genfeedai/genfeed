@@ -7,7 +7,7 @@ import {
   LockOpen,
   Trash2,
 } from 'lucide-react';
-import type { ContextMenuItemConfig } from '../ContextMenu';
+import type { ContextMenuItemConfig } from '@/components/context-menu/ContextMenu';
 
 interface SelectionMenuOptions {
   nodeIds: string[];

@@ -1,16 +1,16 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { ExecutionsModule } from './executions/executions.module';
-import { PromptLibraryModule } from './prompt-library/prompt-library.module';
-import { ProvidersModule } from './providers/providers.module';
-import { QueueModule } from './queue/queue.module';
-import { ReplicateModule } from './replicate/replicate.module';
-import { TemplatesModule } from './templates/templates.module';
-import { TTSModule } from './tts/tts.module';
-import { WorkflowsModule } from './workflows/workflows.module';
+import { AppController } from '@/controllers/app.controller';
+import { ExecutionsModule } from '@/modules/executions.module';
+import { PromptLibraryModule } from '@/modules/prompt-library.module';
+import { ProvidersModule } from '@/modules/providers.module';
+import { QueueModule } from '@/modules/queue.module';
+import { ReplicateModule } from '@/modules/replicate.module';
+import { TemplatesModule } from '@/modules/templates.module';
+import { TTSModule } from '@/modules/tts.module';
+import { WorkflowsModule } from '@/modules/workflows.module';
+import { AppService } from '@/services/app.service';
 
 @Module({
   imports: [

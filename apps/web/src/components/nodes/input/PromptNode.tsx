@@ -4,10 +4,10 @@ import type { IPromptLibraryItem, PromptNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { Save } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { PromptPicker } from '@/components/prompt-library';
 import { usePromptLibraryStore } from '@/store/promptLibraryStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 function PromptNodeComponent(props: NodeProps) {
   const { id, data } = props;

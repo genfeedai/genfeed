@@ -6,10 +6,10 @@ import { MongoMemoryServer } from 'mongodb-memory-server';
 import type { Model, Types } from 'mongoose';
 import request from 'supertest';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-import { ExecutionsModule } from '../../executions/executions.module';
-import { Execution } from '../../executions/schemas/execution.schema';
-import { Workflow } from '../../workflows/schemas/workflow.schema';
-import { WorkflowsModule } from '../../workflows/workflows.module';
+import { ExecutionsModule } from '@/modules/executions.module';
+import { WorkflowsModule } from '@/modules/workflows.module';
+import { Execution } from '@/schemas/execution.schema';
+import { Workflow } from '@/schemas/workflow.schema';
 
 describe('Workflow Execution E2E', () => {
   let app: INestApplication;

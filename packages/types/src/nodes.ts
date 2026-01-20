@@ -76,10 +76,8 @@ export type NodeType =
   | 'videoStitch'
   | 'videoTrim'
   | 'videoFrameExtract'
-  | 'lumaReframeImage'
-  | 'lumaReframeVideo'
-  | 'topazImageUpscale'
-  | 'topazVideoUpscale'
+  | 'reframe'
+  | 'upscale'
   | 'imageGridSplit'
   | 'annotation'
   | 'subtitle'
@@ -511,34 +509,23 @@ export interface VideoFrameExtractNodeData extends BaseNodeData {
 }
 
 // =============================================================================
-// LUMA REFRAME NODE DATA
+// REFRAME NODE DATA
 // =============================================================================
 
-export interface LumaReframeImageNodeData extends BaseNodeData {
-  // Inputs from connections
+export type ReframeInputType = 'image' | 'video' | null;
+
+export interface ReframeNodeData extends BaseNodeData {
+  // Inputs from connections (accepts either image or video)
   inputImage: string | null;
-
-  // Output
-  outputImage: string | null;
-
-  // Config
-  model: LumaReframeModel;
-  aspectRatio: LumaAspectRatio;
-  prompt: string;
-  gridPosition: GridPosition;
-
-  // Job state
-  jobId: string | null;
-}
-
-export interface LumaReframeVideoNodeData extends BaseNodeData {
-  // Inputs from connections
   inputVideo: string | null;
+  inputType: ReframeInputType; // Auto-detected from connection
 
-  // Output
+  // Outputs (matches input type)
+  outputImage: string | null;
   outputVideo: string | null;
 
   // Config
+  model: LumaReframeModel; // Model selection dropdown
   aspectRatio: LumaAspectRatio;
   prompt: string;
   gridPosition: GridPosition;
@@ -548,43 +535,43 @@ export interface LumaReframeVideoNodeData extends BaseNodeData {
 }
 
 // =============================================================================
-// TOPAZ UPSCALE NODE DATA
+// UPSCALE NODE DATA
 // =============================================================================
 
-export interface TopazImageUpscaleNodeData extends BaseNodeData {
-  // Inputs from connections
+export type UpscaleInputType = 'image' | 'video' | null;
+
+// Available upscale models
+export type UpscaleModel =
+  | 'topaz-standard-v2'
+  | 'topaz-low-res-v2'
+  | 'topaz-cgi'
+  | 'topaz-high-fidelity-v2'
+  | 'topaz-text-refine'
+  | 'topaz-video';
+
+export interface UpscaleNodeData extends BaseNodeData {
+  // Inputs from connections (accepts either image or video)
   inputImage: string | null;
+  inputVideo: string | null;
+  inputType: UpscaleInputType; // Auto-detected from connection
 
-  // Outputs
+  // Outputs (matches input type)
   outputImage: string | null;
+  outputVideo: string | null;
   originalPreview: string | null;
+  outputPreview: string | null; // For video frame comparison
 
-  // Config
-  enhanceModel: TopazEnhanceModel;
+  // Shared config
+  model: UpscaleModel; // Model selection dropdown
+
+  // Image-specific config
   upscaleFactor: TopazUpscaleFactor;
   outputFormat: 'jpg' | 'png';
   faceEnhancement: boolean;
   faceEnhancementStrength: number;
   faceEnhancementCreativity: number;
 
-  // Comparison state
-  showComparison: boolean;
-  comparisonPosition: number;
-
-  // Job state
-  jobId: string | null;
-}
-
-export interface TopazVideoUpscaleNodeData extends BaseNodeData {
-  // Inputs from connections
-  inputVideo: string | null;
-
-  // Outputs
-  outputVideo: string | null;
-  originalPreview: string | null;
-  outputPreview: string | null;
-
-  // Config
+  // Video-specific config
   targetResolution: TopazVideoResolution;
   targetFps: TopazVideoFPS;
 
@@ -704,10 +691,8 @@ export type WorkflowNodeData =
   | ResizeNodeData
   | VideoTrimNodeData
   | VideoFrameExtractNodeData
-  | LumaReframeImageNodeData
-  | LumaReframeVideoNodeData
-  | TopazImageUpscaleNodeData
-  | TopazVideoUpscaleNodeData
+  | ReframeNodeData
+  | UpscaleNodeData
   | ImageGridSplitNodeData
   | AnnotationNodeData
   | SubtitleNodeData
@@ -1090,19 +1075,28 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       jobId: null,
     },
   },
-  lumaReframeImage: {
-    type: 'lumaReframeImage',
-    label: 'Luma Reframe Image',
-    description: 'Reframe images to different aspect ratios with AI-powered outpainting',
+  reframe: {
+    type: 'reframe',
+    label: 'Reframe',
+    description: 'Reframe images or videos to different aspect ratios with AI outpainting',
     category: 'processing',
     icon: 'Crop',
-    inputs: [{ id: 'image', type: 'image', label: 'Image', required: true }],
-    outputs: [{ id: 'image', type: 'image', label: 'Reframed Image' }],
+    inputs: [
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'video', type: 'video', label: 'Video' },
+    ],
+    outputs: [
+      { id: 'image', type: 'image', label: 'Reframed Image' },
+      { id: 'video', type: 'video', label: 'Reframed Video' },
+    ],
     defaultData: {
-      label: 'Luma Reframe Image',
+      label: 'Reframe',
       status: 'idle',
       inputImage: null,
+      inputVideo: null,
+      inputType: null,
       outputImage: null,
+      outputVideo: null,
       model: 'photon-flash-1',
       aspectRatio: '16:9',
       prompt: '',
@@ -1110,65 +1104,36 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       jobId: null,
     },
   },
-  lumaReframeVideo: {
-    type: 'lumaReframeVideo',
-    label: 'Luma Reframe Video',
-    description: 'Reframe videos to different aspect ratios (max 10s, 100MB)',
-    category: 'processing',
-    icon: 'Crop',
-    inputs: [{ id: 'video', type: 'video', label: 'Video', required: true }],
-    outputs: [{ id: 'video', type: 'video', label: 'Reframed Video' }],
-    defaultData: {
-      label: 'Luma Reframe Video',
-      status: 'idle',
-      inputVideo: null,
-      outputVideo: null,
-      aspectRatio: '9:16',
-      prompt: '',
-      gridPosition: { x: 0.5, y: 0.5 },
-      jobId: null,
-    },
-  },
-  topazImageUpscale: {
-    type: 'topazImageUpscale',
-    label: 'Topaz Image Upscale',
-    description: 'AI-powered image upscaling with face enhancement',
+  upscale: {
+    type: 'upscale',
+    label: 'Upscale',
+    description: 'AI-powered upscaling for images and videos',
     category: 'processing',
     icon: 'Maximize',
-    inputs: [{ id: 'image', type: 'image', label: 'Image', required: true }],
-    outputs: [{ id: 'image', type: 'image', label: 'Upscaled Image' }],
+    inputs: [
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'video', type: 'video', label: 'Video' },
+    ],
+    outputs: [
+      { id: 'image', type: 'image', label: 'Upscaled Image' },
+      { id: 'video', type: 'video', label: 'Upscaled Video' },
+    ],
     defaultData: {
-      label: 'Topaz Image Upscale',
+      label: 'Upscale',
       status: 'idle',
       inputImage: null,
+      inputVideo: null,
+      inputType: null,
       outputImage: null,
+      outputVideo: null,
       originalPreview: null,
-      enhanceModel: 'Standard V2',
+      outputPreview: null,
+      model: 'topaz-standard-v2',
       upscaleFactor: '2x',
       outputFormat: 'png',
       faceEnhancement: false,
       faceEnhancementStrength: 80,
       faceEnhancementCreativity: 0,
-      showComparison: true,
-      comparisonPosition: 50,
-      jobId: null,
-    },
-  },
-  topazVideoUpscale: {
-    type: 'topazVideoUpscale',
-    label: 'Topaz Video Upscale',
-    description: 'AI-powered video upscaling to 4K',
-    category: 'processing',
-    icon: 'Maximize',
-    inputs: [{ id: 'video', type: 'video', label: 'Video', required: true }],
-    outputs: [{ id: 'video', type: 'video', label: 'Upscaled Video' }],
-    defaultData: {
-      label: 'Topaz Video Upscale',
-      status: 'idle',
-      inputVideo: null,
-      outputVideo: null,
-      originalPreview: null,
-      outputPreview: null,
       targetResolution: '1080p',
       targetFps: 30,
       showComparison: true,
@@ -1276,7 +1241,26 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
   },
 };
 
-// Helper to get nodes by category
+// Explicit ordering for each category (most used first)
+const NODE_ORDER: Record<NodeCategory, NodeType[]> = {
+  input: ['imageInput', 'videoInput', 'audioInput', 'prompt', 'template'],
+  ai: ['imageGen', 'videoGen', 'llm', 'lipSync', 'textToSpeech', 'transcribe', 'voiceChange'],
+  processing: [
+    'reframe',
+    'upscale',
+    'resize',
+    'videoStitch',
+    'videoTrim',
+    'videoFrameExtract',
+    'imageGridSplit',
+    'annotation',
+    'subtitle',
+    'animation',
+  ],
+  output: ['output', 'preview'],
+};
+
+// Helper to get nodes by category with explicit ordering
 export function getNodesByCategory(): Record<NodeCategory, NodeDefinition[]> {
   const categories: Record<NodeCategory, NodeDefinition[]> = {
     input: [],
@@ -1285,8 +1269,13 @@ export function getNodesByCategory(): Record<NodeCategory, NodeDefinition[]> {
     output: [],
   };
 
-  for (const def of Object.values(NODE_DEFINITIONS)) {
-    categories[def.category].push(def);
+  for (const category of Object.keys(NODE_ORDER) as NodeCategory[]) {
+    for (const nodeType of NODE_ORDER[category]) {
+      const def = NODE_DEFINITIONS[nodeType];
+      if (def) {
+        categories[category].push(def);
+      }
+    }
   }
 
   return categories;

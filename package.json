@@ -7,6 +7,7 @@
     "lint-staged": "16.2.7",
     "typescript": "5.9.3"
   },
+  "license": "AGPL-3.0",
   "lint-staged": {
     "*.{js,jsx,ts,tsx,json,css}": [
       "bunx biome check --write"
@@ -20,6 +21,7 @@
     "build:web": "bun run --filter @genfeedai/web build",
     "check": "biome check .",
     "check:fix": "biome check --write .",
+    "deps:update": "bunx npm-check-updates -u && bun install",
     "dev": "bunx concurrently \"bun run dev:api\" \"bun run dev:web\"",
     "dev:api": "bun run --filter @genfeedai/api start:dev",
     "dev:tunnel": "bun run scripts/dev-tunnel.ts",
@@ -28,15 +30,13 @@
     "format:check": "biome format .",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
-    "pre:install": "bun update --latest --recursive && bun install",
     "prepare": "husky",
     "sync:replicate": "bun run scripts/sync-replicate-schemas.ts",
     "test": "bun run --filter '*' test",
     "test:api": "bun run --filter @genfeedai/api test",
-    "test:web": "bun run --filter @genfeedai/web test",
-    "test:coverage": "bun run --filter '*' test:coverage"
+    "test:coverage": "bun run --filter '*' test:coverage",
+    "test:web": "bun run --filter @genfeedai/web test"
   },
-  "license": "AGPL-3.0",
   "version": "0.1.0",
   "workspaces": [
     "apps/*",

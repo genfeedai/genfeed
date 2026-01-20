@@ -26,6 +26,7 @@ import {
   MessageSquare,
   Mic,
   RefreshCw,
+  RotateCcw,
   Rss,
   Scissors,
   Share2,
@@ -35,7 +36,9 @@ import {
   Volume2,
   Wand2,
 } from 'lucide-react';
-import { memo, type ReactNode } from 'react';
+import { memo, type ReactNode, useCallback } from 'react';
+import { useOptimalHandleOrder } from '@/hooks/useOptimalHandleOrder';
+import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -97,8 +100,22 @@ interface BaseNodeProps extends NodeProps {
 function BaseNodeComponent({ id, type, data, selected, children }: BaseNodeProps) {
   const { selectNode, selectedNodeId } = useUIStore();
   const { toggleNodeLock, isNodeLocked } = useWorkflowStore();
+  const { executeNode, isRunning } = useExecutionStore();
   const nodeDef = NODE_DEFINITIONS[type as NodeType];
   const nodeData = data as WorkflowNodeData;
+
+  // Get optimally ordered input handles to minimize edge crossings
+  const sortedInputs = useOptimalHandleOrder(id, nodeDef?.inputs ?? []);
+
+  const handleRetry = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isRunning) {
+        executeNode(id);
+      }
+    },
+    [id, isRunning, executeNode]
+  );
 
   if (!nodeDef) return null;
 
@@ -152,15 +169,15 @@ function BaseNodeComponent({ id, type, data, selected, children }: BaseNodeProps
       }
       onClick={() => selectNode(id)}
     >
-      {/* Input Handles */}
-      {nodeDef.inputs.map((input: HandleDefinition, index: number) => (
+      {/* Input Handles - sorted to minimize edge crossings */}
+      {sortedInputs.map((input: HandleDefinition, index: number) => (
         <Handle
           key={input.id}
           type="target"
           position={Position.Left}
           id={input.id}
           className={clsx('!w-3 !h-3', HANDLE_COLORS[input.type])}
-          style={{ top: `${((index + 1) / (nodeDef.inputs.length + 1)) * 100}%` }}
+          style={{ top: `${((index + 1) / (sortedInputs.length + 1)) * 100}%` }}
         />
       ))}
 
@@ -210,8 +227,21 @@ function BaseNodeComponent({ id, type, data, selected, children }: BaseNodeProps
 
         {/* Error message */}
         {nodeData.error && (
-          <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2 text-xs text-destructive">
-            {nodeData.error}
+          <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2">
+            <p className="text-xs text-destructive">{nodeData.error}</p>
+            <button
+              onClick={handleRetry}
+              disabled={isRunning}
+              className={clsx(
+                'mt-2 flex w-full items-center justify-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors',
+                isRunning
+                  ? 'cursor-not-allowed bg-muted text-muted-foreground'
+                  : 'bg-destructive/20 text-destructive hover:bg-destructive/30'
+              )}
+            >
+              <RotateCcw className="h-3 w-3" />
+              Retry
+            </button>
           </div>
         )}
       </div>

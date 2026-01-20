@@ -73,4 +73,30 @@ export const executionsApi = {
    */
   getJobByPredictionId: (predictionId: string, signal?: AbortSignal): Promise<JobData> =>
     apiClient.get<JobData>(`/jobs/${predictionId}`, { signal }),
+
+  /**
+   * Execute a partial set of nodes
+   */
+  executePartial: (
+    workflowId: string,
+    nodeIds: string[],
+    signal?: AbortSignal
+  ): Promise<ExecutionData> =>
+    apiClient.post<ExecutionData>(
+      `/workflows/${workflowId}/execute/partial`,
+      { nodeIds },
+      { signal }
+    ),
+
+  /**
+   * Resume execution from a failed node
+   */
+  resumeFromFailed: (
+    workflowId: string,
+    runId: string,
+    signal?: AbortSignal
+  ): Promise<ExecutionData> =>
+    apiClient.post<ExecutionData>(`/workflows/${workflowId}/execute/resume/${runId}`, undefined, {
+      signal,
+    }),
 };

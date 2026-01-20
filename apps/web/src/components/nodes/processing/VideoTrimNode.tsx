@@ -4,9 +4,9 @@ import type { VideoTrimNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { RefreshCw, Scissors } from 'lucide-react';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);

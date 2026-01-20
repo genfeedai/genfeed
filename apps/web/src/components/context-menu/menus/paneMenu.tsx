@@ -8,7 +8,7 @@ import {
   Monitor,
   Video,
 } from 'lucide-react';
-import type { ContextMenuItemConfig } from '../ContextMenu';
+import type { ContextMenuItemConfig } from '@/components/context-menu/ContextMenu';
 
 interface PaneMenuOptions {
   screenX: number;

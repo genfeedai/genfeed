@@ -5,8 +5,8 @@ import type { NodeProps } from '@xyflow/react';
 import { CheckCircle, Download } from 'lucide-react';
 import Image from 'next/image';
 import { memo } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
-import { BaseNode } from '../BaseNode';
 
 function OutputNodeComponent(props: NodeProps) {
   const { data } = props;

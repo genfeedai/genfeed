@@ -5,9 +5,9 @@ import type { NodeProps } from '@xyflow/react';
 import { Film, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 const SELECTION_MODES: { value: FrameSelectionMode; label: string }[] = [
   { value: 'last', label: 'Last Frame' },

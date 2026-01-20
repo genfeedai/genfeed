@@ -3,7 +3,7 @@ import {
   mockPredictionCreated,
   mockPredictionSucceeded,
   mockReplicateClient,
-} from './mocks/replicate.mock';
+} from '@/test/mocks/replicate.mock';
 
 // Mock Replicate SDK globally - must return the shared mock instance
 vi.mock('replicate', () => {

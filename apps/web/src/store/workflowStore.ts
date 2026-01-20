@@ -123,6 +123,11 @@ interface WorkflowStore {
   getConnectedInputs: (nodeId: string) => Map<string, string | string[]>;
   validateWorkflow: () => ValidationResult;
   isValidConnection: (connection: Connection) => boolean;
+  findCompatibleHandle: (
+    sourceNodeId: string,
+    sourceHandleId: string | null,
+    targetNodeId: string
+  ) => string | null;
   setDirty: (dirty: boolean) => void;
 }
 
@@ -688,6 +693,37 @@ export const useWorkflowStore = create<WorkflowStore>((set, get) => ({
     if (!sourceType || !targetType) return false;
 
     return CONNECTION_RULES[sourceType]?.includes(targetType) ?? false;
+  },
+
+  findCompatibleHandle: (sourceNodeId, sourceHandleId, targetNodeId) => {
+    const { nodes, edges } = get();
+
+    const sourceNode = nodes.find((n) => n.id === sourceNodeId);
+    const targetNode = nodes.find((n) => n.id === targetNodeId);
+
+    if (!sourceNode || !targetNode) return null;
+
+    const sourceType = getHandleType(sourceNode.type as NodeType, sourceHandleId, 'source');
+
+    if (!sourceType) return null;
+
+    const targetDef = NODE_DEFINITIONS[targetNode.type as NodeType];
+    if (!targetDef) return null;
+
+    // Find existing connections to target node
+    const existingTargetHandles = new Set(
+      edges.filter((e) => e.target === targetNodeId).map((e) => e.targetHandle)
+    );
+
+    // Find first compatible input handle that isn't already connected
+    for (const input of targetDef.inputs) {
+      if (existingTargetHandles.has(input.id)) continue;
+      if (CONNECTION_RULES[sourceType]?.includes(input.type)) {
+        return input.id;
+      }
+    }
+
+    return null;
   },
 
   setDirty: (dirty) => {

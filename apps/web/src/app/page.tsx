@@ -4,6 +4,7 @@ import { Clock, Copy, Images, MoreHorizontal, Plus, Trash2, Workflow } from 'luc
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
+import { WorkflowPreview } from '@/components/WorkflowPreview';
 import type { WorkflowData } from '@/lib/api';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -35,9 +36,9 @@ function WorkflowCard({ workflow, onDelete, onDuplicate }: WorkflowCardProps) {
       href={`/w/${workflow._id}`}
       className="group relative flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 hover:border-[var(--primary)] transition"
     >
-      {/* Preview placeholder */}
-      <div className="aspect-video bg-[var(--secondary)] rounded-md mb-3 flex items-center justify-center">
-        <Workflow className="w-8 h-8 text-[var(--muted-foreground)]" />
+      {/* Workflow preview */}
+      <div className="aspect-video bg-[var(--secondary)] rounded-md mb-3 overflow-hidden">
+        <WorkflowPreview nodes={workflow.nodes ?? []} edges={workflow.edges ?? []} />
       </div>
 
       {/* Info */}

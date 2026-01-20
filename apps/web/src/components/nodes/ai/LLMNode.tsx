@@ -4,9 +4,9 @@ import type { LLMNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { RefreshCw, Sparkles } from 'lucide-react';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 function LLMNodeComponent(props: NodeProps) {
   const { id, data } = props;

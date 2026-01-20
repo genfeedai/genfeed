@@ -4,9 +4,9 @@ import type { GridOutputFormat, ImageGridSplitNodeData } from '@genfeedai/types'
 import type { NodeProps } from '@xyflow/react';
 import { Download, Grid3X3, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 const OUTPUT_FORMATS: { value: GridOutputFormat; label: string }[] = [
   { value: 'jpg', label: 'JPEG' },

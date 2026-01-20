@@ -35,7 +35,7 @@ export const logger = {
   },
 
   item: (label: string, value: string) => {
-    console.log(`  ${pc.dim(label + ':')} ${value}`);
+    console.log(`  ${pc.dim(`${label}:`)} ${value}`);
   },
 
   newline: () => {

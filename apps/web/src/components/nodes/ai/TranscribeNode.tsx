@@ -4,9 +4,9 @@ import type { TranscribeLanguage, TranscribeNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { FileText, RefreshCw } from 'lucide-react';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 const LANGUAGES: { value: TranscribeLanguage; label: string }[] = [
   { value: 'auto', label: 'Auto-detect' },

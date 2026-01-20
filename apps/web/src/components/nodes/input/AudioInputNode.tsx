@@ -4,8 +4,8 @@ import type { AudioInputNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { Upload, X } from 'lucide-react';
 import { memo, useCallback, useRef } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 function AudioInputNodeComponent(props: NodeProps) {
   const { id, data } = props;

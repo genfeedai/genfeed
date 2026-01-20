@@ -4,9 +4,9 @@ import type { VoiceChangeNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { AudioLines, RefreshCw, Video } from 'lucide-react';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 function VoiceChangeNodeComponent(props: NodeProps) {
   const { id, data } = props;

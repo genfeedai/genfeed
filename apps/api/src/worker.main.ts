@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
-import { WorkerModule } from './queue/worker.module';
+import { WorkerModule } from '@/modules/worker.module';
 
 /**
  * Worker Entry Point

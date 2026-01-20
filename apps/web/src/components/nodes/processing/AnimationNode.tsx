@@ -4,10 +4,10 @@ import type { AnimationNodeData, EasingPreset } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { RefreshCw, Wand2 } from 'lucide-react';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { EASING_PRESETS } from '@/lib/easing/presets';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 const PRESET_OPTIONS: { value: EasingPreset; label: string }[] = [
   { value: 'linear', label: 'Linear' },

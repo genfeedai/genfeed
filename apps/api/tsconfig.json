@@ -15,8 +15,15 @@
     "baseUrl": "./",
     "paths": {
       "@/*": ["./src/*"],
+      "@/controllers/*": ["./src/controllers/*"],
+      "@/services/*": ["./src/services/*"],
+      "@/schemas/*": ["./src/schemas/*"],
+      "@/dto/*": ["./src/dto/*"],
       "@/interfaces/*": ["./src/interfaces/*"],
-      "@/common/*": ["./src/common/*"]
+      "@/modules/*": ["./src/modules/*"],
+      "@/processors/*": ["./src/processors/*"],
+      "@/common/*": ["./src/common/*"],
+      "@/test/*": ["./src/test/*"]
     },
     "incremental": true,
     "skipLibCheck": true,

@@ -4,7 +4,7 @@ import type { KeyValuePair, RowHelpers } from '@genfeedai/types';
 import { clsx } from 'clsx';
 import { nanoid } from 'nanoid';
 import { memo, useCallback } from 'react';
-import { DynamicList } from '../DynamicList';
+import { DynamicList } from '@/components/input-group/DynamicList';
 
 interface KeyValueListProps {
   items: KeyValuePair[];

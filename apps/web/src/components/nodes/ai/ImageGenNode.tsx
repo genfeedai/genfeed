@@ -14,11 +14,11 @@ import { RefreshCw, Search } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useState } from 'react';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 const MODELS: { value: ImageModel; label: string; description: string }[] = [
   { value: 'nano-banana', label: 'Nano Banana', description: 'Fast, $0.039/image' },

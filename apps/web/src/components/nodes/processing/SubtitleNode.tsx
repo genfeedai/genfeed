@@ -4,9 +4,9 @@ import type { SubtitleNodeData, SubtitlePosition, SubtitleStyle } from '@genfeed
 import type { NodeProps } from '@xyflow/react';
 import { RefreshCw, Subtitles } from 'lucide-react';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 const STYLE_OPTIONS: { value: SubtitleStyle; label: string }[] = [
   { value: 'modern', label: 'Modern' },

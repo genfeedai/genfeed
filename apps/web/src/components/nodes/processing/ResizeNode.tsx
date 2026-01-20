@@ -6,11 +6,11 @@ import type { NodeProps } from '@xyflow/react';
 import { ImageIcon, RefreshCw, Video } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { GridPositionSelector } from '@/components/ui/grid-position-selector';
 import { Label } from '@/components/ui/label';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 type MediaType = 'image' | 'video';
 

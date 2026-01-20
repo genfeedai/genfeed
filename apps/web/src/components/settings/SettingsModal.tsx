@@ -343,7 +343,7 @@ function SettingsModalComponent() {
       <div className="fixed inset-0 z-50 bg-black/50" onClick={closeModal} />
 
       {/* Modal */}
-      <div className="fixed inset-4 z-50 flex flex-col overflow-hidden rounded-lg bg-card shadow-xl md:inset-y-10 md:left-1/2 md:right-auto md:w-[600px] md:-translate-x-1/2">
+      <div className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100%-2rem)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg bg-card shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-6 py-4">
           <div className="flex items-center gap-3">

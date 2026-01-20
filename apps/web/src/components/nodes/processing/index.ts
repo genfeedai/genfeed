@@ -1,12 +1,10 @@
 export { AnimationNode } from './AnimationNode';
 export { AnnotationNode } from './AnnotationNode';
 export { ImageGridSplitNode } from './ImageGridSplitNode';
-export { LumaReframeImageNode } from './LumaReframeImageNode';
-export { LumaReframeVideoNode } from './LumaReframeVideoNode';
+export { ReframeNode } from './ReframeNode';
 export { ResizeNode } from './ResizeNode';
 export { SubtitleNode } from './SubtitleNode';
-export { TopazImageUpscaleNode } from './TopazImageUpscaleNode';
-export { TopazVideoUpscaleNode } from './TopazVideoUpscaleNode';
+export { UpscaleNode } from './UpscaleNode';
 export { VideoFrameExtractNode } from './VideoFrameExtractNode';
 export { VideoStitchNode } from './VideoStitchNode';
 export { VideoTrimNode } from './VideoTrimNode';

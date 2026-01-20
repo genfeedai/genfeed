@@ -5,9 +5,9 @@ import type { NodeProps } from '@xyflow/react';
 import { Pause, Play, Volume2, VolumeX } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useRef } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 function PreviewNodeComponent(props: NodeProps) {
   const { id, data } = props;

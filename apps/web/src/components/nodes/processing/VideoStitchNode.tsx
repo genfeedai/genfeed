@@ -1,17 +1,12 @@
 'use client';
 
-import type {
-  AudioCodec,
-  OutputQuality,
-  TransitionType,
-  VideoStitchNodeData,
-} from '@genfeedai/types';
+import type { AudioCodec, TransitionType, VideoStitchNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { Layers, RefreshCw, Zap } from 'lucide-react';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 const TRANSITIONS: { value: TransitionType; label: string }[] = [
   { value: 'cut', label: 'Cut (No transition)' },

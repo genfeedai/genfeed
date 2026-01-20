@@ -4,9 +4,9 @@ import type { TextToSpeechNodeData, TTSProvider, TTSVoice } from '@genfeedai/typ
 import type { NodeProps } from '@xyflow/react';
 import { AlertTriangle, AudioLines, RefreshCw, Volume2 } from 'lucide-react';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 const TTS_ENABLED = process.env.NEXT_PUBLIC_TTS_ENABLED === 'true';
 

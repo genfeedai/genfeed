@@ -3,8 +3,8 @@
 import type { TemplateNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
+import { BaseNode } from '@/components/nodes/BaseNode';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { BaseNode } from '../BaseNode';
 
 // Template presets
 const TEMPLATES = [

@@ -16,7 +16,9 @@ import {
   PanelLeftClose,
   PanelRightClose,
   Play,
+  PlayCircle,
   Plus,
+  RotateCcw,
   Save,
   Settings,
   Sparkles,
@@ -159,10 +161,13 @@ function isValidWorkflow(data: unknown): data is WorkflowFile {
 }
 
 export function Toolbar() {
-  const { workflowName, isDirty, exportWorkflow } = useWorkflowStore();
+  const { workflowName, isDirty, exportWorkflow, selectedNodeIds } = useWorkflowStore();
   const {
     isRunning,
     executeWorkflow,
+    executeSelectedNodes,
+    resumeFromFailed,
+    canResumeFromFailed,
     stopExecution,
     validationErrors,
     clearValidationErrors,
@@ -239,6 +244,21 @@ export function Toolbar() {
       executeWorkflow();
     }
   }, [isRunning, executeWorkflow, stopExecution]);
+
+  const handleRunSelected = useCallback(() => {
+    if (!isRunning && selectedNodeIds.length > 0) {
+      executeSelectedNodes();
+    }
+  }, [isRunning, selectedNodeIds.length, executeSelectedNodes]);
+
+  const handleResume = useCallback(() => {
+    if (canResumeFromFailed()) {
+      resumeFromFailed();
+    }
+  }, [canResumeFromFailed, resumeFromFailed]);
+
+  const hasSelection = selectedNodeIds.length > 0;
+  const showResumeButton = canResumeFromFailed();
 
   return (
     <TooltipProvider delayDuration={300}>
@@ -391,6 +411,32 @@ export function Toolbar() {
         <div className="flex-1" />
 
         {/* Run Controls */}
+        {showResumeButton && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" onClick={handleResume} disabled={isRunning}>
+                <RotateCcw className="h-4 w-4" />
+                Resume
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Resume from failed node</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+        {hasSelection && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="secondary" onClick={handleRunSelected} disabled={isRunning}>
+                <PlayCircle className="h-4 w-4" />
+                Run Selected ({selectedNodeIds.length})
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Execute only selected nodes</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant={isRunning ? 'destructive' : 'default'} onClick={handleRunStop}>

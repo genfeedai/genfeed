@@ -45,6 +45,7 @@ interface ExecutionStore {
   currentNodeId: string | null;
   validationErrors: ValidationResult | null;
   eventSource: EventSource | null;
+  lastFailedNodeId: string | null;
 
   // Job tracking
   jobs: Map<string, Job>;
@@ -55,7 +56,9 @@ interface ExecutionStore {
 
   // Actions
   executeWorkflow: () => Promise<void>;
+  executeSelectedNodes: () => Promise<void>;
   executeNode: (nodeId: string) => Promise<void>;
+  resumeFromFailed: () => Promise<void>;
   stopExecution: () => void;
   clearValidationErrors: () => void;
 
@@ -66,6 +69,7 @@ interface ExecutionStore {
 
   // Helpers
   resetExecution: () => void;
+  canResumeFromFailed: () => boolean;
 }
 
 export const useExecutionStore = create<ExecutionStore>((set, get) => ({
@@ -74,6 +78,7 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
   currentNodeId: null,
   validationErrors: null,
   eventSource: null,
+  lastFailedNodeId: null,
   jobs: new Map(),
   estimatedCost: 0,
   actualCost: 0,
@@ -309,6 +314,258 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
     }
   },
 
+  /**
+   * Execute only selected nodes (partial execution)
+   */
+  executeSelectedNodes: async () => {
+    const { isRunning, resetExecution } = get();
+    if (isRunning) return;
+
+    const workflowStore = useWorkflowStore.getState();
+    const { selectedNodeIds } = workflowStore;
+
+    if (selectedNodeIds.length === 0) {
+      set({
+        validationErrors: {
+          isValid: false,
+          errors: [{ nodeId: '', message: 'No nodes selected', severity: 'error' }],
+          warnings: [],
+        },
+      });
+      return;
+    }
+
+    // Clear any previous validation errors and reset state
+    set({ validationErrors: null });
+    resetExecution();
+
+    // Save workflow first if dirty
+    if (workflowStore.isDirty || !workflowStore.workflowId) {
+      try {
+        await workflowStore.saveWorkflow();
+      } catch (error) {
+        logger.error('Failed to save workflow before execution', error, {
+          context: 'ExecutionStore',
+        });
+        set({
+          validationErrors: {
+            isValid: false,
+            errors: [{ nodeId: '', message: 'Failed to save workflow', severity: 'error' }],
+            warnings: [],
+          },
+        });
+        return;
+      }
+    }
+
+    const workflowId = workflowStore.workflowId;
+    if (!workflowId) {
+      set({
+        validationErrors: {
+          isValid: false,
+          errors: [{ nodeId: '', message: 'Workflow must be saved first', severity: 'error' }],
+          warnings: [],
+        },
+      });
+      return;
+    }
+
+    set({ isRunning: true });
+
+    // Mark selected nodes as pending
+    for (const nodeId of selectedNodeIds) {
+      workflowStore.updateNodeData(nodeId, {
+        status: NODE_STATUS.idle,
+        error: undefined,
+        progress: undefined,
+      });
+    }
+
+    try {
+      // Submit partial execution to backend
+      const execution = await apiClient.post<ExecutionData>(
+        `/workflows/${workflowId}/execute/partial`,
+        { nodeIds: selectedNodeIds }
+      );
+      const executionId = execution._id;
+
+      set({ executionId });
+
+      // Subscribe to SSE stream for real-time updates
+      const eventSource = new EventSource(`${API_BASE_URL}/executions/${executionId}/stream`);
+
+      set({ eventSource });
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as ExecutionData;
+          const workflowStore = useWorkflowStore.getState();
+
+          // Update node statuses from execution data
+          for (const nodeResult of data.nodeResults || []) {
+            const statusMap: Record<string, NodeStatus> = {
+              pending: NODE_STATUS.idle,
+              processing: NODE_STATUS.processing,
+              complete: NODE_STATUS.complete,
+              error: NODE_STATUS.error,
+            };
+
+            const nodeStatus = statusMap[nodeResult.status] ?? NODE_STATUS.idle;
+
+            workflowStore.updateNodeData(nodeResult.nodeId, {
+              status: nodeStatus,
+              error: nodeResult.error,
+              ...(nodeResult.output &&
+                getOutputUpdate(nodeResult.nodeId, nodeResult.output, workflowStore)),
+            });
+
+            // Track failed node for resume capability
+            if (nodeResult.status === 'error') {
+              set({ lastFailedNodeId: nodeResult.nodeId });
+            }
+          }
+
+          // Check if execution is complete
+          if (['completed', 'failed', 'cancelled'].includes(data.status)) {
+            eventSource.close();
+            set({ isRunning: false, eventSource: null });
+          }
+        } catch (error) {
+          logger.error('Failed to parse SSE message', error, { context: 'ExecutionStore' });
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        logger.error('SSE connection error', error, { context: 'ExecutionStore' });
+        eventSource.close();
+        set({ isRunning: false, eventSource: null });
+      };
+    } catch (error) {
+      logger.error('Failed to start partial execution', error, { context: 'ExecutionStore' });
+      set({
+        isRunning: false,
+        validationErrors: {
+          isValid: false,
+          errors: [
+            {
+              nodeId: '',
+              message: error instanceof Error ? error.message : 'Partial execution failed',
+              severity: 'error',
+            },
+          ],
+          warnings: [],
+        },
+      });
+    }
+  },
+
+  /**
+   * Resume execution from the last failed node
+   */
+  resumeFromFailed: async () => {
+    const { isRunning, executionId, lastFailedNodeId } = get();
+    if (isRunning || !executionId || !lastFailedNodeId) return;
+
+    const workflowStore = useWorkflowStore.getState();
+    const workflowId = workflowStore.workflowId;
+
+    if (!workflowId) {
+      set({
+        validationErrors: {
+          isValid: false,
+          errors: [{ nodeId: '', message: 'Workflow must be saved first', severity: 'error' }],
+          warnings: [],
+        },
+      });
+      return;
+    }
+
+    set({ isRunning: true, validationErrors: null });
+
+    // Reset the failed node status
+    workflowStore.updateNodeData(lastFailedNodeId, {
+      status: NODE_STATUS.idle,
+      error: undefined,
+      progress: undefined,
+    });
+
+    try {
+      // Resume execution from failed node
+      const execution = await apiClient.post<ExecutionData>(
+        `/workflows/${workflowId}/execute/resume/${executionId}`
+      );
+      const newExecutionId = execution._id;
+
+      set({ executionId: newExecutionId, lastFailedNodeId: null });
+
+      // Subscribe to SSE stream for real-time updates
+      const eventSource = new EventSource(`${API_BASE_URL}/executions/${newExecutionId}/stream`);
+
+      set({ eventSource });
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as ExecutionData;
+          const workflowStore = useWorkflowStore.getState();
+
+          // Update node statuses from execution data
+          for (const nodeResult of data.nodeResults || []) {
+            const statusMap: Record<string, NodeStatus> = {
+              pending: NODE_STATUS.idle,
+              processing: NODE_STATUS.processing,
+              complete: NODE_STATUS.complete,
+              error: NODE_STATUS.error,
+            };
+
+            const nodeStatus = statusMap[nodeResult.status] ?? NODE_STATUS.idle;
+
+            workflowStore.updateNodeData(nodeResult.nodeId, {
+              status: nodeStatus,
+              error: nodeResult.error,
+              ...(nodeResult.output &&
+                getOutputUpdate(nodeResult.nodeId, nodeResult.output, workflowStore)),
+            });
+
+            // Track failed node for resume capability
+            if (nodeResult.status === 'error') {
+              set({ lastFailedNodeId: nodeResult.nodeId });
+            }
+          }
+
+          // Check if execution is complete
+          if (['completed', 'failed', 'cancelled'].includes(data.status)) {
+            eventSource.close();
+            set({ isRunning: false, eventSource: null });
+          }
+        } catch (error) {
+          logger.error('Failed to parse SSE message', error, { context: 'ExecutionStore' });
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        logger.error('SSE connection error', error, { context: 'ExecutionStore' });
+        eventSource.close();
+        set({ isRunning: false, eventSource: null });
+      };
+    } catch (error) {
+      logger.error('Failed to resume execution', error, { context: 'ExecutionStore' });
+      set({
+        isRunning: false,
+        validationErrors: {
+          isValid: false,
+          errors: [
+            {
+              nodeId: '',
+              message: error instanceof Error ? error.message : 'Resume failed',
+              severity: 'error',
+            },
+          ],
+          warnings: [],
+        },
+      });
+    }
+  },
+
   stopExecution: () => {
     const { eventSource, executionId } = get();
 
@@ -383,6 +640,7 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
       currentNodeId: null,
       eventSource: null,
       actualCost: 0,
+      lastFailedNodeId: null,
     });
 
     // Reset all node statuses
@@ -394,6 +652,11 @@ export const useExecutionStore = create<ExecutionStore>((set, get) => ({
         progress: undefined,
       });
     }
+  },
+
+  canResumeFromFailed: () => {
+    const { executionId, lastFailedNodeId, isRunning } = get();
+    return !isRunning && Boolean(executionId) && Boolean(lastFailedNodeId);
   },
 }));
 
