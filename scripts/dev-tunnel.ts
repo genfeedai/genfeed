@@ -85,11 +85,13 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  const url = listener.url();
+  const url = listener.url()!;
   console.log(`\n✓ Ngrok tunnel: ${url}`);
   console.log(`  Webhook URL:  ${url}/api/replicate/webhook\n`);
 
-  updateEnvFile(url!);
+  // Update both the file and current process env (so spawned processes inherit it)
+  updateEnvFile(url);
+  process.env.WEBHOOK_BASE_URL = url;
 
   console.log('Starting API...\n');
 

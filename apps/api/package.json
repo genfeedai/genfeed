@@ -49,6 +49,7 @@
   "scripts": {
     "build": "nest build",
     "dev": "nest start --watch",
+    "dev:turbo": "turbo dev --filter=@genfeedai/api",
     "lint": "biome check --fix .",
     "start": "nest start",
     "start:debug": "nest start --debug --watch",
