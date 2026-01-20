@@ -19,6 +19,9 @@ export class TemplatesService implements OnModuleInit {
   }
 
   async seedSystemTemplates(): Promise<void> {
+    let created = 0;
+    let updated = 0;
+
     for (const template of SYSTEM_TEMPLATES) {
       const existing = await this.templateModel
         .findOne({ name: template.name, isSystem: true })
@@ -26,10 +29,18 @@ export class TemplatesService implements OnModuleInit {
 
       if (existing) {
         await this.templateModel.updateOne({ _id: existing._id }, { $set: template }).exec();
+        updated++;
       } else {
         await this.templateModel.create({ ...template, isSystem: true });
+        created++;
       }
-      this.logger.log(`Seeded template: ${template.name}`);
+    }
+
+    if (created > 0) {
+      this.logger.log(`Seeded ${created} new template(s)`);
+    }
+    if (updated > 0) {
+      this.logger.debug(`Updated ${updated} existing template(s)`);
     }
   }
 
