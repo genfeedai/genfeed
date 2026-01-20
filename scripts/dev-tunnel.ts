@@ -4,6 +4,20 @@ import { spawn } from 'child_process';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 
+// Load .env file from apps/api
+const envPath = join(process.cwd(), 'apps/api/.env');
+if (existsSync(envPath)) {
+  const envContent = readFileSync(envPath, 'utf-8');
+  for (const line of envContent.split('\n')) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('#')) continue;
+    const [key, ...valueParts] = trimmed.split('=');
+    if (key && !process.env[key]) {
+      process.env[key] = valueParts.join('=');
+    }
+  }
+}
+
 const API_PORT = 3001;
 const ENV_FILE = 'apps/api/.env';
 
@@ -51,8 +65,8 @@ async function main(): Promise<void> {
     console.error('Setup:');
     console.error('  1. Sign up at https://dashboard.ngrok.com/signup');
     console.error('  2. Get your authtoken at https://dashboard.ngrok.com/get-started/your-authtoken');
-    console.error('  3. Add to your shell: export NGROK_AUTHTOKEN=your_token');
-    console.error('     Or add to .env.local: NGROK_AUTHTOKEN=your_token\n');
+    console.error('  3. Add to .env: NGROK_AUTHTOKEN=your_token');
+    console.error('     Or export in your shell: export NGROK_AUTHTOKEN=your_token\n');
     process.exit(1);
   }
 
@@ -62,7 +76,7 @@ async function main(): Promise<void> {
   try {
     listener = await ngrok.forward({
       addr: API_PORT,
-      authtoken_from_env: true,
+      authtoken,
     });
   } catch (err) {
     console.error('\n✗ Failed to start ngrok tunnel\n');

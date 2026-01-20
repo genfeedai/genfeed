@@ -1,9 +1,10 @@
 import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
-import { forwardRef, Inject, Logger } from '@nestjs/common';
+import { forwardRef, Inject, Logger, Optional } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import type { JobResult, LLMJobData } from '@/interfaces/job-data.interface';
 import { JOB_STATUS, QUEUE_CONCURRENCY, QUEUE_NAMES } from '@/queue/queue.constants';
 import type { ExecutionsService } from '@/services/executions.service';
+import type { OllamaService } from '@/services/ollama.service';
 import type { QueueManagerService } from '@/services/queue-manager.service';
 import type { ReplicateService } from '@/services/replicate.service';
 
@@ -19,7 +20,10 @@ export class LLMProcessor extends WorkerHost {
     @Inject(forwardRef(() => 'ExecutionsService'))
     private readonly executionsService: ExecutionsService,
     @Inject(forwardRef(() => 'ReplicateService'))
-    private readonly replicateService: ReplicateService
+    private readonly replicateService: ReplicateService,
+    @Optional()
+    @Inject(forwardRef(() => 'OllamaService'))
+    private readonly ollamaService?: OllamaService
   ) {
     super();
   }
@@ -40,14 +44,31 @@ export class LLMProcessor extends WorkerHost {
       await job.updateProgress({ percent: 20, message: 'Starting LLM generation' });
       await this.queueManager.addJobLog(job.id as string, 'Starting LLM generation');
 
-      // Call Replicate service (LLM is synchronous, doesn't return prediction ID)
-      const text = await this.replicateService.generateText({
-        prompt: nodeData.prompt,
-        systemPrompt: nodeData.systemPrompt,
-        maxTokens: nodeData.maxTokens,
-        temperature: nodeData.temperature,
-        topP: nodeData.topP,
-      });
+      // Determine which provider to use
+      const provider = nodeData.provider ?? 'replicate';
+      let text: string;
+
+      if (provider === 'ollama' && this.ollamaService?.isEnabled()) {
+        // Use Ollama for local LLM inference
+        this.logger.log(`Using Ollama provider with model: ${nodeData.ollamaModel ?? 'default'}`);
+        text = await this.ollamaService.generateText({
+          prompt: nodeData.prompt,
+          systemPrompt: nodeData.systemPrompt,
+          model: nodeData.ollamaModel,
+          maxTokens: nodeData.maxTokens,
+          temperature: nodeData.temperature,
+          topP: nodeData.topP,
+        });
+      } else {
+        // Use Replicate (default)
+        text = await this.replicateService.generateText({
+          prompt: nodeData.prompt,
+          systemPrompt: nodeData.systemPrompt,
+          maxTokens: nodeData.maxTokens,
+          temperature: nodeData.temperature,
+          topP: nodeData.topP,
+        });
+      }
 
       await job.updateProgress({ percent: 90, message: 'Text generated' });
 

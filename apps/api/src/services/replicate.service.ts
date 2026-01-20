@@ -128,6 +128,23 @@ export interface LipSyncInput {
   activeSpeaker?: boolean;
 }
 
+export interface MotionControlInput {
+  image: string;
+  prompt?: string;
+  mode: 'trajectory' | 'camera' | 'combined';
+  duration: 5 | 10;
+  aspectRatio: '16:9' | '9:16' | '1:1';
+  // Trajectory points for path-based motion control
+  trajectoryPoints?: Array<{ x: number; y: number; frame: number }>;
+  // Camera movement settings
+  cameraMovement?: string;
+  cameraIntensity?: number;
+  // Motion settings
+  motionStrength?: number;
+  negativePrompt?: string;
+  seed?: number;
+}
+
 export interface PredictionResult {
   id: string;
   status: 'starting' | 'processing' | 'succeeded' | 'failed' | 'canceled';
@@ -248,6 +265,58 @@ export class ReplicateService {
     await this.executionsService.createJob(executionId, nodeId, prediction.id);
 
     this.logger.log(`Created video prediction ${prediction.id} for node ${nodeId}`);
+
+    return prediction as PredictionResult;
+  }
+
+  /**
+   * Generate video with motion control using Kling AI
+   * Supports trajectory-based motion paths and camera movements
+   */
+  async generateMotionControlVideo(
+    executionId: string,
+    nodeId: string,
+    input: MotionControlInput
+  ): Promise<PredictionResult> {
+    // Build input based on mode
+    const baseInput: Record<string, unknown> = {
+      image: input.image,
+      prompt: input.prompt || '',
+      duration: input.duration ?? 5,
+      aspect_ratio: input.aspectRatio ?? '16:9',
+      motion_strength: (input.motionStrength ?? 50) / 100, // Normalize to 0-1
+      negative_prompt: input.negativePrompt || '',
+    };
+
+    // Add seed if specified
+    if (input.seed !== undefined && input.seed !== null) {
+      baseInput.seed = input.seed;
+    }
+
+    // Add trajectory points for trajectory or combined mode
+    if ((input.mode === 'trajectory' || input.mode === 'combined') && input.trajectoryPoints) {
+      // Format trajectory points for the API
+      baseInput.trajectory = input.trajectoryPoints.map((pt) => ({
+        x: pt.x,
+        y: pt.y,
+        frame: pt.frame,
+      }));
+    }
+
+    // Add camera movement for camera or combined mode
+    if (input.mode === 'camera' || input.mode === 'combined') {
+      baseInput.camera_movement = input.cameraMovement ?? 'static';
+      baseInput.camera_intensity = (input.cameraIntensity ?? 50) / 100; // Normalize to 0-1
+    }
+
+    const prediction = await this.replicate.predictions.create({
+      model: MODELS.klingMotionControl,
+      input: baseInput,
+      ...this.getWebhookConfig(),
+    });
+
+    await this.executionsService.createJob(executionId, nodeId, prediction.id);
+    this.logger.log(`Created motion control prediction ${prediction.id} for node ${nodeId}`);
 
     return prediction as PredictionResult;
   }

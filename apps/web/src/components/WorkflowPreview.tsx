@@ -2,6 +2,7 @@
 
 import type { NodeType, WorkflowEdge, WorkflowNode } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
+import type { NodeTypes } from '@xyflow/react';
 import { ReactFlow, ReactFlowProvider } from '@xyflow/react';
 import { CATEGORY_COLORS, DEFAULT_NODE_COLOR } from '@/lib/constants/colors';
 import '@xyflow/react/dist/style.css';
@@ -28,39 +29,11 @@ function PreviewNodeComponent({ data }: PreviewNodeProps) {
   );
 }
 
-const previewNodeTypes = {
-  // Input nodes
-  audioInput: PreviewNodeComponent,
-  imageInput: PreviewNodeComponent,
-  videoInput: PreviewNodeComponent,
-  prompt: PreviewNodeComponent,
-  template: PreviewNodeComponent,
-  // AI nodes
-  imageGen: PreviewNodeComponent,
-  videoGen: PreviewNodeComponent,
-  llm: PreviewNodeComponent,
-  lipSync: PreviewNodeComponent,
-  voiceChange: PreviewNodeComponent,
-  textToSpeech: PreviewNodeComponent,
-  transcribe: PreviewNodeComponent,
-  // Processing nodes
-  resize: PreviewNodeComponent,
-  animation: PreviewNodeComponent,
-  annotation: PreviewNodeComponent,
-  imageGridSplit: PreviewNodeComponent,
-  videoStitch: PreviewNodeComponent,
-  videoTrim: PreviewNodeComponent,
-  videoFrameExtract: PreviewNodeComponent,
-  reframe: PreviewNodeComponent,
-  upscale: PreviewNodeComponent,
-  subtitle: PreviewNodeComponent,
-  // Output nodes
-  output: PreviewNodeComponent,
-  // Composition nodes
-  workflowInput: PreviewNodeComponent,
-  workflowOutput: PreviewNodeComponent,
-  workflowRef: PreviewNodeComponent,
-};
+// Generate preview node types from NODE_DEFINITIONS
+const previewNodeTypes: NodeTypes = Object.keys(NODE_DEFINITIONS).reduce(
+  (acc, key) => ({ ...acc, [key]: PreviewNodeComponent }),
+  {}
+);
 
 interface WorkflowPreviewProps {
   nodes: WorkflowNode[];

@@ -2,7 +2,12 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import type { CreateWorkflowDto } from '@/dto/create-workflow.dto';
+import type { ImportWorkflowDto } from '@/dto/import-workflow.dto';
 import type { UpdateWorkflowDto } from '@/dto/update-workflow.dto';
+import {
+  WORKFLOW_EXPORT_VERSION,
+  type WorkflowExport,
+} from '@/interfaces/workflow-export.interface';
 import { Workflow, type WorkflowDocument } from '@/schemas/workflow.schema';
 import { WorkflowInterfaceService } from '@/services/workflow-interface.service';
 
@@ -133,5 +138,157 @@ export class WorkflowsService {
       parentWorkflowId,
       childWorkflowId
     );
+  }
+
+  /**
+   * Export a workflow to JSON format for sharing
+   * Strips internal IDs and metadata, keeps only portable data
+   */
+  async exportWorkflow(id: string): Promise<WorkflowExport> {
+    const workflow = await this.findOne(id);
+
+    // Strip sensitive/internal data from nodes
+    const exportNodes = (workflow.nodes as WorkflowNode[]).map((node) => {
+      const cleanData = { ...node.data };
+
+      // Remove execution-specific data
+      delete cleanData.status;
+      delete cleanData.error;
+      delete cleanData.progress;
+      delete cleanData.cachedOutput;
+      delete cleanData.lockTimestamp;
+
+      // Remove uploaded file data (users must re-upload)
+      if (cleanData.image && typeof cleanData.image === 'string') {
+        if (cleanData.image.startsWith('data:') || cleanData.image.startsWith('blob:')) {
+          cleanData.image = null;
+        }
+      }
+      if (cleanData.video && typeof cleanData.video === 'string') {
+        if (cleanData.video.startsWith('data:') || cleanData.video.startsWith('blob:')) {
+          cleanData.video = null;
+        }
+      }
+      if (cleanData.audio && typeof cleanData.audio === 'string') {
+        if (cleanData.audio.startsWith('data:') || cleanData.audio.startsWith('blob:')) {
+          cleanData.audio = null;
+        }
+      }
+
+      return {
+        id: node.id,
+        type: node.type,
+        position: (node as unknown as { position: { x: number; y: number } }).position,
+        data: cleanData,
+      };
+    });
+
+    const exportEdges = (
+      workflow.edges as Array<{
+        id: string;
+        source: string;
+        target: string;
+        sourceHandle?: string;
+        targetHandle?: string;
+        type?: string;
+      }>
+    ).map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle,
+      type: edge.type,
+    }));
+
+    const exportGroups = (
+      workflow.groups as Array<{
+        id: string;
+        name: string;
+        nodeIds: string[];
+        isLocked: boolean;
+        color?: string;
+        collapsed?: boolean;
+      }>
+    ).map((group) => ({
+      id: group.id,
+      name: group.name,
+      nodeIds: group.nodeIds,
+      isLocked: group.isLocked,
+      color: group.color,
+      collapsed: group.collapsed,
+    }));
+
+    this.logger.log(`Exported workflow ${id}: ${workflow.name}`);
+
+    return {
+      name: workflow.name,
+      description: workflow.description ?? '',
+      version: WORKFLOW_EXPORT_VERSION,
+      nodes: exportNodes,
+      edges: exportEdges,
+      edgeStyle: workflow.edgeStyle ?? 'smoothstep',
+      groups: exportGroups,
+      metadata: {
+        exportedAt: new Date().toISOString(),
+        exportedFrom: 'genfeed-core',
+        originalId: id,
+      },
+    };
+  }
+
+  /**
+   * Import a workflow from JSON export
+   * Creates a new workflow with regenerated IDs
+   */
+  async importWorkflow(dto: ImportWorkflowDto): Promise<WorkflowDocument> {
+    this.logger.log(`Importing workflow: ${dto.name} (version ${dto.version})`);
+
+    // Generate new IDs for nodes to avoid conflicts
+    const idMap = new Map<string, string>();
+
+    const importedNodes = dto.nodes.map((node) => {
+      const newId = `${node.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      idMap.set(node.id, newId);
+
+      return {
+        ...node,
+        id: newId,
+        data: {
+          ...node.data,
+          status: 'idle', // Reset status
+        },
+      };
+    });
+
+    // Update edge references to use new node IDs
+    const importedEdges = dto.edges.map((edge) => ({
+      ...edge,
+      id: `edge-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      source: idMap.get(edge.source) ?? edge.source,
+      target: idMap.get(edge.target) ?? edge.target,
+    }));
+
+    // Update group references to use new node IDs
+    const importedGroups = (dto.groups ?? []).map((group) => ({
+      ...group,
+      id: `group-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      nodeIds: group.nodeIds.map((nodeId) => idMap.get(nodeId) ?? nodeId),
+    }));
+
+    // Create the workflow
+    const createDto: CreateWorkflowDto = {
+      name: dto.name,
+      description: dto.description,
+      nodes: importedNodes,
+      edges: importedEdges,
+      edgeStyle: dto.edgeStyle ?? 'smoothstep',
+      groups: importedGroups,
+    };
+
+    const workflow = await this.create(createDto);
+    this.logger.log(`Imported workflow created: ${workflow._id}`);
+
+    return workflow;
   }
 }

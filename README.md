@@ -24,9 +24,9 @@ cd core
 bun install
 
 # Copy environment config
-cp .env.example .env
+cp apps/api/.env.example apps/api/.env
 
-# Add your API tokens to .env (see Setup Guide below)
+# Add your API tokens to apps/api/.env (see Setup Guide below)
 
 # Start development servers
 bun dev
@@ -42,12 +42,8 @@ Replicate uses webhooks to notify when AI generations complete. In development, 
 
 1. Sign up at [dashboard.ngrok.com/signup](https://dashboard.ngrok.com/signup)
 2. Get your authtoken at [dashboard.ngrok.com/get-started/your-authtoken](https://dashboard.ngrok.com/get-started/your-authtoken)
-3. Add to your environment:
-   ```bash
-   # Add to ~/.zshrc or ~/.bashrc
-   export NGROK_AUTHTOKEN=your_token_here
-
-   # Or add to .env.local in project root
+3. Add to `apps/api/.env`:
+   ```
    NGROK_AUTHTOKEN=your_token_here
    ```
 
@@ -61,8 +57,8 @@ When you run `bun dev`, it will:
 
 ```bash
 # Copy and configure environment
-cp .env.example .env
-# Edit .env with your API tokens
+cp apps/api/.env.example apps/api/.env
+# Edit apps/api/.env with your API tokens
 
 # Start all services
 docker compose up -d
@@ -148,7 +144,7 @@ Replicate hosts AI models for image/video generation.
 1. Go to [replicate.com](https://replicate.com) and sign up (GitHub login works)
 2. Navigate to [replicate.com/account/api-tokens](https://replicate.com/account/api-tokens)
 3. Click **Create token**, copy it
-4. Add to `.env`:
+4. Add to `apps/api/.env`:
    ```
    REPLICATE_API_TOKEN=r8_your_token_here
    ```
@@ -167,7 +163,7 @@ brew install mongodb-community && brew services start mongodb-community
 docker run -d -p 27017:27017 --name mongodb mongo:7
 ```
 
-Add to `.env`:
+Add to `apps/api/.env`:
 ```
 MONGODB_URI=mongodb://localhost:27017/genfeed
 ```
@@ -178,7 +174,7 @@ MONGODB_URI=mongodb://localhost:27017/genfeed
 2. Create a free M0 cluster (512MB, free forever)
 3. Click **Connect** → **Drivers** → Copy connection string
 4. Replace `<password>` with your database user password
-5. Add to `.env`:
+5. Add to `apps/api/.env`:
    ```
    MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/genfeed?retryWrites=true&w=majority
    ```
@@ -195,7 +191,7 @@ brew install redis && brew services start redis
 docker run -d -p 6379:6379 --name redis redis:7
 ```
 
-Add to `.env`:
+Add to `apps/api/.env`:
 ```
 REDIS_HOST=localhost
 REDIS_PORT=6379
@@ -206,7 +202,7 @@ REDIS_PORT=6379
 1. Go to [upstash.com](https://upstash.com) and create a free account
 2. Create a new Redis database
 3. Copy the connection details
-4. Add to `.env`:
+4. Add to `apps/api/.env`:
    ```
    REDIS_HOST=your-endpoint.upstash.io
    REDIS_PORT=6379
@@ -224,7 +220,7 @@ REDIS_PORT=6379
 | `REDIS_PORT` | Redis port (default: 6379) |
 | `REDIS_PASSWORD` | Redis password (optional) |
 
-See [.env.example](.env.example) for all options.
+See [apps/api/.env.example](apps/api/.env.example) for all options.
 
 ## Tech Stack
 

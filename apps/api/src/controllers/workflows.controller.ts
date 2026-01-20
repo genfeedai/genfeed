@@ -1,8 +1,10 @@
 import type { WorkflowInterface } from '@genfeedai/types';
 import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/common';
 import type { CreateWorkflowDto } from '@/dto/create-workflow.dto';
+import { ImportWorkflowDto } from '@/dto/import-workflow.dto';
 import type { UpdateWorkflowDto } from '@/dto/update-workflow.dto';
 import type { CostEstimate, WorkflowNodeForCost } from '@/interfaces/cost.interface';
+import type { WorkflowExport } from '@/interfaces/workflow-export.interface';
 import { CostCalculatorService } from '@/services/cost-calculator.service';
 import {
   type GenerateWorkflowDto,
@@ -44,6 +46,14 @@ export class WorkflowsController {
     return this.workflowGeneratorService.generate(generateDto);
   }
 
+  /**
+   * Import a workflow from JSON export
+   */
+  @Post('import')
+  import(@Body() importDto: ImportWorkflowDto) {
+    return this.workflowsService.importWorkflow(importDto);
+  }
+
   // Parameterized routes below
 
   @Get(':id')
@@ -64,6 +74,14 @@ export class WorkflowsController {
   @Post(':id/duplicate')
   duplicate(@Param('id') id: string) {
     return this.workflowsService.duplicate(id);
+  }
+
+  /**
+   * Export a workflow to JSON format for sharing
+   */
+  @Get(':id/export')
+  async exportWorkflow(@Param('id') id: string): Promise<WorkflowExport> {
+    return this.workflowsService.exportWorkflow(id);
   }
 
   @Get(':id/cost-estimate')

@@ -62,6 +62,11 @@ export interface VideoJobData extends NodeJobData {
 }
 
 /**
+ * LLM provider type for selecting inference backend
+ */
+export type LLMProvider = 'replicate' | 'ollama';
+
+/**
  * LLM generation job data
  */
 export interface LLMJobData extends NodeJobData {
@@ -72,6 +77,32 @@ export interface LLMJobData extends NodeJobData {
     maxTokens?: number;
     temperature?: number;
     topP?: number;
+    // Ollama-specific options
+    provider?: LLMProvider;
+    ollamaModel?: string; // e.g., 'llama3.1', 'mistral', 'codellama'
+  };
+}
+
+/**
+ * Motion Control job data (Kling AI)
+ */
+export interface MotionControlJobData extends NodeJobData {
+  nodeType: 'motionControl';
+  nodeData: {
+    image: string;
+    prompt?: string;
+    mode: 'trajectory' | 'camera' | 'combined';
+    duration: 5 | 10;
+    aspectRatio: '16:9' | '9:16' | '1:1';
+    // Trajectory points for path-based motion
+    trajectoryPoints?: Array<{ x: number; y: number; frame: number }>;
+    // Camera movement settings
+    cameraMovement?: string;
+    cameraIntensity?: number;
+    // Motion settings
+    motionStrength?: number;
+    negativePrompt?: string;
+    seed?: number;
   };
 }
 

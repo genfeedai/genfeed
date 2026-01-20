@@ -70,6 +70,7 @@ export type NodeType =
   | 'voiceChange'
   | 'textToSpeech'
   | 'transcribe'
+  | 'motionControl' // Kling Motion Control for advanced video animation
   // Processing nodes
   | 'resize'
   | 'animation'
@@ -387,6 +388,56 @@ export interface TranscribeNodeData extends BaseNodeData {
   // Config
   language: TranscribeLanguage;
   timestamps: boolean;
+
+  // Job state
+  jobId: string | null;
+}
+
+// Kling Motion Control types
+export type MotionControlMode = 'trajectory' | 'camera' | 'combined';
+export type CameraMovement =
+  | 'static'
+  | 'pan_left'
+  | 'pan_right'
+  | 'pan_up'
+  | 'pan_down'
+  | 'zoom_in'
+  | 'zoom_out'
+  | 'rotate_cw'
+  | 'rotate_ccw'
+  | 'dolly_in'
+  | 'dolly_out';
+
+export interface TrajectoryPoint {
+  x: number; // 0-1 normalized
+  y: number; // 0-1 normalized
+  frame: number; // Frame number (0 to totalFrames)
+}
+
+export interface MotionControlNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputImage: string | null;
+  inputPrompt: string | null;
+
+  // Output
+  outputVideo: string | null;
+
+  // Motion control config
+  mode: MotionControlMode;
+  duration: 5 | 10; // seconds
+  aspectRatio: '16:9' | '9:16' | '1:1';
+
+  // Trajectory mode (define motion path)
+  trajectoryPoints: TrajectoryPoint[];
+
+  // Camera mode
+  cameraMovement: CameraMovement;
+  cameraIntensity: number; // 0-100
+
+  // Advanced options
+  motionStrength: number; // 0-100, how much motion to apply
+  negativePrompt: string;
+  seed: number | null;
 
   // Job state
   jobId: string | null;
@@ -1031,6 +1082,36 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       outputText: null,
       language: 'auto',
       timestamps: false,
+      jobId: null,
+    },
+  },
+
+  motionControl: {
+    type: 'motionControl',
+    label: 'Motion Control',
+    description: 'Generate video with precise motion control using Kling AI',
+    category: 'ai',
+    icon: 'Navigation',
+    inputs: [
+      { id: 'image', type: 'image', label: 'Image', required: true },
+      { id: 'prompt', type: 'text', label: 'Prompt' },
+    ],
+    outputs: [{ id: 'video', type: 'video', label: 'Video' }],
+    defaultData: {
+      label: 'Motion Control',
+      status: 'idle',
+      inputImage: null,
+      inputPrompt: null,
+      outputVideo: null,
+      mode: 'camera',
+      duration: 5,
+      aspectRatio: '16:9',
+      trajectoryPoints: [],
+      cameraMovement: 'static',
+      cameraIntensity: 50,
+      motionStrength: 50,
+      negativePrompt: '',
+      seed: null,
       jobId: null,
     },
   },

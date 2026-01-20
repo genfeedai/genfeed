@@ -101,6 +101,7 @@ export const NODE_TYPE_TO_QUEUE: Record<string, QueueName> = {
   imageGen: QUEUE_NAMES.IMAGE_GENERATION,
   videoGen: QUEUE_NAMES.VIDEO_GENERATION,
   llm: QUEUE_NAMES.LLM_GENERATION,
+  motionControl: QUEUE_NAMES.VIDEO_GENERATION, // Uses video generation queue
   reframe: QUEUE_NAMES.PROCESSING,
   upscale: QUEUE_NAMES.PROCESSING,
   videoFrameExtract: QUEUE_NAMES.PROCESSING,
