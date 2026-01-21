@@ -2,7 +2,7 @@ import { OnWorkerEvent, Processor } from '@nestjs/bullmq';
 import { forwardRef, Inject, Logger, Optional } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import type { JobResult, LLMJobData } from '@/interfaces/job-data.interface';
-import { BaseProcessor, type ProcessorErrorContext } from '@/processors/base.processor';
+import { BaseProcessor } from '@/processors/base.processor';
 import { JOB_STATUS, QUEUE_CONCURRENCY, QUEUE_NAMES } from '@/queue/queue.constants';
 import type { ExecutionsService } from '@/services/executions.service';
 import type { OllamaService } from '@/services/ollama.service';
@@ -14,14 +14,13 @@ import type { ReplicateService } from '@/services/replicate.service';
 })
 export class LLMProcessor extends BaseProcessor<LLMJobData> {
   protected readonly logger = new Logger(LLMProcessor.name);
-
-  private readonly errorContext: ProcessorErrorContext;
+  protected readonly queueName = QUEUE_NAMES.LLM_GENERATION;
 
   constructor(
     @Inject(forwardRef(() => 'QueueManagerService'))
-    private readonly queueManager: QueueManagerService,
+    protected readonly queueManager: QueueManagerService,
     @Inject(forwardRef(() => 'ExecutionsService'))
-    private readonly executionsService: ExecutionsService,
+    protected readonly executionsService: ExecutionsService,
     @Inject(forwardRef(() => 'ReplicateService'))
     private readonly replicateService: ReplicateService,
     @Optional()
@@ -29,11 +28,6 @@ export class LLMProcessor extends BaseProcessor<LLMJobData> {
     private readonly ollamaService?: OllamaService
   ) {
     super();
-    this.errorContext = {
-      queueManager: this.queueManager,
-      executionsService: this.executionsService,
-      queueName: QUEUE_NAMES.LLM_GENERATION,
-    };
   }
 
   async process(job: Job<LLMJobData>): Promise<JobResult> {
@@ -98,7 +92,7 @@ export class LLMProcessor extends BaseProcessor<LLMJobData> {
 
       return result;
     } catch (error) {
-      return this.handleProcessorError(job, error as Error, this.errorContext);
+      return this.handleProcessorError(job, error as Error);
     }
   }
 

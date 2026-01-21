@@ -14,7 +14,7 @@ import {
   type QueueName,
 } from '@/queue/queue.constants';
 import { QueueJob, type QueueJobDocument } from '@/schemas/queue-job.schema';
-import type { ExecutionsService } from '@/services/executions.service';
+import type { ExecutionsService, WorkflowDefinition } from '@/services/executions.service';
 
 @Injectable()
 export class QueueManagerService {
@@ -75,6 +75,7 @@ export class QueueManagerService {
 
   /**
    * Enqueue a single node for processing
+   * @param workflow - Optional workflow definition for input resolution. If provided, node inputs will be resolved from connected upstream nodes.
    */
   async enqueueNode(
     executionId: string,
@@ -82,7 +83,8 @@ export class QueueManagerService {
     nodeId: string,
     nodeType: string,
     nodeData: Record<string, unknown>,
-    dependsOn?: string[]
+    dependsOn?: string[],
+    workflow?: WorkflowDefinition
   ): Promise<string> {
     const queueName = this.getQueueForNodeType(nodeType);
     const queue = this.queues.get(queueName);
@@ -91,12 +93,26 @@ export class QueueManagerService {
       throw new Error(`No queue found for node type: ${nodeType}`);
     }
 
+    // Resolve inputs from connected upstream nodes if workflow is provided
+    let resolvedNodeData = nodeData;
+    if (workflow) {
+      resolvedNodeData = await this.executionsService.resolveNodeInputs(
+        executionId,
+        nodeId,
+        nodeData,
+        workflow
+      );
+      this.logger.log(
+        `Resolved inputs for node ${nodeId}: ${JSON.stringify(Object.keys(resolvedNodeData))}`
+      );
+    }
+
     const jobData: NodeJobData = {
       executionId,
       workflowId,
       nodeId,
       nodeType,
-      nodeData,
+      nodeData: resolvedNodeData,
       dependsOn,
       timestamp: new Date().toISOString(),
     };
@@ -304,43 +320,42 @@ export class QueueManagerService {
     return NODE_TYPE_TO_QUEUE[nodeType] ?? QUEUE_NAMES.WORKFLOW_ORCHESTRATOR;
   }
 
+  private static readonly NODE_TYPE_TO_JOB_TYPE: Record<string, string> = {
+    imageGen: JOB_TYPES.GENERATE_IMAGE,
+    videoGen: JOB_TYPES.GENERATE_VIDEO,
+    llm: JOB_TYPES.GENERATE_TEXT,
+  };
+
+  private static readonly NODE_TYPE_TO_PRIORITY: Record<string, number> = {
+    llm: JOB_PRIORITY.HIGH,
+    imageGen: JOB_PRIORITY.NORMAL,
+    videoGen: JOB_PRIORITY.LOW, // Video is expensive, lower priority
+  };
+
   /**
    * Get job type for node type
    */
   private getJobTypeForNodeType(nodeType: string): string {
-    switch (nodeType) {
-      case 'imageGen':
-        return JOB_TYPES.GENERATE_IMAGE;
-      case 'videoGen':
-        return JOB_TYPES.GENERATE_VIDEO;
-      case 'llm':
-        return JOB_TYPES.GENERATE_TEXT;
-      default:
-        return JOB_TYPES.EXECUTE_NODE;
-    }
+    return QueueManagerService.NODE_TYPE_TO_JOB_TYPE[nodeType] ?? JOB_TYPES.EXECUTE_NODE;
   }
 
   /**
    * Get priority for node type
    */
   private getPriorityForNodeType(nodeType: string): number {
-    switch (nodeType) {
-      case 'llm':
-        return JOB_PRIORITY.HIGH;
-      case 'imageGen':
-        return JOB_PRIORITY.NORMAL;
-      case 'videoGen':
-        return JOB_PRIORITY.LOW; // Video is expensive, lower priority
-      default:
-        return JOB_PRIORITY.NORMAL;
-    }
+    return QueueManagerService.NODE_TYPE_TO_PRIORITY[nodeType] ?? JOB_PRIORITY.NORMAL;
   }
 
   /**
    * Continue sequential execution by enqueueing the next ready node
    * Called after a node completes (via webhook) or fails (after all retries)
+   * @param workflow - Optional workflow definition for input resolution
    */
-  async continueExecution(executionId: string, workflowId: string): Promise<void> {
+  async continueExecution(
+    executionId: string,
+    workflowId: string,
+    workflow?: WorkflowDefinition
+  ): Promise<void> {
     // Check if execution is complete (handles failed nodes and blocked dependents)
     const isComplete = await this.executionsService.checkExecutionCompletion(executionId);
     if (isComplete) {
@@ -364,7 +379,8 @@ export class QueueManagerService {
       nextNode.nodeId,
       nextNode.nodeType,
       nextNode.nodeData,
-      nextNode.dependsOn
+      nextNode.dependsOn,
+      workflow
     );
     await this.executionsService.removeFromPendingNodes(executionId, nextNode.nodeId);
 

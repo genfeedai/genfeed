@@ -13,7 +13,7 @@ import type {
   VideoStitchJobData,
   VoiceChangeJobData,
 } from '@/interfaces/job-data.interface';
-import { BaseProcessor, type ProcessorErrorContext } from '@/processors/base.processor';
+import { BaseProcessor } from '@/processors/base.processor';
 import { JOB_STATUS, QUEUE_CONCURRENCY, QUEUE_NAMES } from '@/queue/queue.constants';
 import type { ExecutionsService } from '@/services/executions.service';
 import type { FFmpegService } from '@/services/ffmpeg.service';
@@ -27,14 +27,13 @@ import type { TTSService } from '@/services/tts.service';
 })
 export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
   protected readonly logger = new Logger(ProcessingProcessor.name);
-
-  private readonly errorContext: ProcessorErrorContext;
+  protected readonly queueName = QUEUE_NAMES.PROCESSING;
 
   constructor(
     @Inject(forwardRef(() => 'QueueManagerService'))
-    private readonly queueManager: QueueManagerService,
+    protected readonly queueManager: QueueManagerService,
     @Inject(forwardRef(() => 'ExecutionsService'))
-    private readonly executionsService: ExecutionsService,
+    protected readonly executionsService: ExecutionsService,
     @Inject(forwardRef(() => 'ReplicateService'))
     private readonly replicateService: ReplicateService,
     @Inject(forwardRef(() => 'ReplicatePollerService'))
@@ -45,11 +44,39 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
     private readonly ffmpegService: FFmpegService
   ) {
     super();
-    this.errorContext = {
-      queueManager: this.queueManager,
-      executionsService: this.executionsService,
-      queueName: QUEUE_NAMES.PROCESSING,
+  }
+
+  /**
+   * Complete a local (non-Replicate) job with consistent status updates
+   */
+  private async completeLocalJob(
+    job: Job<ProcessingJobData>,
+    resultUrl: string,
+    outputKey: 'image' | 'audio' | 'video'
+  ): Promise<JobResult> {
+    const { nodeType } = job.data;
+
+    await job.updateProgress({ percent: 100, message: 'Completed' });
+    await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
+      result: { [`${outputKey}Url`]: resultUrl } as unknown as Record<string, unknown>,
+    });
+    await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
+
+    return {
+      success: true,
+      output: { [outputKey]: resultUrl } as Record<string, unknown>,
     };
+  }
+
+  /**
+   * Check for existing prediction on retry and return prediction ID if found
+   */
+  private checkExistingPrediction(existingPredictionId?: string): string | null {
+    if (existingPredictionId) {
+      this.logger.log(`Retry: resuming existing prediction ${existingPredictionId}`);
+      return existingPredictionId;
+    }
+    return null;
   }
 
   async process(job: Job<ProcessingJobData>): Promise<JobResult> {
@@ -150,7 +177,7 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
       // Non-Replicate operations already returned above
       throw new Error(`Unexpected code path for node type: ${nodeType}`);
     } catch (error) {
-      return this.handleProcessorError(job, error as Error, this.errorContext);
+      return this.handleProcessorError(job, error as Error);
     }
   }
 
@@ -161,30 +188,27 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
     job: Job<ReframeJobData>,
     existingPredictionId?: string
   ): Promise<string> {
+    const existing = this.checkExistingPrediction(existingPredictionId);
+    if (existing) return existing;
+
     const { executionId, nodeId, nodeData } = job.data;
 
-    if (existingPredictionId) {
-      this.logger.log(`Retry: resuming existing prediction ${existingPredictionId}`);
-      return existingPredictionId;
-    }
+    const prediction =
+      nodeData.inputType === 'video'
+        ? await this.replicateService.reframeVideo(executionId, nodeId, {
+            video: nodeData.video!,
+            aspectRatio: nodeData.aspectRatio,
+            prompt: nodeData.prompt,
+            gridPosition: nodeData.gridPosition,
+          })
+        : await this.replicateService.reframeImage(executionId, nodeId, {
+            image: nodeData.image!,
+            aspectRatio: nodeData.aspectRatio,
+            model: nodeData.model,
+            prompt: nodeData.prompt,
+            gridPosition: nodeData.gridPosition,
+          });
 
-    let prediction: { id: string };
-    if (nodeData.inputType === 'video') {
-      prediction = await this.replicateService.reframeVideo(executionId, nodeId, {
-        video: nodeData.video!,
-        aspectRatio: nodeData.aspectRatio,
-        prompt: nodeData.prompt,
-        gridPosition: nodeData.gridPosition,
-      });
-    } else {
-      prediction = await this.replicateService.reframeImage(executionId, nodeId, {
-        image: nodeData.image!,
-        aspectRatio: nodeData.aspectRatio,
-        model: nodeData.model,
-        prompt: nodeData.prompt,
-        gridPosition: nodeData.gridPosition,
-      });
-    }
     return prediction.id;
   }
 
@@ -195,31 +219,28 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
     job: Job<UpscaleJobData>,
     existingPredictionId?: string
   ): Promise<string> {
+    const existing = this.checkExistingPrediction(existingPredictionId);
+    if (existing) return existing;
+
     const { executionId, nodeId, nodeData } = job.data;
 
-    if (existingPredictionId) {
-      this.logger.log(`Retry: resuming existing prediction ${existingPredictionId}`);
-      return existingPredictionId;
-    }
+    const prediction =
+      nodeData.inputType === 'video'
+        ? await this.replicateService.upscaleVideo(executionId, nodeId, {
+            video: nodeData.video!,
+            targetResolution: nodeData.targetResolution ?? '1080p',
+            targetFps: nodeData.targetFps ?? 30,
+          })
+        : await this.replicateService.upscaleImage(executionId, nodeId, {
+            image: nodeData.image!,
+            enhanceModel: nodeData.enhanceModel ?? 'Standard V2',
+            upscaleFactor: nodeData.upscaleFactor ?? '2x',
+            outputFormat: nodeData.outputFormat ?? 'png',
+            faceEnhancement: nodeData.faceEnhancement,
+            faceEnhancementStrength: nodeData.faceEnhancementStrength,
+            faceEnhancementCreativity: nodeData.faceEnhancementCreativity,
+          });
 
-    let prediction: { id: string };
-    if (nodeData.inputType === 'video') {
-      prediction = await this.replicateService.upscaleVideo(executionId, nodeId, {
-        video: nodeData.video!,
-        targetResolution: nodeData.targetResolution ?? '1080p',
-        targetFps: nodeData.targetFps ?? 30,
-      });
-    } else {
-      prediction = await this.replicateService.upscaleImage(executionId, nodeId, {
-        image: nodeData.image!,
-        enhanceModel: nodeData.enhanceModel ?? 'Standard V2',
-        upscaleFactor: nodeData.upscaleFactor ?? '2x',
-        outputFormat: nodeData.outputFormat ?? 'png',
-        faceEnhancement: nodeData.faceEnhancement,
-        faceEnhancementStrength: nodeData.faceEnhancementStrength,
-        faceEnhancementCreativity: nodeData.faceEnhancementCreativity,
-      });
-    }
     return prediction.id;
   }
 
@@ -230,12 +251,10 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
     job: Job<LipSyncJobData>,
     existingPredictionId?: string
   ): Promise<string> {
-    const { executionId, nodeId, nodeData } = job.data;
+    const existing = this.checkExistingPrediction(existingPredictionId);
+    if (existing) return existing;
 
-    if (existingPredictionId) {
-      this.logger.log(`Retry: resuming existing prediction ${existingPredictionId}`);
-      return existingPredictionId;
-    }
+    const { executionId, nodeId, nodeData } = job.data;
 
     const prediction = await this.replicateService.generateLipSync(executionId, nodeId, {
       image: nodeData.image,
@@ -253,7 +272,7 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
    * Handle video frame extraction (FFmpeg - no Replicate)
    */
   private async handleVideoFrameExtract(job: Job<VideoFrameExtractJobData>): Promise<JobResult> {
-    const { executionId, nodeId, nodeType, nodeData } = job.data;
+    const { executionId, nodeId, nodeData } = job.data;
 
     const frameResult = await this.ffmpegService.extractFrame(executionId, nodeId, {
       video: nodeData.video,
@@ -262,23 +281,14 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
       percentagePosition: nodeData.percentagePosition,
     });
 
-    await job.updateProgress({ percent: 100, message: 'Completed' });
-    await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
-      result: { imageUrl: frameResult.imageUrl } as unknown as Record<string, unknown>,
-    });
-    await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
-
-    return {
-      success: true,
-      output: { image: frameResult.imageUrl } as Record<string, unknown>,
-    };
+    return this.completeLocalJob(job, frameResult.imageUrl, 'image');
   }
 
   /**
    * Handle text to speech (no Replicate)
    */
   private async handleTextToSpeech(job: Job<TextToSpeechJobData>): Promise<JobResult> {
-    const { executionId, nodeId, nodeType, nodeData } = job.data;
+    const { executionId, nodeId, nodeData } = job.data;
 
     const ttsResult = await this.ttsService.generateSpeech(executionId, nodeId, {
       text: nodeData.text,
@@ -289,23 +299,14 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
       speed: nodeData.speed,
     });
 
-    await job.updateProgress({ percent: 100, message: 'Completed' });
-    await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
-      result: { audioUrl: ttsResult.audioUrl } as unknown as Record<string, unknown>,
-    });
-    await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
-
-    return {
-      success: true,
-      output: { audio: ttsResult.audioUrl } as Record<string, unknown>,
-    };
+    return this.completeLocalJob(job, ttsResult.audioUrl, 'audio');
   }
 
   /**
    * Handle voice change (FFmpeg - no Replicate)
    */
   private async handleVoiceChange(job: Job<VoiceChangeJobData>): Promise<JobResult> {
-    const { executionId, nodeId, nodeType, nodeData } = job.data;
+    const { executionId, nodeId, nodeData } = job.data;
 
     const voiceResult = await this.ffmpegService.replaceAudio(executionId, nodeId, {
       video: nodeData.video,
@@ -314,23 +315,14 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
       audioMixLevel: nodeData.audioMixLevel,
     });
 
-    await job.updateProgress({ percent: 100, message: 'Completed' });
-    await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
-      result: { videoUrl: voiceResult.videoUrl } as unknown as Record<string, unknown>,
-    });
-    await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
-
-    return {
-      success: true,
-      output: { video: voiceResult.videoUrl } as Record<string, unknown>,
-    };
+    return this.completeLocalJob(job, voiceResult.videoUrl, 'video');
   }
 
   /**
    * Handle subtitle (FFmpeg - no Replicate)
    */
   private async handleSubtitle(job: Job<SubtitleJobData>): Promise<JobResult> {
-    const { executionId, nodeId, nodeType, nodeData } = job.data;
+    const { executionId, nodeId, nodeData } = job.data;
 
     const subtitleResult = await this.ffmpegService.addSubtitles(executionId, nodeId, {
       video: nodeData.video,
@@ -343,23 +335,14 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
       fontFamily: nodeData.fontFamily,
     });
 
-    await job.updateProgress({ percent: 100, message: 'Completed' });
-    await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
-      result: { videoUrl: subtitleResult.videoUrl } as unknown as Record<string, unknown>,
-    });
-    await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
-
-    return {
-      success: true,
-      output: { video: subtitleResult.videoUrl } as Record<string, unknown>,
-    };
+    return this.completeLocalJob(job, subtitleResult.videoUrl, 'video');
   }
 
   /**
    * Handle video stitch (FFmpeg - no Replicate)
    */
   private async handleVideoStitch(job: Job<VideoStitchJobData>): Promise<JobResult> {
-    const { executionId, nodeId, nodeType, nodeData } = job.data;
+    const { executionId, nodeId, nodeData } = job.data;
 
     const stitchResult = await this.ffmpegService.stitchVideos(executionId, nodeId, {
       videos: nodeData.inputVideos,
@@ -370,16 +353,7 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
       outputQuality: nodeData.outputQuality ?? 'full',
     });
 
-    await job.updateProgress({ percent: 100, message: 'Completed' });
-    await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
-      result: { videoUrl: stitchResult.videoUrl } as unknown as Record<string, unknown>,
-    });
-    await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
-
-    return {
-      success: true,
-      output: { video: stitchResult.videoUrl } as Record<string, unknown>,
-    };
+    return this.completeLocalJob(job, stitchResult.videoUrl, 'video');
   }
 
   @OnWorkerEvent('completed')

@@ -162,6 +162,23 @@ export class ReplicateService {
   private readonly replicate: Replicate;
   private readonly webhookBaseUrl: string;
 
+  /** Map Topaz model names to enhance model display names */
+  private static readonly TOPAZ_ENHANCE_MODEL_MAP: Record<string, string> = {
+    'topaz-standard-v2': 'Standard V2',
+    'topaz-low-res-v2': 'Low Resolution V2',
+    'topaz-cgi': 'CGI',
+    'topaz-high-fidelity-v2': 'High Fidelity V2',
+    'topaz-text-refine': 'Text Refine',
+  };
+
+  /** Map lip sync model identifiers to Replicate model IDs */
+  private static readonly LIP_SYNC_MODEL_MAP: Record<string, string> = {
+    'sync/lipsync-2': MODELS.lipSync2,
+    'sync/lipsync-2-pro': MODELS.lipSync2Pro,
+    'bytedance/latentsync': MODELS.latentSync,
+    'pixverse/lipsync': MODELS.pixverseLipSync,
+  };
+
   constructor(
     private readonly configService: ConfigService,
     @Inject(forwardRef(() => ExecutionsService))
@@ -486,18 +503,12 @@ export class ReplicateService {
     input: UpscaleInput
   ): Promise<PredictionResult> {
     if (input.inputType === 'image') {
-      // Map model name to enhance model for Topaz
-      const enhanceModelMap: Record<string, string> = {
-        'topaz-standard-v2': 'Standard V2',
-        'topaz-low-res-v2': 'Low Resolution V2',
-        'topaz-cgi': 'CGI',
-        'topaz-high-fidelity-v2': 'High Fidelity V2',
-        'topaz-text-refine': 'Text Refine',
-      };
-
       return this.upscaleImage(executionId, nodeId, {
         image: input.image!,
-        enhanceModel: enhanceModelMap[input.model] ?? input.enhanceModel ?? 'Standard V2',
+        enhanceModel:
+          ReplicateService.TOPAZ_ENHANCE_MODEL_MAP[input.model] ??
+          input.enhanceModel ??
+          'Standard V2',
         upscaleFactor: input.upscaleFactor ?? '2x',
         outputFormat: input.outputFormat ?? 'png',
         faceEnhancement: input.faceEnhancement,
@@ -521,15 +532,7 @@ export class ReplicateService {
     nodeId: string,
     input: LipSyncInput
   ): Promise<PredictionResult> {
-    // Map model name to Replicate model identifier
-    const modelMap: Record<string, string> = {
-      'sync/lipsync-2': MODELS.lipSync2,
-      'sync/lipsync-2-pro': MODELS.lipSync2Pro,
-      'bytedance/latentsync': MODELS.latentSync,
-      'pixverse/lipsync': MODELS.pixverseLipSync,
-    };
-
-    const modelId = modelMap[input.model] ?? MODELS.lipSync2;
+    const modelId = ReplicateService.LIP_SYNC_MODEL_MAP[input.model] ?? MODELS.lipSync2;
 
     // Build input based on model - different models have different input formats
     const modelInput: Record<string, unknown> = {
@@ -659,9 +662,11 @@ export class ReplicateService {
       await this.executionsService.updateExecutionCost(job.executionId.toString());
 
       // Continue sequential execution - enqueue next ready node
+      // Pass workflow definition for input resolution
       await this.queueManager.continueExecution(
         job.executionId.toString(),
-        execution.workflowId.toString()
+        execution.workflowId.toString(),
+        { nodes: workflow.nodes, edges: workflow.edges }
       );
     }
   }

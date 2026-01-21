@@ -3,15 +3,6 @@ export type { ExecutionData, JobData, NodeResult } from './executions';
 export { executionsApi } from './executions';
 export { promptLibraryApi } from './prompt-library';
 export type {
-  ImageGenerationInput,
-  LLMInput,
-  LLMResponse,
-  PredictionResponse,
-  PredictionStatus,
-  VideoGenerationInput,
-} from './replicate';
-export { replicateApi } from './replicate';
-export type {
   NodeDefaultsData,
   RecentModelData,
   SettingsData,

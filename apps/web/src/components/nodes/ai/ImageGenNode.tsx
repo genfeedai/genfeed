@@ -36,24 +36,23 @@ function ImageGenNodeComponent(props: NodeProps) {
 
   const handleModelSelect = useCallback(
     (model: ProviderModel) => {
-      // Map provider model to our internal model format
+      // Map provider model to internal model format where applicable
       const modelMap: Record<string, ImageModel> = {
         'google/nano-banana': 'nano-banana',
         'google/nano-banana-pro': 'nano-banana-pro',
       };
 
-      const internalModel = modelMap[model.id];
-      if (internalModel) {
-        updateNodeData<ImageGenNodeData>(id, {
-          model: internalModel,
+      const internalModel = modelMap[model.id] ?? ('nano-banana-pro' as ImageModel);
+
+      updateNodeData<ImageGenNodeData>(id, {
+        model: internalModel,
+        provider: model.provider,
+        selectedModel: {
           provider: model.provider,
-          selectedModel: {
-            provider: model.provider,
-            modelId: model.id,
-            displayName: model.displayName,
-          },
-        });
-      }
+          modelId: model.id,
+          displayName: model.displayName,
+        },
+      });
     },
     [id, updateNodeData]
   );
@@ -161,13 +160,13 @@ function ImageGenNodeComponent(props: NodeProps) {
 
         {/* Output Preview */}
         {nodeData.outputImage && (
-          <div className="relative mt-1">
+          <div className="relative mt-1 overflow-hidden rounded-md bg-black/20">
             <Image
               src={nodeData.outputImage}
               alt="Generated image"
-              width={200}
-              height={80}
-              className="h-20 w-full rounded-md object-cover cursor-pointer"
+              width={280}
+              height={200}
+              className="w-full h-auto max-h-48 object-contain cursor-pointer"
               unoptimized
             />
             <Button

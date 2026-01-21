@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { type Model, Types } from 'mongoose';
 import type {
@@ -9,8 +9,65 @@ import type {
 import { Execution, type ExecutionDocument } from '@/schemas/execution.schema';
 import { Job, type JobDocument } from '@/schemas/job.schema';
 
+/**
+ * Workflow node structure for input resolution
+ */
+interface WorkflowNode {
+  id: string;
+  type: string;
+  data: Record<string, unknown>;
+}
+
+/**
+ * Workflow edge structure for input resolution
+ */
+interface WorkflowEdge {
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+}
+
+/**
+ * Workflow definition for input resolution
+ */
+export interface WorkflowDefinition {
+  nodes: WorkflowNode[];
+  edges: WorkflowEdge[];
+}
+
+/**
+ * Passthrough node types - their output comes directly from node data
+ */
+const PASSTHROUGH_NODE_TYPES = [
+  'imageInput',
+  'videoInput',
+  'audioInput',
+  'prompt',
+  'template',
+  'workflowInput',
+  'workflowOutput',
+  'input',
+  'output',
+] as const;
+
+/**
+ * Mapping of node types to their output handle -> data field mapping
+ * Used to extract output values from passthrough nodes
+ */
+const PASSTHROUGH_OUTPUT_MAP: Record<string, Record<string, string>> = {
+  imageInput: { image: 'image' },
+  videoInput: { video: 'video' },
+  audioInput: { audio: 'audio' },
+  prompt: { text: 'prompt' },
+  template: { text: 'resolvedPrompt' },
+  workflowInput: { value: 'value' },
+};
+
 @Injectable()
 export class ExecutionsService {
+  private readonly logger = new Logger(ExecutionsService.name);
+
   constructor(
     @InjectModel(Execution.name)
     private readonly executionModel: Model<ExecutionDocument>,
@@ -40,13 +97,6 @@ export class ExecutionsService {
       throw new NotFoundException(`Execution ${id} not found`);
     }
     return execution;
-  }
-
-  /**
-   * Alias for findExecution - used by workflow processor
-   */
-  async getExecution(id: string): Promise<ExecutionDocument> {
-    return this.findExecution(id);
   }
 
   /**
@@ -161,7 +211,16 @@ export class ExecutionsService {
   async findJobWithContext(predictionId: string): Promise<{
     job: JobDocument;
     execution: ExecutionDocument;
-    workflow: { _id: Types.ObjectId; nodes: Array<{ id: string; data: Record<string, unknown> }> };
+    workflow: {
+      _id: Types.ObjectId;
+      nodes: Array<{ id: string; type: string; data: Record<string, unknown> }>;
+      edges: Array<{
+        source: string;
+        target: string;
+        sourceHandle?: string;
+        targetHandle?: string;
+      }>;
+    };
   } | null> {
     const result = await this.jobModel
       .aggregate([
@@ -181,7 +240,7 @@ export class ExecutionsService {
             localField: 'execution.workflowId',
             foreignField: '_id',
             as: 'workflow',
-            pipeline: [{ $project: { _id: 1, nodes: 1 } }],
+            pipeline: [{ $project: { _id: 1, nodes: 1, edges: 1 } }],
           },
         },
         { $unwind: '$workflow' },
@@ -218,7 +277,13 @@ export class ExecutionsService {
       execution: ExecutionDocument;
       workflow: {
         _id: Types.ObjectId;
-        nodes: Array<{ id: string; data: Record<string, unknown> }>;
+        nodes: Array<{ id: string; type: string; data: Record<string, unknown> }>;
+        edges: Array<{
+          source: string;
+          target: string;
+          sourceHandle?: string;
+          targetHandle?: string;
+        }>;
       };
     };
   }
@@ -249,6 +314,134 @@ export class ExecutionsService {
       .find({ executionId: new Types.ObjectId(executionId) })
       .sort({ createdAt: 1 })
       .exec();
+  }
+
+  // Input resolution methods
+
+  /**
+   * Resolve node inputs from connected upstream nodes
+   * Walks workflow edges to find incoming connections and resolves their output values
+   *
+   * For passthrough nodes (imageInput, prompt, etc.): gets value directly from node data
+   * For processing nodes: gets value from execution nodeResults
+   */
+  async resolveNodeInputs(
+    executionId: string,
+    nodeId: string,
+    nodeData: Record<string, unknown>,
+    workflow: WorkflowDefinition
+  ): Promise<Record<string, unknown>> {
+    const resolvedInputs: Record<string, unknown> = { ...nodeData };
+    const execution = await this.findExecution(executionId);
+
+    // Find incoming edges to this node
+    const incomingEdges = workflow.edges.filter((e) => e.target === nodeId);
+
+    if (incomingEdges.length === 0) {
+      return resolvedInputs;
+    }
+
+    this.logger.debug(`Resolving ${incomingEdges.length} inputs for node ${nodeId}`);
+
+    for (const edge of incomingEdges) {
+      const sourceNode = workflow.nodes.find((n) => n.id === edge.source);
+      if (!sourceNode) {
+        this.logger.warn(`Source node ${edge.source} not found for edge to ${nodeId}`);
+        continue;
+      }
+
+      // Get output value from source node
+      let outputValue: unknown;
+
+      // Check if source is a passthrough node
+      if ((PASSTHROUGH_NODE_TYPES as readonly string[]).includes(sourceNode.type)) {
+        outputValue = this.getPassthroughOutput(sourceNode, edge.sourceHandle);
+        if (outputValue) {
+          this.logger.debug(
+            `Passthrough ${sourceNode.type} output: ${typeof outputValue === 'string' ? outputValue.substring(0, 50) : outputValue}`
+          );
+        }
+      } else {
+        // Processing nodes: get from execution results
+        const nodeResult = execution.nodeResults.find((r) => r.nodeId === edge.source);
+        if (nodeResult?.status === 'complete' && nodeResult.output) {
+          const sourceHandle = edge.sourceHandle ?? 'output';
+          outputValue = (nodeResult.output as Record<string, unknown>)[sourceHandle];
+        }
+      }
+
+      // Map to target input handle
+      if (outputValue !== undefined && outputValue !== null) {
+        const targetHandle = edge.targetHandle ?? 'input';
+        const mappedField = this.mapHandleToInputField(targetHandle, nodeData);
+
+        // Handle array inputs (like imageInput which accepts multiple)
+        if (Array.isArray(resolvedInputs[mappedField])) {
+          resolvedInputs[mappedField] = [
+            ...(resolvedInputs[mappedField] as unknown[]),
+            outputValue,
+          ];
+        } else {
+          resolvedInputs[mappedField] = outputValue;
+        }
+
+        this.logger.debug(`Mapped ${sourceNode.type}.${edge.sourceHandle} -> ${mappedField}`);
+      }
+    }
+
+    return resolvedInputs;
+  }
+
+  /**
+   * Get output value from a passthrough node
+   */
+  private getPassthroughOutput(node: WorkflowNode, sourceHandle?: string): unknown {
+    const handle = sourceHandle ?? 'output';
+    const outputMap = PASSTHROUGH_OUTPUT_MAP[node.type];
+
+    if (outputMap && outputMap[handle]) {
+      return node.data[outputMap[handle]];
+    }
+
+    // Fallback: try common field names
+    const fallbackFields = ['image', 'video', 'audio', 'prompt', 'text', 'value'];
+    for (const field of fallbackFields) {
+      if (node.data[field] !== undefined && node.data[field] !== null) {
+        return node.data[field];
+      }
+    }
+
+    return undefined;
+  }
+
+  /**
+   * Map a target handle ID to the corresponding input field name
+   */
+  private mapHandleToInputField(targetHandle: string, nodeData: Record<string, unknown>): string {
+    // Direct match
+    if (targetHandle in nodeData) {
+      return targetHandle;
+    }
+
+    // Common input field mappings
+    const handleMappings: Record<string, string[]> = {
+      images: ['inputImages', 'imageInput'],
+      image: ['inputImage', 'image', 'imageInput'],
+      prompt: ['inputPrompt', 'prompt'],
+      text: ['inputText', 'inputPrompt', 'text'],
+      video: ['inputVideo', 'video'],
+      audio: ['inputAudio', 'audio'],
+      media: ['inputMedia'],
+    };
+
+    const candidates = handleMappings[targetHandle] ?? [];
+    for (const candidate of candidates) {
+      if (candidate in nodeData) {
+        return candidate;
+      }
+    }
+
+    return targetHandle;
   }
 
   /**

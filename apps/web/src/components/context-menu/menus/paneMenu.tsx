@@ -1,14 +1,81 @@
+import { getNodesByCategory, type NodeCategory } from '@genfeedai/types';
 import {
-  Bot,
+  ArrowLeftFromLine,
+  ArrowRightToLine,
+  AudioLines,
+  Brain,
+  CheckCircle,
   Clipboard,
+  Crop,
+  FileText,
+  FileVideo,
+  Film,
+  GitBranch,
+  Grid3X3,
   Image,
+  Layers,
   LayoutGrid,
+  type LucideIcon,
   Maximize,
+  Maximize2,
   MessageSquare,
+  Mic,
   Monitor,
+  Navigation,
+  Pencil,
+  Scissors,
+  Sparkles,
+  Subtitles,
   Video,
+  Volume2,
+  Wand2,
 } from 'lucide-react';
 import { type ContextMenuItemConfig, createSeparator } from '@/components/context-menu/ContextMenu';
+
+// Icon mapping from node definition icon strings to Lucide components
+const NODE_ICONS: Record<string, LucideIcon> = {
+  Image,
+  MessageSquare,
+  FileText,
+  Volume2,
+  FileVideo,
+  Sparkles,
+  Video,
+  Brain,
+  Mic,
+  AudioLines,
+  Navigation,
+  Maximize2,
+  Wand2,
+  Layers,
+  Scissors,
+  Film,
+  Crop,
+  Maximize,
+  Grid3X3,
+  Pencil,
+  Subtitles,
+  CheckCircle,
+  ArrowRightToLine,
+  ArrowLeftFromLine,
+  GitBranch,
+};
+
+const CATEGORY_LABELS: Record<NodeCategory, string> = {
+  input: 'Input',
+  ai: 'AI Generation',
+  processing: 'Processing',
+  output: 'Output',
+  composition: 'Composition',
+};
+
+const CATEGORY_ICONS: Record<NodeCategory, LucideIcon> = {
+  input: Image,
+  ai: Sparkles,
+  processing: Wand2,
+  output: Monitor,
+  composition: GitBranch,
+};
 
 interface PaneMenuOptions {
   screenX: number;
@@ -31,37 +98,32 @@ export function getPaneMenuItems({
   onFitView,
   onAutoLayout,
 }: PaneMenuOptions): ContextMenuItemConfig[] {
+  const nodesByCategory = getNodesByCategory();
+  const categories: NodeCategory[] = ['input', 'ai', 'processing', 'output', 'composition'];
+
+  // Generate category submenus with all nodes
+  const addNodeItems: ContextMenuItemConfig[] = categories.map((category) => {
+    const CategoryIcon = CATEGORY_ICONS[category];
+    const nodes = nodesByCategory[category];
+
+    return {
+      id: `add-${category}`,
+      label: CATEGORY_LABELS[category],
+      icon: <CategoryIcon className="w-4 h-4" />,
+      submenu: nodes.map((node) => {
+        const NodeIcon = NODE_ICONS[node.icon] ?? Sparkles;
+        return {
+          id: `add-${node.type}`,
+          label: node.label,
+          icon: <NodeIcon className="w-4 h-4" />,
+          onClick: () => onAddNode(node.type, screenX, screenY),
+        };
+      }),
+    };
+  });
+
   return [
-    {
-      id: 'add-prompt',
-      label: 'Add Prompt Node',
-      icon: <MessageSquare className="w-4 h-4" />,
-      onClick: () => onAddNode('prompt', screenX, screenY),
-    },
-    {
-      id: 'add-image-gen',
-      label: 'Add Image Generator',
-      icon: <Image className="w-4 h-4" />,
-      onClick: () => onAddNode('imageGen', screenX, screenY),
-    },
-    {
-      id: 'add-video-gen',
-      label: 'Add Video Generator',
-      icon: <Video className="w-4 h-4" />,
-      onClick: () => onAddNode('videoGen', screenX, screenY),
-    },
-    {
-      id: 'add-llm',
-      label: 'Add LLM Node',
-      icon: <Bot className="w-4 h-4" />,
-      onClick: () => onAddNode('llm', screenX, screenY),
-    },
-    {
-      id: 'add-output',
-      label: 'Add Output Node',
-      icon: <Monitor className="w-4 h-4" />,
-      onClick: () => onAddNode('output', screenX, screenY),
-    },
+    ...addNodeItems,
     createSeparator('separator-1'),
     {
       id: 'paste',

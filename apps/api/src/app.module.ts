@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 import { AppController } from '@/controllers/app.controller';
 import { ExecutionsModule } from '@/modules/executions.module';
+import { FilesModule } from '@/modules/files.module';
 import { PromptLibraryModule } from '@/modules/prompt-library.module';
 import { ProvidersModule } from '@/modules/providers.module';
 import { QueueModule } from '@/modules/queue.module';
@@ -39,6 +40,7 @@ import { AppService } from '@/services/app.service';
     PromptLibraryModule,
     ProvidersModule,
     SettingsModule,
+    FilesModule,
 
     // Queue Management (BullMQ + Redis)
     QueueModule,

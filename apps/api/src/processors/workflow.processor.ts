@@ -4,7 +4,7 @@ import { OnWorkerEvent, Processor, WorkerHost } from '@nestjs/bullmq';
 import { forwardRef, Inject, Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import type { WorkflowJobData, WorkflowRefJobData } from '@/interfaces/job-data.interface';
-import { JOB_STATUS, QUEUE_NAMES } from '@/queue/queue.constants';
+import { JOB_STATUS, PASSTHROUGH_NODE_TYPES, QUEUE_NAMES } from '@/queue/queue.constants';
 import type { ExecutionsService } from '@/services/executions.service';
 import type { QueueManagerService } from '@/services/queue-manager.service';
 import type { WorkflowInterfaceService } from '@/services/workflow-interface.service';
@@ -87,7 +87,6 @@ export class WorkflowProcessor extends WorkerHost {
       const dependencyMap = buildDependencyMap(nodes, edges);
 
       // Build pending nodes list (excluding passthrough nodes like input/output)
-      const passthroughTypes = ['workflowInput', 'workflowOutput', 'input', 'output'];
       const pendingNodes: Array<{
         nodeId: string;
         nodeType: string;
@@ -100,7 +99,7 @@ export class WorkflowProcessor extends WorkerHost {
         if (!node) continue;
 
         // Skip passthrough nodes - mark as complete immediately
-        if (passthroughTypes.includes(node.type)) {
+        if ((PASSTHROUGH_NODE_TYPES as readonly string[]).includes(node.type)) {
           await this.executionsService.updateNodeResult(executionId, nodeId, 'complete', {});
           continue;
         }
@@ -128,13 +127,16 @@ export class WorkflowProcessor extends WorkerHost {
       // Other ready nodes will be enqueued as previous ones complete
       if (readyNodes.length > 0) {
         const firstNode = readyNodes[0];
+        // Pass workflow definition for input resolution
+        const workflowDef = { nodes, edges };
         await this.queueManager.enqueueNode(
           executionId,
           workflowId,
           firstNode.nodeId,
           firstNode.nodeType,
           firstNode.nodeData,
-          firstNode.dependsOn
+          firstNode.dependsOn,
+          workflowDef
         );
         await this.executionsService.removeFromPendingNodes(executionId, firstNode.nodeId);
 
@@ -237,6 +239,8 @@ export class WorkflowProcessor extends WorkerHost {
       const childDependencyMap = buildDependencyMap(childNodes, childEdges);
 
       // Enqueue child workflow nodes (skip WorkflowInput nodes as they're pre-populated)
+      // Pass child workflow definition for input resolution
+      const childWorkflowDef = { nodes: childNodes, edges: childEdges };
       for (const childNodeId of childExecutionOrder) {
         const childNode = childNodes.find((n) => n.id === childNodeId);
         if (!childNode) continue;
@@ -254,7 +258,8 @@ export class WorkflowProcessor extends WorkerHost {
           childNode.id,
           childNode.type,
           childNode.data,
-          childDependsOn
+          childDependsOn,
+          childWorkflowDef
         );
       }
 
@@ -309,7 +314,7 @@ export class WorkflowProcessor extends WorkerHost {
     const pollInterval = 5000;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
-      const childExecution = await this.executionsService.getExecution(childExecutionId);
+      const childExecution = await this.executionsService.findExecution(childExecutionId);
 
       if (childExecution.status === 'completed') {
         // Extract outputs from WorkflowOutput nodes

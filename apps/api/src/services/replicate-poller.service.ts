@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import type { JobResult, NodeJobData } from '@/interfaces/job-data.interface';
-import type { ReplicateService } from '@/services/replicate.service';
+import { ReplicateService } from '@/services/replicate.service';
 
 export interface PollOptions {
   maxAttempts: number;

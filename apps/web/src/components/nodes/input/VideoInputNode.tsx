@@ -2,42 +2,107 @@
 
 import type { VideoInputNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Link, Upload, Video, X } from 'lucide-react';
+import { Link, Loader2, Upload, Video, X } from 'lucide-react';
 import { memo, useCallback, useRef, useState } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
+import { apiClient } from '@/lib/api/client';
 import { useWorkflowStore } from '@/store/workflowStore';
+
+interface FileUploadResult {
+  filename: string;
+  url: string;
+  path: string;
+  size: number;
+  mimeType: string;
+}
 
 function VideoInputNodeComponent(props: NodeProps) {
   const { id, data } = props;
   const nodeData = data as VideoInputNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
+  const workflowId = useWorkflowStore((state) => state.workflowId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlValue, setUrlValue] = useState(nodeData.url || '');
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleFileSelect = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    async (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return;
 
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const video = document.createElement('video');
-        video.onloadedmetadata = () => {
+      // Get video metadata
+      const getMetadata = (
+        src: string
+      ): Promise<{ duration: number; dimensions: { width: number; height: number } }> => {
+        return new Promise((resolve) => {
+          const video = document.createElement('video');
+          video.onloadedmetadata = () =>
+            resolve({
+              duration: video.duration,
+              dimensions: { width: video.videoWidth, height: video.videoHeight },
+            });
+          video.onerror = () => resolve({ duration: 0, dimensions: { width: 0, height: 0 } });
+          video.src = src;
+        });
+      };
+
+      // If workflow is saved (has ID), upload to backend
+      if (workflowId) {
+        setIsUploading(true);
+        try {
+          const result = await apiClient.uploadFile<FileUploadResult>(
+            `/files/input/${workflowId}/video`,
+            file
+          );
+
+          // Get metadata from the uploaded URL
+          const metadata = await getMetadata(result.url);
+
           updateNodeData<VideoInputNodeData>(id, {
-            video: event.target?.result as string,
+            video: result.url,
+            filename: result.filename,
+            duration: metadata.duration,
+            dimensions: metadata.dimensions,
+            source: 'upload',
+          });
+        } catch (error) {
+          // Fallback to Base64 if upload fails
+          const reader = new FileReader();
+          reader.onload = async (event) => {
+            const dataUrl = event.target?.result as string;
+            const metadata = await getMetadata(dataUrl);
+            updateNodeData<VideoInputNodeData>(id, {
+              video: dataUrl,
+              filename: file.name,
+              duration: metadata.duration,
+              dimensions: metadata.dimensions,
+              source: 'upload',
+            });
+          };
+          reader.readAsDataURL(file);
+        } finally {
+          setIsUploading(false);
+        }
+      } else {
+        // Workflow not saved yet - use Base64
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          const dataUrl = event.target?.result as string;
+          const metadata = await getMetadata(dataUrl);
+          updateNodeData<VideoInputNodeData>(id, {
+            video: dataUrl,
             filename: file.name,
-            duration: video.duration,
-            dimensions: { width: video.videoWidth, height: video.videoHeight },
+            duration: metadata.duration,
+            dimensions: metadata.dimensions,
             source: 'upload',
           });
         };
-        video.src = event.target?.result as string;
-      };
-      reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
+      }
     },
-    [id, updateNodeData]
+    [id, updateNodeData, workflowId]
   );
 
   const handleRemoveVideo = useCallback(() => {
@@ -162,10 +227,10 @@ function VideoInputNodeComponent(props: NodeProps) {
 
       {/* Video Preview or Empty State */}
       {nodeData.video ? (
-        <div className="relative">
+        <div className="relative max-h-32 overflow-hidden rounded-md bg-black/20">
           <video
             src={nodeData.video}
-            className="w-full h-20 object-cover rounded-md cursor-pointer"
+            className="w-full h-auto max-h-32 object-contain cursor-pointer"
             muted
           />
           <Button
@@ -184,10 +249,20 @@ function VideoInputNodeComponent(props: NodeProps) {
       ) : (
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="flex h-16 w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20 transition-colors hover:border-primary/50 hover:bg-secondary/40"
+          disabled={isUploading}
+          className="flex h-16 w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20 transition-colors hover:border-primary/50 hover:bg-secondary/40 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <Video className="h-5 w-5 text-muted-foreground/50" />
-          <span className="text-[10px] text-muted-foreground/70">Drop or click</span>
+          {isUploading ? (
+            <>
+              <Loader2 className="h-5 w-5 text-muted-foreground/50 animate-spin" />
+              <span className="text-[10px] text-muted-foreground/70">Uploading...</span>
+            </>
+          ) : (
+            <>
+              <Video className="h-5 w-5 text-muted-foreground/50" />
+              <span className="text-[10px] text-muted-foreground/70">Drop or click</span>
+            </>
+          )}
         </button>
       )}
     </BaseNode>

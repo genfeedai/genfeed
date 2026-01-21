@@ -21,6 +21,7 @@ import { FFmpegService } from '@/services/ffmpeg.service';
 import { JobRecoveryService } from '@/services/job-recovery.service';
 import { QueueManagerService } from '@/services/queue-manager.service';
 import { ReplicateService } from '@/services/replicate.service';
+import { ReplicatePollerService } from '@/services/replicate-poller.service';
 import { TTSService } from '@/services/tts.service';
 import { WorkflowInterfaceService } from '@/services/workflow-interface.service';
 import { WorkflowsService } from '@/services/workflows.service';
@@ -123,6 +124,10 @@ import { WorkflowsService } from '@/services/workflows.service';
     {
       provide: 'ReplicateService',
       useExisting: ReplicateService,
+    },
+    {
+      provide: 'ReplicatePollerService',
+      useExisting: ReplicatePollerService,
     },
     {
       provide: 'TTSService',

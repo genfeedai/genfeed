@@ -12,6 +12,7 @@ export interface ContextMenuItemConfig {
   disabled?: boolean;
   danger?: boolean;
   separator?: boolean;
+  submenu?: ContextMenuItemConfig[];
   onClick?: () => void;
 }
 
@@ -160,7 +161,9 @@ export function ContextMenu({ x, y, items, onClose }: ContextMenuProps) {
             shortcut={item.shortcut}
             disabled={item.disabled}
             danger={item.danger}
+            submenu={item.submenu}
             onClick={() => handleItemClick(item)}
+            onClose={onClose}
             isSelected={index === selectedIndex}
           />
         );

@@ -18,6 +18,9 @@ export interface ProcessorErrorContext {
  */
 export abstract class BaseProcessor<T extends NodeJobData> extends WorkerHost {
   protected abstract readonly logger: Logger;
+  protected abstract readonly queueName: QueueName;
+  protected abstract readonly queueManager: QueueManagerService;
+  protected abstract readonly executionsService: ExecutionsService;
 
   /**
    * Handles processor errors with consistent logic across all processors:
@@ -26,33 +29,46 @@ export abstract class BaseProcessor<T extends NodeJobData> extends WorkerHost {
    * 3. Moves to DLQ on last attempt
    * 4. Triggers continuation for sequential execution
    */
-  protected async handleProcessorError(
-    job: Job<T>,
-    error: Error,
-    context: ProcessorErrorContext
-  ): Promise<never> {
+  protected async handleProcessorError(job: Job<T>, error: Error): Promise<never> {
     const { executionId, workflowId, nodeId } = job.data;
-    const { queueManager, executionsService, queueName } = context;
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const isLastAttempt = job.attemptsMade >= (job.opts.attempts ?? 3) - 1;
 
-    await queueManager.updateJobStatus(job.id as string, JOB_STATUS.FAILED, {
+    await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.FAILED, {
       error: errorMessage,
       attemptsMade: job.attemptsMade,
     });
 
-    await executionsService.updateNodeResult(executionId, nodeId, 'error', undefined, errorMessage);
+    await this.executionsService.updateNodeResult(
+      executionId,
+      nodeId,
+      'error',
+      undefined,
+      errorMessage
+    );
 
     // If this was the last attempt, handle failure
     if (isLastAttempt) {
-      await queueManager.moveToDeadLetterQueue(job.id as string, queueName, errorMessage);
+      await this.queueManager.moveToDeadLetterQueue(job.id as string, this.queueName, errorMessage);
 
       // Trigger continuation to process next nodes or complete execution
-      await queueManager.continueExecution(executionId, workflowId);
+      await this.queueManager.continueExecution(executionId, workflowId);
     }
 
     throw error;
+  }
+
+  /**
+   * Update job progress and add log entry in one call
+   */
+  protected async updateProgressWithLog(
+    job: Job<T>,
+    percent: number,
+    message: string
+  ): Promise<void> {
+    await job.updateProgress({ percent, message });
+    await this.queueManager.addJobLog(job.id as string, message);
   }
 
   /**
