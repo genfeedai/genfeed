@@ -3,7 +3,6 @@ import type { GenerateImageDto } from '@/dto/generate-image.dto';
 import type { GenerateTextDto } from '@/dto/generate-text.dto';
 import type { GenerateVideoDto } from '@/dto/generate-video.dto';
 import type { ProcessDto } from '@/dto/process.dto';
-import type { WebhookDto } from '@/dto/webhook.dto';
 import { ReplicateService } from '@/services/replicate.service';
 
 @Controller('replicate')
@@ -142,19 +141,5 @@ export class ReplicateController {
   async cancelPrediction(@Param('id') predictionId: string) {
     await this.replicateService.cancelPrediction(predictionId);
     return { cancelled: true };
-  }
-
-  @Post('webhook')
-  @HttpCode(HttpStatus.OK)
-  async handleWebhook(@Body() dto: WebhookDto) {
-    await this.replicateService.handleWebhook({
-      id: dto.id,
-      status: dto.status,
-      output: dto.output,
-      error: dto.error,
-      metrics: dto.metrics,
-    });
-
-    return { received: true };
   }
 }

@@ -11,19 +11,21 @@ export interface IStyleSettings {
   scene?: string;
 }
 
-// Category enum for organizing prompts
-export enum PromptCategory {
-  ADS = 'ads',
-  ANIME = 'anime',
-  PRODUCT = 'product',
-  PORTRAIT = 'portrait',
-  LANDSCAPE = 'landscape',
-  ABSTRACT = 'abstract',
-  FASHION = 'fashion',
-  FOOD = 'food',
-  ARCHITECTURE = 'architecture',
-  CUSTOM = 'custom',
-}
+// Category values for organizing prompts
+export const PROMPT_CATEGORIES = [
+  'ads',
+  'anime',
+  'product',
+  'portrait',
+  'landscape',
+  'abstract',
+  'fashion',
+  'food',
+  'architecture',
+  'custom',
+] as const;
+
+export type PromptCategory = (typeof PROMPT_CATEGORIES)[number];
 
 // Main prompt library item interface
 export interface IPromptLibraryItem {
@@ -165,14 +167,14 @@ export type ScenePreset = (typeof SCENE_PRESETS)[number];
 
 // Category display names for UI
 export const CATEGORY_LABELS: Record<PromptCategory, string> = {
-  [PromptCategory.ADS]: 'Ads & Marketing',
-  [PromptCategory.ANIME]: 'Anime & Manga',
-  [PromptCategory.PRODUCT]: 'Product Photography',
-  [PromptCategory.PORTRAIT]: 'Portraits',
-  [PromptCategory.LANDSCAPE]: 'Landscapes',
-  [PromptCategory.ABSTRACT]: 'Abstract Art',
-  [PromptCategory.FASHION]: 'Fashion',
-  [PromptCategory.FOOD]: 'Food & Culinary',
-  [PromptCategory.ARCHITECTURE]: 'Architecture',
-  [PromptCategory.CUSTOM]: 'Custom',
+  ads: 'Ads & Marketing',
+  anime: 'Anime & Manga',
+  product: 'Product Photography',
+  portrait: 'Portraits',
+  landscape: 'Landscapes',
+  abstract: 'Abstract Art',
+  fashion: 'Fashion',
+  food: 'Food & Culinary',
+  architecture: 'Architecture',
+  custom: 'Custom',
 };

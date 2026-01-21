@@ -15,7 +15,7 @@ function createMockPromptLibraryItem(overrides = {}) {
     styleSettings: {},
     aspectRatio: '16:9',
     preferredModel: 'nano-banana',
-    category: 'creative',
+    category: 'custom',
     tags: ['test', 'sample'],
     isFeatured: false,
     useCount: 0,
@@ -79,7 +79,7 @@ describe('PromptLibraryService', () => {
       const dto = {
         name: 'Test Prompt',
         promptText: 'Generate something amazing',
-        category: 'creative',
+        category: 'custom' as const,
       };
 
       const result = await service.create(dto);
@@ -93,10 +93,10 @@ describe('PromptLibraryService', () => {
         name: 'Full Prompt',
         description: 'A complete prompt',
         promptText: 'Generate something',
-        styleSettings: { color: 'blue' },
+        styleSettings: { mood: 'cinematic' },
         aspectRatio: '16:9',
         preferredModel: 'nano-banana',
-        category: 'creative',
+        category: 'custom' as const,
         tags: ['test'],
         isFeatured: true,
         thumbnail: 'https://example.com/thumb.jpg',
@@ -117,7 +117,7 @@ describe('PromptLibraryService', () => {
     });
 
     it('should filter by category', async () => {
-      const result = await service.findAll({ category: 'creative' });
+      const result = await service.findAll({ category: 'custom' });
 
       expect(result).toHaveLength(1);
     });

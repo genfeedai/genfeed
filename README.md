@@ -34,25 +34,6 @@ bun dev
 
 Open http://localhost:3000 in your browser.
 
-## Prerequisites
-
-### ngrok (Required for webhooks)
-
-Replicate uses webhooks to notify when AI generations complete. In development, ngrok creates an HTTPS tunnel to your local machine.
-
-1. Sign up at [dashboard.ngrok.com/signup](https://dashboard.ngrok.com/signup)
-2. Get your authtoken at [dashboard.ngrok.com/get-started/your-authtoken](https://dashboard.ngrok.com/get-started/your-authtoken)
-3. Add to `apps/api/.env`:
-   ```
-   NGROK_AUTHTOKEN=your_token_here
-   ```
-
-When you run `bun dev`, it will:
-1. Start ngrok tunnel → get HTTPS URL
-2. Update `apps/api/.env` with `WEBHOOK_BASE_URL`
-3. Start the API server
-4. Start the web frontend
-
 ## Self-Hosting with Docker
 
 ```bash
@@ -213,7 +194,6 @@ REDIS_PORT=6379
 
 | Variable | Description |
 |----------|-------------|
-| `NGROK_AUTHTOKEN` | ngrok auth token (required for dev) |
 | `REPLICATE_API_TOKEN` | Replicate API key (required) |
 | `MONGODB_URI` | MongoDB connection string |
 | `REDIS_HOST` | Redis host for job queues |
@@ -248,7 +228,6 @@ See [apps/api/.env.example](apps/api/.env.example) for all options.
 |------------|-------------|
 | [Bun](https://bun.sh) | JavaScript runtime & package manager |
 | [Docker](https://docker.com) | Containerization |
-| [ngrok](https://ngrok.com) | HTTPS tunnels for webhooks (dev) |
 | [Biome](https://biomejs.dev) | Linter & formatter |
 | [Vitest](https://vitest.dev) | Testing framework |
 | [Husky](https://typicode.github.io/husky) | Git hooks |

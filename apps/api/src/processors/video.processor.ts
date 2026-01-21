@@ -107,12 +107,33 @@ export class VideoProcessor extends BaseProcessor<VideoQueueJobData> {
         onProgress: this.replicatePollerService.createJobProgressCallback(job),
       });
 
+      // Update execution node result
+      if (result.success) {
+        await this.executionsService.updateNodeResult(
+          executionId,
+          nodeId,
+          'complete',
+          result.output
+        );
+      } else {
+        await this.executionsService.updateNodeResult(
+          executionId,
+          nodeId,
+          'error',
+          undefined,
+          result.error
+        );
+      }
+
       // Update job status
       await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
         result: result as unknown as Record<string, unknown>,
       });
 
       await this.queueManager.addJobLog(job.id as string, 'Video generation completed');
+
+      // Continue workflow execution to next node
+      await this.queueManager.continueExecution(executionId, job.data.workflowId);
 
       return result;
     } catch (error) {

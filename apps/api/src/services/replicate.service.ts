@@ -4,8 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import Replicate from 'replicate';
 import { CostCalculatorService } from '@/services/cost-calculator.service';
 import { ExecutionsService } from '@/services/executions.service';
-import { QueueManagerService } from '@/services/queue-manager.service';
-import { WorkflowsService } from '@/services/workflows.service';
 
 // Model identifiers (Replicate official models)
 export const MODELS = {
@@ -160,7 +158,6 @@ export interface PredictionResult {
 export class ReplicateService {
   private readonly logger = new Logger(ReplicateService.name);
   private readonly replicate: Replicate;
-  private readonly webhookBaseUrl: string;
 
   /** Map Topaz model names to enhance model display names */
   private static readonly TOPAZ_ENHANCE_MODEL_MAP: Record<string, string> = {
@@ -183,41 +180,11 @@ export class ReplicateService {
     private readonly configService: ConfigService,
     @Inject(forwardRef(() => ExecutionsService))
     private readonly executionsService: ExecutionsService,
-    @Inject(forwardRef(() => WorkflowsService))
-    private readonly workflowsService: WorkflowsService,
-    @Inject(forwardRef(() => QueueManagerService))
-    private readonly queueManager: QueueManagerService,
     private readonly costCalculatorService: CostCalculatorService
   ) {
     this.replicate = new Replicate({
       auth: this.configService.get<string>('REPLICATE_API_TOKEN'),
     });
-
-    const webhookUrl = this.configService.get<string>('WEBHOOK_BASE_URL');
-    if (!webhookUrl) {
-      throw new Error(
-        'WEBHOOK_BASE_URL is required. Run "bun run dev:tunnel" first to start ngrok tunnel.'
-      );
-    }
-    if (!webhookUrl.startsWith('https://')) {
-      throw new Error(
-        `WEBHOOK_BASE_URL must be HTTPS (got: ${webhookUrl}). Run "bun run dev:tunnel" first.`
-      );
-    }
-    this.webhookBaseUrl = webhookUrl;
-  }
-
-  /**
-   * Get webhook configuration for prediction requests
-   */
-  private getWebhookConfig(): {
-    webhook: string;
-    webhook_events_filter: ('start' | 'output' | 'logs' | 'completed')[];
-  } {
-    return {
-      webhook: `${this.webhookBaseUrl}/api/replicate/webhook`,
-      webhook_events_filter: ['completed'],
-    };
   }
 
   /**
@@ -242,7 +209,6 @@ export class ReplicateService {
           resolution: input.resolution ?? '2K',
         }),
       },
-      ...this.getWebhookConfig(),
     });
 
     // Create job record in database
@@ -278,7 +244,6 @@ export class ReplicateService {
         negative_prompt: input.negativePrompt,
         seed: input.seed,
       },
-      ...this.getWebhookConfig(),
     });
 
     // Create job record in database
@@ -332,7 +297,6 @@ export class ReplicateService {
     const prediction = await this.replicate.predictions.create({
       model: MODELS.klingMotionControl,
       input: baseInput,
-      ...this.getWebhookConfig(),
     });
 
     await this.executionsService.createJob(executionId, nodeId, prediction.id);
@@ -381,7 +345,6 @@ export class ReplicateService {
         grid_position_x: input.gridPosition?.x ?? 0.5,
         grid_position_y: input.gridPosition?.y ?? 0.5,
       },
-      ...this.getWebhookConfig(),
     });
 
     await this.executionsService.createJob(executionId, nodeId, prediction.id);
@@ -407,7 +370,6 @@ export class ReplicateService {
         grid_position_x: input.gridPosition?.x ?? 0.5,
         grid_position_y: input.gridPosition?.y ?? 0.5,
       },
-      ...this.getWebhookConfig(),
     });
 
     await this.executionsService.createJob(executionId, nodeId, prediction.id);
@@ -435,7 +397,6 @@ export class ReplicateService {
         face_enhancement_strength: (input.faceEnhancementStrength ?? 80) / 100,
         face_enhancement_creativity: (input.faceEnhancementCreativity ?? 0) / 100,
       },
-      ...this.getWebhookConfig(),
     });
 
     await this.executionsService.createJob(executionId, nodeId, prediction.id);
@@ -459,7 +420,6 @@ export class ReplicateService {
         target_resolution: input.targetResolution,
         target_fps: input.targetFps,
       },
-      ...this.getWebhookConfig(),
     });
 
     await this.executionsService.createJob(executionId, nodeId, prediction.id);
@@ -565,7 +525,6 @@ export class ReplicateService {
     const prediction = await this.replicate.predictions.create({
       model: modelId,
       input: modelInput,
-      ...this.getWebhookConfig(),
     });
 
     await this.executionsService.createJob(executionId, nodeId, prediction.id);
@@ -588,87 +547,6 @@ export class ReplicateService {
   async cancelPrediction(predictionId: string): Promise<void> {
     await this.replicate.predictions.cancel(predictionId);
     this.logger.log(`Cancelled prediction ${predictionId}`);
-  }
-
-  /**
-   * Process webhook from Replicate
-   */
-  async handleWebhook(data: {
-    id: string;
-    status: string;
-    output: unknown;
-    error?: string;
-    metrics?: { predict_time?: number };
-  }): Promise<void> {
-    const { id, status, output, error, metrics } = data;
-
-    this.logger.log(`Received webhook for prediction ${id}: ${status}`);
-
-    // Fetch job, execution, and workflow in a single aggregation query
-    const context = await this.executionsService.findJobWithContext(id);
-    if (!context) {
-      this.logger.warn(`Job not found for prediction ${id}`);
-      return;
-    }
-
-    const { job, execution, workflow } = context;
-    const node = workflow.nodes.find((n) => n.id === job.nodeId);
-
-    // Calculate actual cost using model-specific pricing
-    const nodeData = node?.data as
-      | { model?: string; duration?: number; generateAudio?: boolean; resolution?: string }
-      | undefined;
-    const model = nodeData?.model ?? 'unknown';
-    const duration = nodeData?.duration;
-    const withAudio = nodeData?.generateAudio;
-    const resolution = nodeData?.resolution;
-
-    const cost = this.costCalculatorService.calculatePredictionCost(
-      model,
-      duration,
-      withAudio,
-      resolution
-    );
-    const costBreakdown = this.costCalculatorService.buildJobCostBreakdown(
-      model,
-      cost,
-      duration,
-      withAudio,
-      nodeData?.resolution
-    );
-
-    await this.executionsService.updateJob(id, {
-      status,
-      output: output as Record<string, unknown>,
-      error,
-      cost,
-      costBreakdown,
-      predictTime: metrics?.predict_time,
-    });
-
-    // Update execution node result if this is the final status
-    if (status === 'succeeded' || status === 'failed' || status === 'canceled') {
-      const executionStatus = status === 'succeeded' ? 'complete' : 'error';
-      await this.executionsService.updateNodeResult(
-        job.executionId.toString(),
-        job.nodeId,
-        executionStatus,
-        output as Record<string, unknown>,
-        error,
-        cost
-      );
-
-      // Update execution cost summary
-      await this.executionsService.updateExecutionCost(job.executionId.toString());
-
-      // Continue sequential execution - enqueue next ready node
-      // Pass workflow definition for input resolution
-      await this.queueManager.continueExecution(
-        job.executionId.toString(),
-        execution.workflowId.toString(),
-        { nodes: workflow.nodes, edges: workflow.edges }
-      );
-    }
   }
 
   /**

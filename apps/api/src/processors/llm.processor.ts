@@ -90,6 +90,9 @@ export class LLMProcessor extends BaseProcessor<LLMJobData> {
       await job.updateProgress({ percent: 100, message: 'Completed' });
       await this.queueManager.addJobLog(job.id as string, 'LLM generation completed');
 
+      // Continue workflow execution to next node
+      await this.queueManager.continueExecution(executionId, job.data.workflowId);
+
       return result;
     } catch (error) {
       return this.handleProcessorError(job, error as Error);

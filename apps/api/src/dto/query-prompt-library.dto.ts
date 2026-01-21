@@ -1,10 +1,10 @@
+import { PROMPT_CATEGORIES, type PromptCategory } from '@genfeedai/types';
 import { Transform } from 'class-transformer';
-import { IsEnum, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
-import { PromptCategory } from '@/schemas/prompt-library-item.schema';
+import { IsIn, IsNumber, IsOptional, IsString, Max, Min } from 'class-validator';
 
 export class QueryPromptLibraryDto {
   @IsOptional()
-  @IsEnum(PromptCategory)
+  @IsIn(PROMPT_CATEGORIES)
   category?: PromptCategory;
 
   @IsOptional()

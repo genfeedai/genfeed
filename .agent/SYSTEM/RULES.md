@@ -138,7 +138,89 @@ Types: `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`
 
 ## Project-Specific Rules
 
-<!-- Add your project-specific rules below -->
+### MongoDB Queries
+
+All queries MUST include organization scoping and soft-delete filtering:
+
+```typescript
+// Correct
+await this.workflowModel.find({
+  organization: orgId,
+  isDeleted: false
+});
+
+// Wrong - missing required filters
+await this.workflowModel.find({ name: 'my-workflow' });
+```
+
+### Frontend Async Operations
+
+All async operations in React effects MUST use AbortController:
+
+```typescript
+useEffect(() => {
+  const controller = new AbortController();
+
+  fetchWorkflows({ signal: controller.signal })
+    .then(setWorkflows)
+    .catch((err) => {
+      if (!controller.signal.aborted) {
+        setError(err);
+      }
+    });
+
+  return () => controller.abort();
+}, []);
+```
+
+### Serializers
+
+Serializers belong in `packages/`, NOT in API services:
+
+| Correct | Wrong |
+|---------|-------|
+| `packages/serializers/` | `apps/api/src/serializers/` |
+
+### Database Indexes
+
+Compound indexes go in module `useFactory`, NOT in schema files:
+
+```typescript
+// In module file
+MongooseModule.forFeatureAsync([{
+  name: Workflow.name,
+  useFactory: () => {
+    const schema = WorkflowSchema;
+    schema.index({ organization: 1, createdAt: -1 });
+    return schema;
+  }
+}])
+```
+
+### Node System
+
+- **36 node types** defined in `packages/types/src/nodes.ts`
+- **Handle types are strict** - only same-type connections allowed:
+  - `image` → `image`
+  - `text` → `text`
+  - `video` → `video`
+  - `audio` → `audio`
+
+### Queue Architecture
+
+5 BullMQ queues for job processing:
+
+| Queue | Purpose |
+|-------|---------|
+| `workflow-orchestrator` | Workflow execution coordination |
+| `image-generation` | Image AI operations |
+| `video-generation` | Video AI operations |
+| `llm-generation` | Text/LLM operations |
+| `processing` | General processing tasks |
+
+### Cost Calculation
+
+All pricing logic lives in `packages/core/src/pricing.ts`. Update this file when adding new AI providers or models.
 
 ---
 

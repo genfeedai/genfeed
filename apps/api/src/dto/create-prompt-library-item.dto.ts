@@ -1,14 +1,14 @@
+import { PROMPT_CATEGORIES, type PromptCategory } from '@genfeedai/types';
 import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
-  IsEnum,
+  IsIn,
   IsObject,
   IsOptional,
   IsString,
   ValidateNested,
 } from 'class-validator';
-import { PromptCategory } from '@/schemas/prompt-library-item.schema';
 
 export class StyleSettingsDto {
   @IsOptional()
@@ -58,7 +58,7 @@ export class CreatePromptLibraryItemDto {
   preferredModel?: string;
 
   @IsOptional()
-  @IsEnum(PromptCategory)
+  @IsIn(PROMPT_CATEGORIES)
   category?: PromptCategory;
 
   @IsOptional()

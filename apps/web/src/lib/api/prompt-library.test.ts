@@ -1,4 +1,4 @@
-import { type IPromptLibraryItem, PromptCategory } from '@genfeedai/types';
+import type { IPromptLibraryItem } from '@genfeedai/types';
 import { afterEach, beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { apiClient } from './client';
 import { promptLibraryApi } from './prompt-library';
@@ -20,7 +20,7 @@ describe('promptLibraryApi', () => {
     description: 'A test prompt',
     promptText: 'Generate a beautiful sunset',
     styleSettings: {},
-    category: PromptCategory.LANDSCAPE,
+    category: 'landscape',
     tags: ['nature', 'sunset'],
     useCount: 5,
     isFeatured: false,
@@ -70,7 +70,7 @@ describe('promptLibraryApi', () => {
       (apiClient.get as Mock).mockResolvedValueOnce([mockPromptItem]);
 
       await promptLibraryApi.getAll({
-        category: PromptCategory.LANDSCAPE,
+        category: 'landscape',
         search: 'sunset',
         limit: 10,
       });

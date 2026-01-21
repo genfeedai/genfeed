@@ -54,7 +54,11 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
     resultUrl: string,
     outputKey: 'image' | 'audio' | 'video'
   ): Promise<JobResult> {
-    const { nodeType } = job.data;
+    const { executionId, nodeId, nodeType, workflowId } = job.data;
+    const output = { [outputKey]: resultUrl } as Record<string, unknown>;
+
+    // Update execution node result
+    await this.executionsService.updateNodeResult(executionId, nodeId, 'complete', output);
 
     await job.updateProgress({ percent: 100, message: 'Completed' });
     await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
@@ -62,9 +66,12 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
     });
     await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
 
+    // Continue workflow execution to next node
+    await this.queueManager.continueExecution(executionId, workflowId);
+
     return {
       success: true,
-      output: { [outputKey]: resultUrl } as Record<string, unknown>,
+      output,
     };
   }
 
@@ -164,12 +171,33 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
           onProgress: this.replicatePollerService.createJobProgressCallback(job),
         });
 
+        // Update execution node result
+        if (result.success) {
+          await this.executionsService.updateNodeResult(
+            executionId,
+            nodeId,
+            'complete',
+            result.output
+          );
+        } else {
+          await this.executionsService.updateNodeResult(
+            executionId,
+            nodeId,
+            'error',
+            undefined,
+            result.error
+          );
+        }
+
         // Update job status
         await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
           result: result as unknown as Record<string, unknown>,
         });
 
         await this.queueManager.addJobLog(job.id as string, `${nodeType} completed`);
+
+        // Continue workflow execution to next node
+        await this.queueManager.continueExecution(executionId, job.data.workflowId);
 
         return result;
       }

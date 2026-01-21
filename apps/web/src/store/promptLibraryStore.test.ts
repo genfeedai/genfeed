@@ -1,4 +1,4 @@
-import { type IPromptLibraryItem, PromptCategory } from '@genfeedai/types';
+import type { IPromptLibraryItem } from '@genfeedai/types';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePromptLibraryStore } from './promptLibraryStore';
 
@@ -24,7 +24,7 @@ describe('usePromptLibraryStore', () => {
     styleSettings: {},
     aspectRatio: '16:9',
     preferredModel: 'nano-banana-pro',
-    category: PromptCategory.LANDSCAPE,
+    category: 'landscape',
     tags: ['nature'],
     isFeatured: false,
     thumbnail: undefined,
@@ -93,13 +93,13 @@ describe('usePromptLibraryStore', () => {
       it('should set the category filter', () => {
         const { setCategoryFilter } = usePromptLibraryStore.getState();
 
-        setCategoryFilter(PromptCategory.LANDSCAPE);
+        setCategoryFilter('landscape');
 
-        expect(usePromptLibraryStore.getState().categoryFilter).toBe(PromptCategory.LANDSCAPE);
+        expect(usePromptLibraryStore.getState().categoryFilter).toBe('landscape');
       });
 
       it('should clear the category filter', () => {
-        usePromptLibraryStore.setState({ categoryFilter: PromptCategory.PORTRAIT });
+        usePromptLibraryStore.setState({ categoryFilter: 'portrait' });
         const { setCategoryFilter } = usePromptLibraryStore.getState();
 
         setCategoryFilter(null);
@@ -201,7 +201,7 @@ describe('usePromptLibraryStore', () => {
       it('should use search query and category filter', async () => {
         usePromptLibraryStore.setState({
           searchQuery: 'sunset',
-          categoryFilter: PromptCategory.LANDSCAPE,
+          categoryFilter: 'landscape',
         });
 
         const { promptLibraryApi } = await import('@/lib/api');
@@ -211,7 +211,7 @@ describe('usePromptLibraryStore', () => {
         expect(promptLibraryApi.getAll).toHaveBeenCalledWith(
           expect.objectContaining({
             search: 'sunset',
-            category: PromptCategory.LANDSCAPE,
+            category: 'landscape',
           }),
           undefined
         );

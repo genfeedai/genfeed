@@ -97,7 +97,110 @@ Use a logging service instead.
 
 ## Project-Specific Rules
 
-<!-- Add your project-specific "never do" rules below -->
+### Soft Deletes
+
+**NEVER use `deletedAt`** - use `isDeleted: boolean`:
+
+```typescript
+// Wrong
+{ deletedAt: Date | null }
+
+// Correct
+{ isDeleted: boolean }
+```
+
+### Serializer Location
+
+**NEVER put serializers in API services** - they belong in `packages/`:
+
+```
+❌ apps/api/src/serializers/workflow.serializer.ts
+✅ packages/serializers/src/workflow.serializer.ts
+```
+
+### Database Indexes
+
+**NEVER add compound indexes in schema files** - use module `useFactory`:
+
+```typescript
+// ❌ Wrong - in schema file
+@Schema()
+export class Workflow {
+  // indexes defined here
+}
+
+// ✅ Correct - in module useFactory
+MongooseModule.forFeatureAsync([{
+  name: Workflow.name,
+  useFactory: () => {
+    const schema = WorkflowSchema;
+    schema.index({ organization: 1, createdAt: -1 });
+    return schema;
+  }
+}])
+```
+
+### Node Types
+
+**NEVER create new node types without updating `packages/types/src/nodes.ts`**
+
+All 36 node types must be defined there. Adding a node elsewhere causes type mismatches.
+
+### React Effects
+
+**NEVER skip AbortController cleanup in React effects**:
+
+```typescript
+// ❌ Wrong - no cleanup
+useEffect(() => {
+  fetchData();
+}, []);
+
+// ✅ Correct - with AbortController
+useEffect(() => {
+  const controller = new AbortController();
+  fetchData({ signal: controller.signal });
+  return () => controller.abort();
+}, []);
+```
+
+### Handle Type Connections
+
+**NEVER connect incompatible handle types**:
+
+```
+❌ image → text
+❌ video → audio
+❌ text → image
+
+✅ image → image
+✅ text → text
+✅ video → video
+✅ audio → audio
+```
+
+### Local Builds
+
+**NEVER run `bun run build` locally** - it attempts to build all 12 apps and crashes. Use CI/CD only.
+
+```bash
+# ❌ Never run locally
+bun run build
+
+# ✅ Build single app if needed
+bun run build:studio
+```
+
+### API Keys
+
+**NEVER commit API keys** to the repository:
+
+- Replicate API Token
+- ElevenLabs API Key
+- fal.ai Key
+- Any other provider secrets
+
+These belong in `.env` files (which are gitignored).
 
 ---
 

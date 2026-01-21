@@ -1,7 +1,7 @@
 'use client';
 
 import type { ModelCapability, ProviderModel, ProviderType } from '@genfeedai/types';
-import { Clock, ExternalLink, Search, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, Clock, ExternalLink, Search, Sparkles, X } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/components/ui/button';
@@ -147,6 +147,7 @@ function ModelBrowserModalComponent({
   const [searchQuery, setSearchQuery] = useState('');
   const [providerFilter, setProviderFilter] = useState<ProviderType | 'all'>('all');
   const [models, setModels] = useState<ProviderModel[]>([]);
+  const [configuredProviders, setConfiguredProviders] = useState<ProviderType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchModels = useCallback(
@@ -186,7 +187,8 @@ function ModelBrowserModalComponent({
 
         if (response.ok) {
           const data = await response.json();
-          setModels(data);
+          setModels(data.models);
+          setConfiguredProviders(data.configuredProviders);
         }
       } catch (error) {
         if (error instanceof Error && error.name !== 'AbortError') {
@@ -274,32 +276,48 @@ function ModelBrowserModalComponent({
             />
           </div>
 
-          {/* Provider filter */}
-          <div className="flex items-center gap-2">
-            {(['all', 'replicate', 'fal', 'huggingface'] as const).map((provider) => (
-              <button
-                key={provider}
-                onClick={() => setProviderFilter(provider)}
-                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                  providerFilter === provider
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                }`}
-              >
-                {provider === 'all'
-                  ? 'All'
-                  : provider === 'replicate'
-                    ? 'Replicate'
-                    : provider === 'fal'
-                      ? 'fal.ai'
-                      : 'Hugging Face'}
-              </button>
-            ))}
-          </div>
+          {/* Provider filter - only show configured providers */}
+          {configuredProviders.length > 0 && (
+            <div className="flex items-center gap-2">
+              {(['all', ...configuredProviders] as const).map((provider) => (
+                <button
+                  key={provider}
+                  onClick={() => setProviderFilter(provider)}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                    providerFilter === provider
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                  }`}
+                >
+                  {provider === 'all'
+                    ? 'All'
+                    : provider === 'replicate'
+                      ? 'Replicate'
+                      : provider === 'fal'
+                        ? 'fal.ai'
+                        : 'Hugging Face'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Content */}
         <div className="flex-1 overflow-auto p-6">
+          {/* Warning when no providers configured */}
+          {!isLoading && configuredProviders.length === 0 && (
+            <div className="mb-6 flex items-start gap-3 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
+              <div>
+                <p className="text-sm font-medium text-yellow-600">No AI providers configured</p>
+                <p className="mt-1 text-xs text-yellow-600/80">
+                  Add API keys to your .env file to enable model selection. Supported providers:
+                  REPLICATE_API_TOKEN, FAL_API_KEY, HF_API_TOKEN
+                </p>
+              </div>
+            </div>
+          )}
+
           {isLoading ? (
             <div className="flex h-full items-center justify-center">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

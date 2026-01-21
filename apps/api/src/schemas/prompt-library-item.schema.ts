@@ -1,3 +1,4 @@
+import { PROMPT_CATEGORIES, type PromptCategory } from '@genfeedai/types';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, type HydratedDocument } from 'mongoose';
 
@@ -20,20 +21,6 @@ export class StyleSettings {
 
   @Prop()
   scene?: string; // indoor, outdoor, urban, nature, etc.
-}
-
-// Category enum for organization
-export enum PromptCategory {
-  ADS = 'ads',
-  ANIME = 'anime',
-  PRODUCT = 'product',
-  PORTRAIT = 'portrait',
-  LANDSCAPE = 'landscape',
-  ABSTRACT = 'abstract',
-  FASHION = 'fashion',
-  FOOD = 'food',
-  ARCHITECTURE = 'architecture',
-  CUSTOM = 'custom',
 }
 
 @Schema({ timestamps: true, collection: 'prompt-library-items' })
@@ -60,7 +47,7 @@ export class PromptLibraryItem extends Document {
   preferredModel?: string;
 
   // Organization
-  @Prop({ enum: Object.values(PromptCategory), default: PromptCategory.CUSTOM })
+  @Prop({ enum: PROMPT_CATEGORIES, default: 'custom' })
   category: PromptCategory;
 
   @Prop({ type: [String], default: [], index: true })

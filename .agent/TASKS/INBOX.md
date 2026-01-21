@@ -1,7 +1,7 @@
 # Task Inbox
 
 **Purpose:** Quick capture for tasks. Process regularly.
-**Last Updated:** 2026-01-14
+**Last Updated:** 2026-01-21
 
 ---
 
@@ -21,15 +21,17 @@ Process into proper task files or complete directly.
 
 <!-- Add quick tasks below -->
 
-- [ ] Review and customize `.agent/SYSTEM/RULES.md`
-- [ ] Update `.agent/SYSTEM/ARCHITECTURE.md` with project architecture
-- [ ] Add project-specific rules to `SYSTEM/critical/CRITICAL-NEVER-DO.md`
-
 ---
 
 ## Processed
 
 <!-- Move completed/processed items here with date -->
+
+### 2026-01-21
+
+- [x] Review and customize `.agent/SYSTEM/RULES.md` - Added project-specific rules section
+- [x] Update `.agent/SYSTEM/ARCHITECTURE.md` with project architecture - Full rewrite with tech stack, components, data flow
+- [x] Add project-specific rules to `SYSTEM/critical/CRITICAL-NEVER-DO.md` - Added 8 critical rules
 
 ### 2026-01-14
 

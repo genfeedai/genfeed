@@ -1,6 +1,23 @@
 import type { ModelCapability, ProviderModel, ProviderType } from '@genfeedai/types';
 import { type NextRequest, NextResponse } from 'next/server';
 
+// Helper to check which providers have env credentials
+function getConfiguredProviders(): Set<ProviderType> {
+  const configured = new Set<ProviderType>();
+
+  if (process.env.REPLICATE_API_TOKEN) {
+    configured.add('replicate');
+  }
+  if (process.env.FAL_API_KEY) {
+    configured.add('fal');
+  }
+  if (process.env.HF_API_TOKEN) {
+    configured.add('huggingface');
+  }
+
+  return configured;
+}
+
 // Available models catalog
 const MODELS_CATALOG: ProviderModel[] = [
   // Image generation models
@@ -132,11 +149,15 @@ export async function GET(request: NextRequest) {
     ? (capabilitiesParam.split(',') as ModelCapability[])
     : null;
 
-  // Filter models
-  let filteredModels = MODELS_CATALOG;
+  // Get configured providers from env
+  const configuredProviders = getConfiguredProviders();
+  const configuredProvidersList = Array.from(configuredProviders) as ProviderType[];
 
-  // Filter by provider
-  if (provider) {
+  // Filter models to only those from configured providers
+  let filteredModels = MODELS_CATALOG.filter((m) => configuredProviders.has(m.provider));
+
+  // Filter by specific provider (if requested and configured)
+  if (provider && configuredProviders.has(provider)) {
     filteredModels = filteredModels.filter((m) => m.provider === provider);
   }
 
@@ -157,5 +178,8 @@ export async function GET(request: NextRequest) {
     );
   }
 
-  return NextResponse.json(filteredModels);
+  return NextResponse.json({
+    models: filteredModels,
+    configuredProviders: configuredProvidersList,
+  });
 }

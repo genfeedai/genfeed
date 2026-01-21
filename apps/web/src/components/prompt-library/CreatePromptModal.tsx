@@ -6,7 +6,7 @@ import {
   type ICreatePromptLibraryItem,
   LIGHTING_PRESETS,
   MOOD_PRESETS,
-  PromptCategory,
+  type PromptCategory,
   SCENE_PRESETS,
   STYLE_PRESETS,
 } from '@genfeedai/types';
@@ -26,7 +26,7 @@ function CreatePromptModalComponent() {
     description: editingItem?.description ?? '',
     promptText: editingItem?.promptText ?? '',
     styleSettings: editingItem?.styleSettings ?? {},
-    category: editingItem?.category ?? PromptCategory.CUSTOM,
+    category: editingItem?.category ?? 'custom',
     tags: editingItem?.tags ?? [],
     aspectRatio: editingItem?.aspectRatio ?? '',
     preferredModel: editingItem?.preferredModel ?? '',
