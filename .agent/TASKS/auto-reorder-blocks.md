@@ -4,7 +4,7 @@
 **Label:** Auto-Reorder Blocks
 **Description:** Add an "Auto-Layout" button to automatically reorganize all workflow nodes in a clean, hierarchical layout that minimizes edge crossings and respects execution order.
 **Type:** Feature
-**Status:** Backlog
+**Status:** Done
 **Priority:** Medium
 **Created:** 2026-01-15
 **Updated:** 2026-01-15

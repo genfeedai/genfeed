@@ -4,7 +4,7 @@
 **Label:** Auto-Save Workflow
 **Description:** Automatically save workflow to API after 5 seconds of inactivity
 **Type:** Feature
-**Status:** Backlog
+**Status:** Done
 **Priority:** High
 **Created:** 2026-01-15
 **Updated:** 2026-01-15

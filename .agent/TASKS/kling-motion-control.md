@@ -4,7 +4,7 @@
 **Label:** Kling Motion Control Integration
 **Description:** Add Kling v2.6 Motion Control model from Replicate to enable precise motion control for animating static images with motion paths
 **Type:** Feature
-**Status:** To Do
+**Status:** Done
 **Priority:** High
 **Order:** 1
 **Created:** 2026-01-14

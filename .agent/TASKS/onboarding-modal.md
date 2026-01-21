@@ -4,7 +4,7 @@
 **Label:** Onboarding Modal
 **Description:** Add an onboarding modal with workflow templates, recent workflows, and tutorials to help users get started quickly.
 **Type:** Feature
-**Status:** Backlog
+**Status:** Done
 **Priority:** High
 **Created:** 2026-01-15
 **Updated:** 2026-01-15

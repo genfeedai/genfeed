@@ -1,33 +1,37 @@
 ---
-name: genfeed-scope-validator
-description: Validate workflows and node requests against Genfeed OSS core scope. Ensures only OSS-included nodes are used and flags Cloud-only features. Use before implementing workflows or when users request new nodes.
+name: scope-validator
+description: Validate feature requests against Genfeed OSS core vs Cloud scope. Helps users and contributors understand whether a feature belongs in the open-source core (submit PR) or Cloud SaaS (subscribe).
 version: 1.0.0
 tags:
   - genfeed
-  - workflow
-  - validation
   - scope
   - oss
+  - cloud
+  - contribution
 ---
 
-# Genfeed Scope Validator
+# Scope Validator
 
-Validates that workflow requests and node implementations stay within the OSS Genfeed core scope. Flags Cloud-only features that require the commercial version.
+Helps users and contributors understand whether a feature belongs in:
+
+- **OSS Core** → Submit a PR or feature request to [genfeedai/core](https://github.com/genfeedai/core)
+- **Cloud SaaS** → Subscribe at [genfeed.ai/cloud](https://genfeed.ai/cloud)
 
 ## When This Activates
 
-- User requests a new workflow template
-- User asks to implement a new node
+- User asks "should this be in core or cloud?"
+- User wants to contribute a new node or feature
 - User requests social publishing features
 - User asks about RSS/Twitter/feed integration
-- Before implementing any workflow changes
-- Code review of workflow templates
+- Feature request triage
+- PR review for scope compliance
 
 ## OSS Core Scope
 
 ### Included Nodes (26 total)
 
 #### Input Nodes (5)
+
 | Node | Type | Description |
 |------|------|-------------|
 | Image Input | `imageInput` | Upload or reference an image |
@@ -37,6 +41,7 @@ Validates that workflow requests and node implementations stay within the OSS Ge
 | Template | `template` | Preset prompt template |
 
 #### AI Nodes (7)
+
 | Node | Type | Description |
 |------|------|-------------|
 | Image Generator | `imageGen` | Generate images with nano-banana models |
@@ -48,6 +53,7 @@ Validates that workflow requests and node implementations stay within the OSS Ge
 | Transcribe | `transcribe` | Convert video or audio to text transcript |
 
 #### Processing Nodes (12)
+
 | Node | Type | Description |
 |------|------|-------------|
 | Resize | `resize` | Resize media to different aspect ratios using Luma AI |
@@ -64,6 +70,7 @@ Validates that workflow requests and node implementations stay within the OSS Ge
 | Subtitle | `subtitle` | Burn subtitles into video using FFmpeg |
 
 #### Output Nodes (2)
+
 | Node | Type | Description |
 |------|------|-------------|
 | Output | `output` | Final workflow output |
@@ -90,24 +97,28 @@ Validates that workflow requests and node implementations stay within the OSS Ge
 ## Validation Rules
 
 ### Rule 1: Node Type Check
+
 ```
 IF node.type IN [socialPublish, rssInput, tweetInput, tweetRemix]
 THEN FAIL: "Node type '{node.type}' is Cloud-only. Use OSS alternatives or upgrade to Cloud."
 ```
 
 ### Rule 2: Provider Check
+
 ```
 IF node.provider IN [fal, huggingface]
 THEN FAIL: "Provider '{node.provider}' is Cloud-only. OSS only supports Replicate."
 ```
 
 ### Rule 3: Template Check
+
 ```
 IF template contains Cloud-only nodes
 THEN FAIL: "Template uses Cloud-only nodes. Remove: {cloud_nodes}"
 ```
 
 ### Rule 4: Feature Request Check
+
 ```
 IF request mentions [publish, social, twitter, rss, feed, youtube upload]
 THEN WARN: "Social publishing and feed features are Cloud-only."
@@ -116,6 +127,7 @@ THEN WARN: "Social publishing and feed features are Cloud-only."
 ## Validation Examples
 
 ### Valid OSS Workflow
+
 ```json
 {
   "nodes": [
@@ -127,9 +139,11 @@ THEN WARN: "Social publishing and feed features are Cloud-only."
   ]
 }
 ```
+
 ✅ All nodes are within OSS scope.
 
 ### Invalid OSS Workflow
+
 ```json
 {
   "nodes": [
@@ -139,11 +153,13 @@ THEN WARN: "Social publishing and feed features are Cloud-only."
   ]
 }
 ```
+
 ❌ Contains Cloud-only nodes: `rssInput`, `tweetRemix`, `socialPublish`
 
 ## Response Templates
 
 ### When Cloud Feature Requested
+
 ```
 The feature you're requesting ({feature}) is available in Genfeed Cloud.
 
@@ -158,6 +174,7 @@ consider upgrading to Genfeed Cloud: https://genfeed.ai/cloud
 ```
 
 ### When Suggesting Alternatives
+
 ```
 Instead of {cloud_feature}, consider these OSS alternatives:
 
@@ -170,15 +187,19 @@ These achieve similar results within the OSS scope.
 ## Common Requests & Responses
 
 ### "Can I publish to YouTube?"
+
 **Response:** Social publishing is Cloud-only. In OSS, use the `output` node to export your video, then manually upload to YouTube.
 
 ### "Can I fetch RSS feeds?"
+
 **Response:** RSS/feed aggregation is Cloud-only. In OSS, use the `prompt` node with manually entered content, or the `template` node with predefined prompts.
 
 ### "Can I use FAL.ai models?"
+
 **Response:** FAL.ai is Cloud-only. OSS uses Replicate provider. Check if the model you need is available on Replicate.
 
 ### "Can I remix tweets?"
+
 **Response:** Tweet remix is Cloud-only. In OSS, use the `llm` node with a custom prompt to rewrite text in different tones.
 
 ## Integration
