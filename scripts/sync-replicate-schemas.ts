@@ -45,11 +45,19 @@ const MODELS_TO_SYNC = [
   { id: 'google/nano-banana', name: 'NanoBanana', category: 'image' },
   { id: 'google/nano-banana-pro', name: 'NanoBananaPro', category: 'image' },
   { id: 'prunaai/z-image-turbo', name: 'ZImageTurbo', category: 'image' },
+  { id: 'black-forest-labs/flux-schnell', name: 'FluxSchnell', category: 'image' },
+  { id: 'black-forest-labs/flux-dev', name: 'FluxDev', category: 'image' },
+  { id: 'black-forest-labs/flux-1.1-pro', name: 'Flux11Pro', category: 'image' },
+  { id: 'stability-ai/sdxl', name: 'SDXL', category: 'image' },
+  { id: 'bytedance/sdxl-lightning-4step', name: 'SDXLLightning', category: 'image' },
+
   // Video generation
   { id: 'google/veo-3.1-fast', name: 'Veo31Fast', category: 'video' },
   { id: 'google/veo-3.1', name: 'Veo31', category: 'video' },
   { id: 'kwaivgi/kling-v2.5-turbo-pro', name: 'KlingV25TurboPro', category: 'video' },
   { id: 'kwaivgi/kling-v2.6-motion-control', name: 'KlingV26MotionControl', category: 'video' },
+  { id: 'minimax/video-01', name: 'MinimaxVideo01', category: 'video' },
+  { id: 'luma/ray', name: 'LumaRay', category: 'video' },
 
   // LLM
   { id: 'meta/meta-llama-3.1-405b-instruct', name: 'MetaLlama31', category: 'llm' },
@@ -133,6 +141,7 @@ interface ModelSchema {
   name: string;
   category: string;
   description: string;
+  coverImageUrl?: string;
   inputSchema: JSONSchema;
   outputSchema: JSONSchema;
   fetchedAt: string;
@@ -445,6 +454,7 @@ async function main() {
         name: model.name,
         category: model.category,
         description: response.description ?? '',
+        coverImageUrl: response.cover_image_url ?? undefined,
         inputSchema,
         outputSchema,
         fetchedAt: new Date().toISOString(),

@@ -145,6 +145,14 @@ export class Workflow extends Document {
   @Prop({ default: false })
   isReusable: boolean;
 
+  // Thumbnail: URL of video/image to display as workflow preview
+  @Prop({ type: String, default: null })
+  thumbnail: string | null;
+
+  // Thumbnail node ID: which node's output is used as thumbnail
+  @Prop({ type: String, default: null })
+  thumbnailNodeId: string | null;
+
   createdAt: Date;
   updatedAt: Date;
 }

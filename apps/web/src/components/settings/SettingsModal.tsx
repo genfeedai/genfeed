@@ -1,6 +1,16 @@
 'use client';
 
-import { BookOpen, HelpCircle, MessageCircle, Settings, Twitter, X } from 'lucide-react';
+import {
+  AlertTriangle,
+  BookOpen,
+  Bug,
+  Code,
+  HelpCircle,
+  MessageCircle,
+  Settings,
+  Twitter,
+  X,
+} from 'lucide-react';
 import { memo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +27,7 @@ import { useUIStore } from '@/store/uiStore';
 // TYPES
 // =============================================================================
 
-type TabId = 'defaults' | 'api-keys' | 'appearance' | 'help';
+type TabId = 'defaults' | 'api-keys' | 'appearance' | 'developer' | 'help';
 
 interface Tab {
   id: TabId;
@@ -28,6 +38,7 @@ const TABS: Tab[] = [
   { id: 'defaults', label: 'Defaults' },
   { id: 'api-keys', label: 'API Keys' },
   { id: 'appearance', label: 'Appearance' },
+  { id: 'developer', label: 'Developer' },
   { id: 'help', label: 'Help' },
 ];
 
@@ -292,7 +303,7 @@ NEXT_PUBLIC_TTS_ENABLED=true`}
 // =============================================================================
 
 const EDGE_STYLES: { value: EdgeStyle; label: string; description: string }[] = [
-  { value: 'bezier', label: 'Curved', description: 'Smooth bezier curves' },
+  { value: 'default', label: 'Curved', description: 'Smooth bezier curves' },
   { value: 'smoothstep', label: 'Smooth Step', description: 'Right-angled with rounded corners' },
   { value: 'straight', label: 'Straight', description: 'Direct lines between nodes' },
 ];
@@ -349,15 +360,17 @@ function AppearanceTab() {
       </div>
 
       {/* Preview */}
-      <div className="rounded-lg border border-border bg-secondary/30 p-6">
-        <div className="flex items-center justify-center gap-8">
-          <div className="flex h-12 w-24 items-center justify-center rounded border border-border bg-background text-xs text-muted-foreground">
+      <div className="rounded-lg border border-border bg-secondary/30 p-4">
+        <div className="relative h-20 w-[232px] mx-auto">
+          {/* Node A - left side, lower */}
+          <div className="absolute left-0 bottom-2 flex h-8 w-16 items-center justify-center rounded border border-border bg-background text-xs text-muted-foreground">
             Node A
           </div>
-          <svg width="80" height="40" className="text-primary">
-            {edgeStyle === 'bezier' && (
+          {/* Edge SVG - connects the nodes (64px gap between 64px nodes = 104px) */}
+          <svg className="absolute left-16 top-0 text-primary" width="104" height="80">
+            {edgeStyle === 'default' && (
               <path
-                d="M 0 20 C 30 20, 50 20, 80 20"
+                d="M 0 56 C 35 56, 69 24, 104 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
@@ -365,20 +378,108 @@ function AppearanceTab() {
             )}
             {edgeStyle === 'smoothstep' && (
               <path
-                d="M 0 20 L 30 20 Q 40 20 40 30 L 40 30 Q 40 20 50 20 L 80 20"
+                d="M 0 56 L 42 56 Q 52 56 52 46 L 52 34 Q 52 24 62 24 L 104 24"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="2"
               />
             )}
             {edgeStyle === 'straight' && (
-              <path d="M 0 20 L 80 20" fill="none" stroke="currentColor" strokeWidth="2" />
+              <path d="M 0 56 L 104 24" fill="none" stroke="currentColor" strokeWidth="2" />
             )}
           </svg>
-          <div className="flex h-12 w-24 items-center justify-center rounded border border-border bg-background text-xs text-muted-foreground">
+          {/* Node B - right side, higher */}
+          <div className="absolute right-0 top-2 flex h-8 w-16 items-center justify-center rounded border border-border bg-background text-xs text-muted-foreground">
             Node B
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================================================================
+// DEVELOPER TAB
+// =============================================================================
+
+function DeveloperTab() {
+  const { debugMode, setDebugMode } = useSettingsStore();
+
+  return (
+    <div className="space-y-6">
+      <p className="text-sm text-muted-foreground">
+        Developer tools for debugging and testing workflows.
+      </p>
+
+      {/* Debug Mode Toggle */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <label className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Bug className="h-4 w-4" />
+              Debug Mode
+            </label>
+            <p className="text-xs text-muted-foreground mt-1">
+              Skip API calls and inspect payloads without paying for generations
+            </p>
+          </div>
+          <button
+            onClick={() => setDebugMode(!debugMode)}
+            className={`relative h-6 w-11 rounded-full transition-colors ${
+              debugMode ? 'bg-amber-500' : 'bg-border'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                debugMode ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {/* Warning when enabled */}
+        {debugMode && (
+          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-amber-600 dark:text-amber-400">
+                  Debug mode is active
+                </h4>
+                <p className="mt-1 text-sm text-amber-600/80 dark:text-amber-400/80">
+                  Use <strong>"Run Selected"</strong> to test nodes with mocked API calls. Full
+                  workflow execution ("Run Workflow") will still make real API calls.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Info about debug mode */}
+      <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-3">
+        <h4 className="font-medium text-foreground text-sm flex items-center gap-2">
+          <Code className="h-4 w-4" />
+          What debug mode does
+        </h4>
+        <ul className="text-xs text-muted-foreground space-y-2">
+          <li className="flex items-start gap-2">
+            <span className="text-primary mt-0.5">•</span>
+            <span>Skips actual Replicate API calls to avoid charges</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-primary mt-0.5">•</span>
+            <span>Returns placeholder images/videos with "DEBUG" watermark</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-primary mt-0.5">•</span>
+            <span>Opens debug panel showing exact payloads that would be sent</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-primary mt-0.5">•</span>
+            <span>Works with "Run Selected" for testing individual nodes</span>
+          </li>
+        </ul>
       </div>
     </div>
   );
@@ -486,7 +587,7 @@ function SettingsModalComponent() {
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 z-50 bg-black/50" onClick={closeModal} />
+      <div className="fixed inset-0 z-50 bg-black/70" onClick={closeModal} />
 
       {/* Modal */}
       <div className="fixed left-1/2 top-1/2 z-50 flex max-h-[90vh] w-[calc(100%-2rem)] max-w-[600px] -translate-x-1/2 -translate-y-1/2 flex-col overflow-hidden rounded-lg bg-card shadow-xl">
@@ -526,6 +627,7 @@ function SettingsModalComponent() {
           {activeTab === 'defaults' && <DefaultsTab />}
           {activeTab === 'api-keys' && <ApiKeysTab />}
           {activeTab === 'appearance' && <AppearanceTab />}
+          {activeTab === 'developer' && <DeveloperTab />}
           {activeTab === 'help' && <HelpTab />}
         </div>
       </div>

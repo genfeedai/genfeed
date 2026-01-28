@@ -5,4 +5,4 @@
  */
 
 export { useExecutionStore } from './executionStore';
-export type { ExecutionStore, Job } from './types';
+export type { DebugPayload, ExecutionStore, Job } from './types';

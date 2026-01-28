@@ -1,7 +1,7 @@
 import type { NodeGroup } from './groups';
 import type { WorkflowEdge, WorkflowNode } from './nodes';
 
-export type EdgeStyle = 'bezier' | 'smoothstep' | 'straight';
+export type EdgeStyle = 'default' | 'smoothstep' | 'straight';
 
 export interface WorkflowFile {
   version: number;

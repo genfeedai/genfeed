@@ -61,7 +61,7 @@ function ImageInputNodeComponent(props: NodeProps) {
             dimensions,
             source: 'upload',
           });
-        } catch (error) {
+        } catch (_error) {
           // Fallback to Base64 if upload fails
           const reader = new FileReader();
           reader.onload = async (event) => {
@@ -209,13 +209,13 @@ function ImageInputNodeComponent(props: NodeProps) {
 
       {/* Image Preview or Empty State */}
       {nodeData.image ? (
-        <div className="relative max-h-32 overflow-hidden rounded-md bg-black/20">
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-black/20">
           <Image
             src={nodeData.image}
             alt={nodeData.filename || 'Image'}
-            width={200}
-            height={128}
-            className="w-full h-auto max-h-32 object-contain cursor-pointer"
+            fill
+            sizes="300px"
+            className="object-contain cursor-pointer"
             unoptimized
           />
           <Button

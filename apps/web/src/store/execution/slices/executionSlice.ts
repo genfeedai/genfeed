@@ -2,11 +2,13 @@ import { NODE_STATUS } from '@genfeedai/types';
 import type { StateCreator } from 'zustand';
 import { apiClient } from '@/lib/api/client';
 import { logger } from '@/lib/logger';
+import { useSettingsStore } from '@/store/settingsStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { getOutputUpdate } from '../helpers/outputHelpers';
 import { pollPrediction } from '../helpers/pollPrediction';
 import { createExecutionSubscription } from '../helpers/sseSubscription';
-import type { ExecutionData, ExecutionStore } from '../types';
+import type { DebugPayload, ExecutionData, ExecutionStore } from '../types';
 
 export interface ExecutionSlice {
   executeWorkflow: () => Promise<void>;
@@ -29,6 +31,7 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
     if (isRunning) return;
 
     const workflowStore = useWorkflowStore.getState();
+    const debugMode = useSettingsStore.getState().debugMode;
 
     const validation = workflowStore.validateWorkflow();
     if (!validation.isValid) {
@@ -38,6 +41,11 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
 
     set({ validationErrors: null });
     resetExecution();
+
+    // Open debug panel if debug mode is active
+    if (debugMode) {
+      useUIStore.getState().setShowDebugPanel(true);
+    }
 
     if (workflowStore.isDirty || !workflowStore.workflowId) {
       try {
@@ -80,7 +88,9 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
     }
 
     try {
-      const execution = await apiClient.post<ExecutionData>(`/workflows/${workflowId}/execute`);
+      const execution = await apiClient.post<ExecutionData>(`/workflows/${workflowId}/execute`, {
+        debugMode,
+      });
       const executionId = execution._id;
 
       set({ executionId });
@@ -110,15 +120,51 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
     const node = workflowStore.getNodeById(nodeId);
     if (!node) return;
 
-    set({ currentNodeId: nodeId });
+    const debugMode = useSettingsStore.getState().debugMode;
+
+    set({ isRunning: true, currentNodeId: nodeId });
     workflowStore.updateNodeData(nodeId, { status: NODE_STATUS.processing });
+
+    // Open debug panel if debug mode is active
+    if (debugMode) {
+      useUIStore.getState().setShowDebugPanel(true);
+    }
 
     try {
       const inputs = workflowStore.getConnectedInputs(nodeId);
       const inputsObj = Object.fromEntries(inputs);
 
+      // Map handle IDs to DTO field names
+      // e.g., 'images' handle -> 'inputImages' DTO field
+      const handleToFieldMap: Record<string, string> = {
+        images: 'inputImages',
+        image: 'image',
+        video: 'video',
+        prompt: 'prompt',
+        audio: 'audio',
+      };
+
+      // Fields that should always be arrays
+      const arrayFields = new Set(['inputImages', 'images']);
+
+      const mappedInputs: Record<string, unknown> = {};
+      for (const [handleId, value] of Object.entries(inputsObj)) {
+        const fieldName = handleToFieldMap[handleId] ?? handleId;
+        // Ensure array fields are always arrays
+        if (arrayFields.has(fieldName) && !Array.isArray(value)) {
+          mappedInputs[fieldName] = [value];
+        } else {
+          mappedInputs[fieldName] = value;
+        }
+      }
+
       const nodeType = node.type;
-      let result: { predictionId?: string; output?: unknown; status?: string };
+      let result: {
+        predictionId?: string;
+        output?: unknown;
+        status?: string;
+        debugPayload?: { model: string; input: Record<string, unknown>; timestamp: string };
+      };
 
       if (['imageGen', 'videoGen', 'llm'].includes(nodeType)) {
         const endpoint =
@@ -126,7 +172,8 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
         result = await apiClient.post(`/replicate/${endpoint}`, {
           nodeId,
           ...node.data,
-          ...inputsObj,
+          ...mappedInputs,
+          debugMode,
         });
       } else if (
         ['reframe', 'upscale', 'lipSync', 'voiceChange', 'textToSpeech'].includes(nodeType)
@@ -135,11 +182,40 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
           nodeId,
           nodeType,
           ...node.data,
-          ...inputsObj,
+          ...mappedInputs,
         });
       } else {
         workflowStore.updateNodeData(nodeId, { status: NODE_STATUS.complete });
-        set({ currentNodeId: null });
+        workflowStore.propagateOutputsDownstream(nodeId);
+        set({ isRunning: false, currentNodeId: null });
+        return;
+      }
+
+      // Handle debug payload
+      if (result.debugPayload) {
+        const debugPayload: DebugPayload = {
+          nodeId,
+          nodeName: node.data.label || node.data.name || nodeId,
+          nodeType: nodeType || 'unknown',
+          model: result.debugPayload.model,
+          input: result.debugPayload.input,
+          timestamp: result.debugPayload.timestamp,
+        };
+        get().addDebugPayload(debugPayload);
+
+        // In debug mode, immediately complete with mock output
+        if (result.output) {
+          const outputUpdate = getOutputUpdate(
+            nodeId,
+            result.output as Record<string, unknown>,
+            workflowStore
+          );
+          workflowStore.updateNodeData(nodeId, { status: NODE_STATUS.complete, ...outputUpdate });
+          workflowStore.propagateOutputsDownstream(nodeId);
+        } else {
+          workflowStore.updateNodeData(nodeId, { status: NODE_STATUS.complete });
+        }
+        set({ isRunning: false, currentNodeId: null });
         return;
       }
 
@@ -153,6 +229,7 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
           workflowStore
         );
         workflowStore.updateNodeData(nodeId, { status: NODE_STATUS.complete, ...outputUpdate });
+        workflowStore.propagateOutputsDownstream(nodeId);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -162,7 +239,7 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
       });
       logger.error(`Error executing node ${nodeId}`, error, { context: 'ExecutionStore' });
     } finally {
-      set({ currentNodeId: null });
+      set({ isRunning: false, currentNodeId: null });
     }
   },
 
@@ -171,6 +248,7 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
     if (isRunning) return;
 
     const workflowStore = useWorkflowStore.getState();
+    const debugMode = useSettingsStore.getState().debugMode;
     const { selectedNodeIds } = workflowStore;
 
     if (selectedNodeIds.length === 0) {
@@ -219,6 +297,11 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
 
     set({ isRunning: true });
 
+    // Open debug panel if debug mode is active
+    if (debugMode) {
+      useUIStore.getState().setShowDebugPanel(true);
+    }
+
     for (const nodeId of selectedNodeIds) {
       workflowStore.updateNodeData(nodeId, {
         status: NODE_STATUS.idle,
@@ -228,7 +311,9 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
     }
 
     try {
-      const execution = await apiClient.post<ExecutionData>(`/workflows/${workflowId}/execute`);
+      const execution = await apiClient.post<ExecutionData>(`/workflows/${workflowId}/execute`, {
+        debugMode,
+      });
       const executionId = execution._id;
 
       set({ executionId });
@@ -258,6 +343,7 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
     if (isRunning || !executionId || !lastFailedNodeId) return;
 
     const workflowStore = useWorkflowStore.getState();
+    const debugMode = useSettingsStore.getState().debugMode;
     const workflowId = workflowStore.workflowId;
 
     if (!workflowId) {
@@ -273,6 +359,11 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
 
     set({ isRunning: true, validationErrors: null });
 
+    // Open debug panel if debug mode is active
+    if (debugMode) {
+      useUIStore.getState().setShowDebugPanel(true);
+    }
+
     workflowStore.updateNodeData(lastFailedNodeId, {
       status: NODE_STATUS.idle,
       error: undefined,
@@ -280,7 +371,9 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
     });
 
     try {
-      const execution = await apiClient.post<ExecutionData>(`/workflows/${workflowId}/execute`);
+      const execution = await apiClient.post<ExecutionData>(`/workflows/${workflowId}/execute`, {
+        debugMode,
+      });
       const newExecutionId = execution._id;
 
       set({ executionId: newExecutionId, lastFailedNodeId: null });
@@ -337,12 +430,14 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
     }
 
     set({
+      isRunning: false,
       jobs: new Map(),
       executionId: null,
       currentNodeId: null,
       eventSource: null,
       actualCost: 0,
       lastFailedNodeId: null,
+      debugPayloads: [],
     });
 
     const workflowStore = useWorkflowStore.getState();

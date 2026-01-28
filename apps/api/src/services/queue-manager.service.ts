@@ -15,6 +15,7 @@ import {
 } from '@/queue/queue.constants';
 import { QueueJob, type QueueJobDocument } from '@/schemas/queue-job.schema';
 import type { ExecutionsService, WorkflowDefinition } from '@/services/executions.service';
+import type { WorkflowsService } from '@/services/workflows.service';
 
 @Injectable()
 export class QueueManagerService {
@@ -33,7 +34,9 @@ export class QueueManagerService {
     @InjectModel(QueueJob.name)
     private readonly queueJobModel: Model<QueueJobDocument>,
     @Inject(forwardRef(() => 'ExecutionsService'))
-    private readonly executionsService: ExecutionsService
+    private readonly executionsService: ExecutionsService,
+    @Inject(forwardRef(() => 'WorkflowsService'))
+    private readonly workflowsService: WorkflowsService
   ) {
     this.queues = new Map([
       [QUEUE_NAMES.WORKFLOW_ORCHESTRATOR, this.workflowQueue],
@@ -46,11 +49,16 @@ export class QueueManagerService {
   /**
    * Enqueue a workflow for async execution
    */
-  async enqueueWorkflow(executionId: string, workflowId: string): Promise<string> {
+  async enqueueWorkflow(
+    executionId: string,
+    workflowId: string,
+    options?: { debugMode?: boolean }
+  ): Promise<string> {
     const jobData: WorkflowJobData = {
       executionId,
       workflowId,
       timestamp: new Date().toISOString(),
+      debugMode: options?.debugMode ?? false,
     };
 
     const job = await this.workflowQueue.add(JOB_TYPES.EXECUTE_WORKFLOW, jobData, {
@@ -76,6 +84,7 @@ export class QueueManagerService {
   /**
    * Enqueue a single node for processing
    * @param workflow - Optional workflow definition for input resolution. If provided, node inputs will be resolved from connected upstream nodes.
+   * @param options - Optional configuration including debugMode
    */
   async enqueueNode(
     executionId: string,
@@ -84,7 +93,8 @@ export class QueueManagerService {
     nodeType: string,
     nodeData: Record<string, unknown>,
     dependsOn?: string[],
-    workflow?: WorkflowDefinition
+    workflow?: WorkflowDefinition,
+    options?: { debugMode?: boolean }
   ): Promise<string> {
     const queueName = this.getQueueForNodeType(nodeType);
     const queue = this.queues.get(queueName);
@@ -115,6 +125,7 @@ export class QueueManagerService {
       nodeData: resolvedNodeData,
       dependsOn,
       timestamp: new Date().toISOString(),
+      debugMode: options?.debugMode ?? false,
     };
 
     const job = await queue.add(this.getJobTypeForNodeType(nodeType), jobData, {
@@ -256,6 +267,15 @@ export class QueueManagerService {
   }
 
   /**
+   * Send a heartbeat for a job to prevent it from being marked as stalled
+   * during long-running polling operations
+   */
+  async heartbeatJob(bullJobId: string): Promise<void> {
+    await this.queueJobModel.updateOne({ bullJobId }, { $set: { lastHeartbeat: new Date() } });
+    this.logger.debug(`Heartbeat sent for job ${bullJobId}`);
+  }
+
+  /**
    * Move a job to dead letter queue
    */
   async moveToDeadLetterQueue(
@@ -349,7 +369,7 @@ export class QueueManagerService {
   /**
    * Continue sequential execution by enqueueing the next ready node
    * Called after a node completes (via webhook) or fails (after all retries)
-   * @param workflow - Optional workflow definition for input resolution
+   * @param workflow - Optional workflow definition for input resolution. If not provided, will be fetched.
    */
   async continueExecution(
     executionId: string,
@@ -371,6 +391,29 @@ export class QueueManagerService {
       return;
     }
 
+    // Get debugMode from execution record
+    const execution = await this.executionsService.findExecution(executionId);
+    const debugMode = (execution as unknown as { debugMode?: boolean }).debugMode ?? false;
+
+    // Fetch workflow if not provided (needed for input resolution)
+    let workflowDef = workflow;
+    if (!workflowDef) {
+      const fetchedWorkflow = await this.workflowsService.findOne(workflowId);
+      workflowDef = {
+        nodes: fetchedWorkflow.nodes as Array<{
+          id: string;
+          type: string;
+          data: Record<string, unknown>;
+        }>,
+        edges: fetchedWorkflow.edges as Array<{
+          source: string;
+          target: string;
+          sourceHandle?: string;
+          targetHandle?: string;
+        }>,
+      };
+    }
+
     // Enqueue only the first ready node (sequential execution)
     const nextNode = readyNodes[0];
     await this.enqueueNode(
@@ -380,7 +423,8 @@ export class QueueManagerService {
       nextNode.nodeType,
       nextNode.nodeData,
       nextNode.dependsOn,
-      workflow
+      workflowDef,
+      { debugMode }
     );
     await this.executionsService.removeFromPendingNodes(executionId, nextNode.nodeId);
 

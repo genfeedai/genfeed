@@ -67,7 +67,7 @@ function VideoInputNodeComponent(props: NodeProps) {
             dimensions: metadata.dimensions,
             source: 'upload',
           });
-        } catch (error) {
+        } catch (_error) {
           // Fallback to Base64 if upload fails
           const reader = new FileReader();
           reader.onload = async (event) => {

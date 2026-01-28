@@ -223,7 +223,7 @@ export const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowFile = {
       source: 'imagegen-1',
       target: 'output-thumbnails',
       sourceHandle: 'image',
-      targetHandle: 'media',
+      targetHandle: 'image',
     },
     // Topic → LLM → Output
     {

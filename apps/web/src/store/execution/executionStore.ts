@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { createExecutionSlice } from './slices/executionSlice';
 import { createJobSlice } from './slices/jobSlice';
-import type { ExecutionStore } from './types';
+import type { DebugPayload, ExecutionStore } from './types';
 
 /**
  * Execution Store
@@ -12,22 +12,38 @@ import type { ExecutionStore } from './types';
  * - executionSlice: Core execution operations (run, stop, resume)
  * - jobSlice: Job tracking and management
  */
-export const useExecutionStore = create<ExecutionStore>()((...args) => ({
-  // Initial state
-  isRunning: false,
-  executionId: null,
-  currentNodeId: null,
-  validationErrors: null,
-  eventSource: null,
-  lastFailedNodeId: null,
-  jobs: new Map(),
-  estimatedCost: 0,
-  actualCost: 0,
+export const useExecutionStore = create<ExecutionStore>()((...args) => {
+  const [set] = args;
 
-  // Compose slices
-  ...createJobSlice(...args),
-  ...createExecutionSlice(...args),
-}));
+  return {
+    // Initial state
+    isRunning: false,
+    executionId: null,
+    currentNodeId: null,
+    validationErrors: null,
+    eventSource: null,
+    lastFailedNodeId: null,
+    jobs: new Map(),
+    estimatedCost: 0,
+    actualCost: 0,
+    debugPayloads: [],
+
+    // Debug payload actions
+    addDebugPayload: (payload: DebugPayload) => {
+      set((state) => ({
+        debugPayloads: [...state.debugPayloads, payload],
+      }));
+    },
+
+    clearDebugPayloads: () => {
+      set({ debugPayloads: [] });
+    },
+
+    // Compose slices
+    ...createJobSlice(...args),
+    ...createExecutionSlice(...args),
+  };
+});
 
 // Re-export types for convenience
 export type { ExecutionStore, Job } from './types';

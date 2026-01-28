@@ -1406,7 +1406,7 @@ export const SYSTEM_TEMPLATES = [
       'Generate 4 mood-consistent images from reference images and a base prompt. The LLM creates variations while maintaining the overall aesthetic.',
     category: 'images',
     version: 1,
-    edgeStyle: 'bezier',
+    edgeStyle: 'default',
     nodes: [
       {
         id: 'node_1',

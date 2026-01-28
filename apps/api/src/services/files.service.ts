@@ -1,8 +1,8 @@
+import { createHash } from 'node:crypto';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createHash } from 'crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
 
 /**
  * Supported file types
@@ -39,8 +39,10 @@ export class FilesService {
   private readonly baseUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    // Data stored relative to project root in data/workflows/
-    this.dataPath = join(process.cwd(), 'data', 'workflows');
+    // Data stored at monorepo root: /data/workflows/
+    // __dirname is apps/api/dist (webpack bundle), go up 3 levels to reach root
+    const rootPath = join(__dirname, '..', '..', '..');
+    this.dataPath = join(rootPath, 'data', 'workflows');
     this.baseUrl = this.configService.get<string>('API_BASE_URL', 'http://localhost:3001');
 
     // Base directory will be created on first use per workflow
@@ -87,21 +89,22 @@ export class FilesService {
   /**
    * Save workflow output file from generation
    * Files are stored in /data/workflows/{workflowId}/output/
+   * @param predictionId - Optional Replicate prediction ID to use as filename (for tracking)
    */
   async saveWorkflowOutput(
     workflowId: string,
     nodeId: string,
     buffer: Buffer,
-    mimeType: string
+    mimeType: string,
+    predictionId?: string
   ): Promise<FileUploadResult> {
     // Create workflow-specific output directory
     const outputDir = join(this.dataPath, workflowId, 'output');
     this.ensureDirectoryExists(outputDir);
 
-    // Generate filename: {nodeId}-{timestamp}.{ext}
-    const timestamp = Date.now();
+    // Generate filename: use predictionId if provided (for Replicate tracking), otherwise nodeId-timestamp
     const ext = this.getExtensionFromMimeType(mimeType);
-    const filename = `${nodeId}-${timestamp}${ext}`;
+    const filename = predictionId ? `${predictionId}${ext}` : `${nodeId}-${Date.now()}${ext}`;
 
     // Write file to disk
     const filePath = join(outputDir, filename);
@@ -124,11 +127,13 @@ export class FilesService {
   /**
    * Download file from URL and save as workflow output
    * Used to persist generated files from Replicate
+   * @param predictionId - Optional Replicate prediction ID to use as filename (for tracking against dashboard)
    */
   async downloadAndSaveOutput(
     workflowId: string,
     nodeId: string,
-    remoteUrl: string
+    remoteUrl: string,
+    predictionId?: string
   ): Promise<FileUploadResult> {
     // Fetch the file from remote URL
     const response = await fetch(remoteUrl);
@@ -139,7 +144,7 @@ export class FilesService {
     const buffer = Buffer.from(await response.arrayBuffer());
     const contentType = response.headers.get('content-type') || 'application/octet-stream';
 
-    return this.saveWorkflowOutput(workflowId, nodeId, buffer, contentType);
+    return this.saveWorkflowOutput(workflowId, nodeId, buffer, contentType, predictionId);
   }
 
   /**
@@ -178,14 +183,20 @@ export class FilesService {
    * Returns the original URL if it's not a local file or doesn't exist
    */
   urlToBase64(url: string): string {
-    // Check if this is a local API file URL (new format)
+    // Already base64? Return as-is
+    if (url.startsWith('data:')) {
+      return url;
+    }
+
+    // Check if this is a local API file URL
     if (!url.includes('/api/files/workflows/')) {
-      return url; // External URL, return as-is
+      this.logger.debug(`Not a local file URL, returning as-is: ${url.substring(0, 100)}...`);
+      return url;
     }
 
     // Extract workflowId and filename from URL
-    // URL format: http://localhost:3001/api/files/workflows/{workflowId}/input/{filename}
-    const match = url.match(/\/api\/files\/workflows\/([^/]+)\/input\/([^/]+)$/);
+    // Format: http://localhost:3001/api/files/workflows/{workflowId}/input/{filename}
+    const match = url.match(/\/api\/files\/workflows\/([^/]+)\/input\/([^/?#]+)/);
     if (!match) {
       this.logger.warn(`Could not parse local file URL: ${url}`);
       return url;
@@ -193,6 +204,8 @@ export class FilesService {
 
     const [, workflowId, filename] = match;
     const filePath = this.getInputFilePath(workflowId, filename);
+
+    this.logger.debug(`Converting to base64: workflowId=${workflowId}, filename=${filename}`);
 
     if (!this.fileExists(filePath)) {
       this.logger.warn(`Local file not found: ${filePath}`);
@@ -204,7 +217,7 @@ export class FilesService {
     const mimeType = this.getMimeTypeFromFilename(filename);
     const base64 = buffer.toString('base64');
 
-    this.logger.debug(`Converted ${filename} to base64 (${Math.round(base64.length / 1024)}KB)`);
+    this.logger.log(`Converted ${filename} to base64 (${Math.round(base64.length / 1024)}KB)`);
 
     return `data:${mimeType};base64,${base64}`;
   }

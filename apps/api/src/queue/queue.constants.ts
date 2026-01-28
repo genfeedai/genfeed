@@ -59,13 +59,15 @@ export const DEFAULT_JOB_OPTIONS = {
   },
   [QUEUE_NAMES.IMAGE_GENERATION]: {
     attempts: 3,
-    backoff: { type: 'fixed' as const, delay: 1000 },
+    // Exponential backoff starting at 10s to respect Replicate rate limits (429 retry_after ~6-8s)
+    backoff: { type: 'exponential' as const, delay: 10000 },
     removeOnComplete: { age: 3600, count: 1000 },
     removeOnFail: { age: 86400, count: 5000 },
   },
   [QUEUE_NAMES.VIDEO_GENERATION]: {
     attempts: 3,
-    backoff: { type: 'exponential' as const, delay: 3000 },
+    // Exponential backoff starting at 10s to respect Replicate rate limits
+    backoff: { type: 'exponential' as const, delay: 10000 },
     removeOnComplete: { age: 3600, count: 500 },
     removeOnFail: { age: 86400, count: 2000 },
   },
@@ -171,7 +173,21 @@ export type NodeResultStatus = (typeof NODE_RESULT_STATUS)[keyof typeof NODE_RES
 /**
  * Node types that are passthrough (no processing needed)
  * These are marked as complete immediately without enqueueing
+ * Includes all input nodes, output nodes, and composition nodes that don't need processing
  */
-export const PASSTHROUGH_NODE_TYPES = ['workflowInput', 'workflowOutput', 'input'] as const;
+export const PASSTHROUGH_NODE_TYPES = [
+  // Composition nodes
+  'workflowInput',
+  'workflowOutput',
+  // Basic input nodes
+  'input',
+  'prompt',
+  'imageInput',
+  'videoInput',
+  'audioInput',
+  'template',
+  // Output node
+  'output',
+] as const;
 
 export type PassthroughNodeType = (typeof PASSTHROUGH_NODE_TYPES)[number];

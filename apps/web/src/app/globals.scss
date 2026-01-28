@@ -44,12 +44,15 @@
   --sidebar-border: oklch(0.22 0 0);
   --sidebar-ring: oklch(0.7 0.18 175);
 
-  // Handle type colors
+  // Handle type colors (inputs)
   --handle-image: oklch(0.75 0.18 75);
   --handle-video: oklch(0.65 0.2 285);
   --handle-text: oklch(0.7 0.17 160);
   --handle-number: oklch(0.65 0.2 250);
   --handle-audio: oklch(0.7 0.2 330);
+
+  // Output handle color (cyan)
+  --handle-output: oklch(0.7 0.2 200);
 
   // Node category colors (for borders and buttons)
   --category-input: oklch(0.7 0.15 160);
@@ -160,6 +163,34 @@
     transition: opacity 0.2s ease, stroke 0.2s ease, filter 0.2s ease;
   }
 
+  // Executing edges (during workflow execution) - pipe flow effect
+  &__edge.executing .react-flow__edge-path {
+    stroke: var(--chart-2);
+    stroke-width: 2.5px;
+    filter: drop-shadow(0 0 8px var(--chart-2));
+    stroke-dasharray: 8 4;
+    animation: edge-flow 0.5s linear infinite;
+  }
+
+  // Active pipe - all edges glow during execution
+  &__edge.active-pipe .react-flow__edge-path {
+    stroke: var(--primary);
+    stroke-width: 2px;
+    filter: drop-shadow(0 0 4px var(--primary));
+    stroke-dasharray: 6 3;
+    animation: edge-flow 0.8s linear infinite;
+    opacity: 0.8;
+  }
+
+  // Disabled edges - targeting inputs not supported by current model
+  &__edge.edge-disabled .react-flow__edge-path {
+    stroke: var(--chart-3);
+    stroke-width: 1.5px;
+    stroke-dasharray: 5 5;
+    opacity: 0.3;
+    transition: opacity 0.2s ease, stroke 0.2s ease;
+  }
+
   &__background {
     background-color: var(--background);
   }
@@ -220,6 +251,7 @@
 .handle-text { background: var(--handle-text) !important; }
 .handle-number { background: var(--handle-number) !important; }
 .handle-audio { background: var(--handle-audio) !important; }
+.handle-output { background: var(--handle-output) !important; }
 
 // Processing node glow animation
 @keyframes processing-glow {
@@ -233,4 +265,14 @@
 
 .node-processing {
   animation: processing-glow 1.5s ease-in-out infinite;
+}
+
+// Edge flow animation - simulates data flowing through pipes
+@keyframes edge-flow {
+  0% {
+    stroke-dashoffset: 24;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
 }

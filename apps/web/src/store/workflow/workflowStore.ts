@@ -24,7 +24,7 @@ export const useWorkflowStore = create<WorkflowStore>()((...args) => ({
   // Initial state
   nodes: [],
   edges: [],
-  edgeStyle: 'bezier',
+  edgeStyle: 'default',
   workflowName: 'Untitled Workflow',
   workflowId: null,
   isDirty: false,

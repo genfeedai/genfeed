@@ -1,4 +1,6 @@
 import type { ModelCapability, ProviderModel, ProviderType } from '@genfeedai/types';
+// Import the cached schemas (includes cover images from Replicate API)
+import replicateSchemas from '@genfeedai/types/replicate/schemas.json';
 import { type NextRequest, NextResponse } from 'next/server';
 
 // Helper to check which providers have env credentials
@@ -18,99 +20,117 @@ function getConfiguredProviders(): Set<ProviderType> {
   return configured;
 }
 
-// Available models catalog
-const MODELS_CATALOG: ProviderModel[] = [
-  // Image generation models
-  {
-    id: 'google/nano-banana',
-    displayName: 'Nano Banana',
-    provider: 'replicate',
+// Model metadata (capabilities and pricing not in schema)
+const MODEL_METADATA: Record<
+  string,
+  { capabilities: ModelCapability[]; pricing: string; displayName?: string }
+> = {
+  // Image models
+  'google/nano-banana': {
     capabilities: ['text-to-image'],
-    description: 'Fast image generation model by Google',
     pricing: '$0.039/image',
+    displayName: 'Nano Banana',
   },
-  {
-    id: 'google/nano-banana-pro',
-    displayName: 'Nano Banana Pro',
-    provider: 'replicate',
+  'google/nano-banana-pro': {
     capabilities: ['text-to-image', 'image-to-image'],
-    description: 'High-quality image generation with resolution control',
     pricing: '$0.15-0.30/image',
+    displayName: 'Nano Banana Pro',
   },
-  {
-    id: 'black-forest-labs/flux-schnell',
-    displayName: 'FLUX Schnell',
-    provider: 'replicate',
+  'prunaai/z-image-turbo': {
     capabilities: ['text-to-image'],
-    description: 'Fast text-to-image model from Black Forest Labs',
+    pricing: '$0.002/image',
+    displayName: 'Z-Image Turbo',
+  },
+  'black-forest-labs/flux-schnell': {
+    capabilities: ['text-to-image'],
     pricing: '$0.003/image',
+    displayName: 'FLUX Schnell',
   },
-  {
-    id: 'black-forest-labs/flux-dev',
-    displayName: 'FLUX Dev',
-    provider: 'replicate',
+  'black-forest-labs/flux-dev': {
     capabilities: ['text-to-image'],
-    description: 'High-quality text-to-image for development',
     pricing: '$0.025/image',
+    displayName: 'FLUX Dev',
   },
-  {
-    id: 'black-forest-labs/flux-1.1-pro',
-    displayName: 'FLUX 1.1 Pro',
-    provider: 'replicate',
+  'black-forest-labs/flux-1.1-pro': {
     capabilities: ['text-to-image'],
-    description: 'Professional-grade image generation',
     pricing: '$0.04/image',
+    displayName: 'FLUX 1.1 Pro',
   },
-  {
-    id: 'stability-ai/sdxl',
-    displayName: 'Stable Diffusion XL',
-    provider: 'replicate',
+  'stability-ai/sdxl': {
     capabilities: ['text-to-image', 'image-to-image'],
-    description: 'High-resolution image synthesis',
     pricing: '$0.0023/image',
+    displayName: 'Stable Diffusion XL',
   },
-  {
-    id: 'bytedance/sdxl-lightning-4step',
-    displayName: 'SDXL Lightning',
-    provider: 'replicate',
+  'bytedance/sdxl-lightning-4step': {
     capabilities: ['text-to-image'],
-    description: 'Ultra-fast SDXL variant in 4 steps',
     pricing: '$0.0015/image',
+    displayName: 'SDXL Lightning',
   },
-  // Video generation models
-  {
-    id: 'google/veo-3.1-fast',
-    displayName: 'Veo 3.1 Fast',
-    provider: 'replicate',
+  // Video models
+  'google/veo-3.1-fast': {
     capabilities: ['text-to-video', 'image-to-video'],
-    description: 'Fast video generation with optional audio',
     pricing: '$0.10-0.15/sec',
+    displayName: 'Veo 3.1 Fast',
   },
-  {
-    id: 'google/veo-3.1',
-    displayName: 'Veo 3.1',
-    provider: 'replicate',
+  'google/veo-3.1': {
     capabilities: ['text-to-video', 'image-to-video'],
-    description: 'High-quality video generation with audio',
     pricing: '$0.20-0.40/sec',
+    displayName: 'Veo 3.1',
   },
-  {
-    id: 'minimax/video-01',
-    displayName: 'MiniMax Video-01',
-    provider: 'replicate',
+  'kwaivgi/kling-v2.5-turbo-pro': {
     capabilities: ['text-to-video', 'image-to-video'],
-    description: 'High-quality video from text or images',
-    pricing: '$0.20/sec',
-  },
-  {
-    id: 'luma/ray',
-    displayName: 'Luma Ray',
-    provider: 'replicate',
-    capabilities: ['text-to-video', 'image-to-video'],
-    description: 'Cinematic video generation',
     pricing: '$0.15/sec',
+    displayName: 'Kling v2.5 Turbo Pro',
   },
-  // fal.ai models
+  'kwaivgi/kling-v2.6-motion-control': {
+    capabilities: ['image-to-video'],
+    pricing: '$0.20/sec',
+    displayName: 'Kling v2.6 Motion Control',
+  },
+  'minimax/video-01': {
+    capabilities: ['text-to-video', 'image-to-video'],
+    pricing: '$0.20/sec',
+    displayName: 'MiniMax Video-01',
+  },
+  'luma/ray': {
+    capabilities: ['text-to-video', 'image-to-video'],
+    pricing: '$0.15/sec',
+    displayName: 'Luma Ray',
+  },
+  // Lip-sync
+  'sync/lipsync-2': {
+    capabilities: ['image-to-video'],
+    pricing: '$0.05/sec',
+    displayName: 'Lipsync 2',
+  },
+  'sync/lipsync-2-pro': {
+    capabilities: ['image-to-video'],
+    pricing: '$0.10/sec',
+    displayName: 'Lipsync 2 Pro',
+  },
+};
+
+// Build Replicate models from cached schemas
+function getReplicateModels(): ProviderModel[] {
+  return replicateSchemas
+    .filter((schema) => MODEL_METADATA[schema.modelId])
+    .map((schema) => {
+      const meta = MODEL_METADATA[schema.modelId];
+      return {
+        id: schema.modelId,
+        displayName: meta.displayName || schema.name,
+        provider: 'replicate' as ProviderType,
+        capabilities: meta.capabilities,
+        description: schema.description?.slice(0, 100) || '',
+        pricing: meta.pricing,
+        thumbnail: (schema as { coverImageUrl?: string }).coverImageUrl || undefined,
+        inputSchema: schema.inputSchema as Record<string, unknown> | undefined,
+      };
+    });
+}
+
+// fal.ai models (static - they don't have a public model listing API)
+const FAL_MODELS: ProviderModel[] = [
   {
     id: 'fal-ai/flux/schnell',
     displayName: 'FLUX Schnell',
@@ -153,8 +173,21 @@ export async function GET(request: NextRequest) {
   const configuredProviders = getConfiguredProviders();
   const configuredProvidersList = Array.from(configuredProviders) as ProviderType[];
 
-  // Filter models to only those from configured providers
-  let filteredModels = MODELS_CATALOG.filter((m) => configuredProviders.has(m.provider));
+  // Build models list from configured providers
+  const allModels: ProviderModel[] = [];
+
+  // Add Replicate models from cached schemas (includes cover images)
+  if (configuredProviders.has('replicate')) {
+    allModels.push(...getReplicateModels());
+  }
+
+  // Add fal.ai models if configured
+  if (configuredProviders.has('fal')) {
+    allModels.push(...FAL_MODELS);
+  }
+
+  // Filter to only configured providers
+  let filteredModels = allModels.filter((m) => configuredProviders.has(m.provider));
 
   // Filter by specific provider (if requested and configured)
   if (provider && configuredProviders.has(provider)) {

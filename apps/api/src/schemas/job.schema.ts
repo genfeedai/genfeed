@@ -29,6 +29,9 @@ export class Job extends Document {
   @Prop({ type: Object })
   output?: Record<string, unknown>;
 
+  @Prop({ type: Object })
+  result?: Record<string, unknown>;
+
   @Prop()
   error?: string;
 

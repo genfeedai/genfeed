@@ -7,6 +7,8 @@ export interface BaseJobData {
   executionId: string;
   workflowId: string;
   timestamp: string;
+  /** Debug mode - skip API calls and return mock data */
+  debugMode?: boolean;
 }
 
 /**
@@ -27,17 +29,30 @@ export interface NodeJobData extends BaseJobData {
 }
 
 /**
+ * Selected model info from frontend
+ */
+export interface SelectedModelInfo {
+  provider: string;
+  modelId: string;
+  displayName?: string;
+  inputSchema?: Record<string, unknown>;
+}
+
+/**
  * Image generation job data
  */
 export interface ImageJobData extends NodeJobData {
   nodeType: 'imageGen';
   nodeData: {
     model: 'nano-banana' | 'nano-banana-pro';
-    prompt: string;
+    prompt?: string; // Legacy direct prompt field
+    inputPrompt?: string; // Prompt from connection
     inputImages?: string[];
     aspectRatio?: string;
     resolution?: string;
     outputFormat?: string;
+    selectedModel?: SelectedModelInfo;
+    schemaParams?: Record<string, unknown>;
   };
 }
 
@@ -48,8 +63,10 @@ export interface VideoJobData extends NodeJobData {
   nodeType: 'videoGen';
   nodeData: {
     model: 'veo-3.1-fast' | 'veo-3.1';
-    prompt: string;
-    image?: string;
+    prompt?: string; // Legacy direct prompt field
+    inputPrompt?: string; // Prompt from connection
+    image?: string; // Legacy direct image field
+    inputImage?: string; // Image from connection
     lastFrame?: string;
     referenceImages?: string[];
     duration?: number;
@@ -58,6 +75,8 @@ export interface VideoJobData extends NodeJobData {
     generateAudio?: boolean;
     negativePrompt?: string;
     seed?: number;
+    selectedModel?: SelectedModelInfo;
+    schemaParams?: Record<string, unknown>;
   };
 }
 
@@ -89,8 +108,10 @@ export interface LLMJobData extends NodeJobData {
 export interface MotionControlJobData extends NodeJobData {
   nodeType: 'motionControl';
   nodeData: {
-    image: string;
-    prompt?: string;
+    image: string; // Legacy direct image field
+    inputImage?: string; // Image from connection
+    prompt?: string; // Legacy direct prompt field
+    inputPrompt?: string; // Prompt from connection
     mode: 'trajectory' | 'camera' | 'combined';
     duration: 5 | 10;
     aspectRatio: '16:9' | '9:16' | '1:1';

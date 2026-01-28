@@ -1,8 +1,8 @@
 'use client';
 
 import type { HandleDefinition, NodeStatus, NodeType, WorkflowNodeData } from '@genfeedai/types';
-import { NODE_DEFINITIONS } from '@genfeedai/types';
-import { Handle, type NodeProps, Position } from '@xyflow/react';
+import { NODE_DEFINITIONS, NODE_STATUS } from '@genfeedai/types';
+import { Handle, type NodeProps, NodeResizer, Position } from '@xyflow/react';
 import { clsx } from 'clsx';
 import {
   AlertCircle,
@@ -40,7 +40,6 @@ import {
 } from 'lucide-react';
 import { memo, type ReactNode, useCallback, useEffect, useRef, useState } from 'react';
 import { PreviewTooltip } from '@/components/nodes/PreviewTooltip';
-import { useOptimalHandleOrder } from '@/hooks/useOptimalHandleOrder';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -76,13 +75,13 @@ const ICON_MAP: Record<string, typeof Image> = {
   GitBranch,
 };
 
-// Handle color classes
+// Handle color CSS variables (used inline for guaranteed override)
 const HANDLE_COLORS: Record<string, string> = {
-  image: 'handle-image',
-  video: 'handle-video',
-  text: 'handle-text',
-  number: 'handle-number',
-  audio: 'handle-audio',
+  image: 'var(--handle-image)',
+  video: 'var(--handle-video)',
+  text: 'var(--handle-text)',
+  number: 'var(--handle-number)',
+  audio: 'var(--handle-audio)',
 };
 
 // Status indicator component
@@ -104,6 +103,8 @@ interface BaseNodeProps extends NodeProps {
   headerActions?: ReactNode;
   title?: string;
   titleElement?: ReactNode;
+  /** Input handle IDs that should appear disabled (reduced opacity) when model doesn't support them */
+  disabledInputs?: string[];
 }
 
 // Hover delay for showing preview tooltip (ms)
@@ -118,9 +119,14 @@ function BaseNodeComponent({
   headerActions,
   title,
   titleElement,
+  width,
+  height,
+  disabledInputs,
 }: BaseNodeProps) {
+  // Check if node has been manually resized (has explicit dimensions)
+  const isResized = width !== undefined || height !== undefined;
   const { selectNode, selectedNodeId, highlightedNodeIds } = useUIStore();
-  const { toggleNodeLock, isNodeLocked } = useWorkflowStore();
+  const { toggleNodeLock, isNodeLocked, updateNodeData } = useWorkflowStore();
   const { executeNode, isRunning } = useExecutionStore();
   const nodeDef = NODE_DEFINITIONS[type as NodeType];
   const nodeData = data as WorkflowNodeData;
@@ -134,17 +140,20 @@ function BaseNodeComponent({
   // Determine if this node should be highlighted (no selection = all highlighted)
   const isHighlighted = highlightedNodeIds.length === 0 || highlightedNodeIds.includes(id);
 
-  // Get optimally ordered input handles to minimize edge crossings
-  const sortedInputs = useOptimalHandleOrder(id, nodeDef?.inputs ?? []);
+  // Use static handle order from node definition
+  // Auto-layout handles node positioning to minimize edge crossings
+  const sortedInputs = nodeDef?.inputs ?? [];
 
   const handleRetry = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!isRunning) {
+        // Clear error and set to processing before retrying
+        updateNodeData(id, { error: null, status: NODE_STATUS.processing });
         executeNode(id);
       }
     },
-    [id, isRunning, executeNode]
+    [id, isRunning, executeNode, updateNodeData]
   );
 
   // Hover handlers for preview tooltip
@@ -217,10 +226,22 @@ function BaseNodeComponent({
 
   return (
     <>
+      {/* Resizer - only shown when selected and not locked */}
+      <NodeResizer
+        isVisible={isSelected && !isLocked}
+        minWidth={220}
+        minHeight={100}
+        maxWidth={500}
+        lineClassName="!border-transparent"
+        handleClassName="!w-2.5 !h-2.5 !border-0 !rounded-sm"
+        handleStyle={{ backgroundColor: categoryStyle.cssVar }}
+      />
       <div
         ref={nodeRef}
         className={clsx(
-          'relative min-w-[220px] rounded-lg border shadow-lg transition-all duration-200',
+          'relative flex flex-col rounded-lg border shadow-lg transition-all duration-200',
+          // Only apply min/max width if node hasn't been manually resized
+          !isResized && 'min-w-[220px] max-w-[320px]',
           categoryStyle.className,
           isSelected && 'ring-2',
           isLocked && 'opacity-60',
@@ -231,6 +252,11 @@ function BaseNodeComponent({
           {
             '--node-color': categoryStyle.cssVar,
             ...(isSelected && { '--tw-ring-color': categoryStyle.cssVar }),
+            // When resized, use explicit dimensions
+            ...(isResized && {
+              width: width ? `${width}px` : undefined,
+              height: height ? `${height}px` : undefined,
+            }),
           } as React.CSSProperties
         }
         onClick={() => selectNode(id)}
@@ -238,16 +264,22 @@ function BaseNodeComponent({
         onMouseLeave={handleMouseLeave}
       >
         {/* Input Handles - sorted to minimize edge crossings */}
-        {sortedInputs.map((input: HandleDefinition, index: number) => (
-          <Handle
-            key={input.id}
-            type="target"
-            position={Position.Left}
-            id={input.id}
-            className={clsx('!w-3 !h-3', HANDLE_COLORS[input.type])}
-            style={{ top: `${((index + 1) / (sortedInputs.length + 1)) * 100}%` }}
-          />
-        ))}
+        {sortedInputs.map((input: HandleDefinition, index: number) => {
+          const isDisabled = disabledInputs?.includes(input.id);
+          return (
+            <Handle
+              key={input.id}
+              type="target"
+              position={Position.Left}
+              id={input.id}
+              className={clsx('!w-3 !h-3', isDisabled && 'opacity-30')}
+              style={{
+                top: `${((index + 1) / (sortedInputs.length + 1)) * 100}%`,
+                background: HANDLE_COLORS[input.type],
+              }}
+            />
+          );
+        })}
 
         {/* Header */}
         <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
@@ -280,7 +312,7 @@ function BaseNodeComponent({
         )}
 
         {/* Content */}
-        <div className="p-3">
+        <div className="flex-1 flex flex-col p-3 min-h-0">
           {children}
 
           {/* Progress bar */}
@@ -317,14 +349,14 @@ function BaseNodeComponent({
           )}
         </div>
 
-        {/* Output Handles */}
+        {/* Output Handles - always cyan */}
         {nodeDef.outputs.map((output: HandleDefinition, index: number) => (
           <Handle
             key={output.id}
             type="source"
             position={Position.Right}
             id={output.id}
-            className={clsx('!w-3 !h-3', HANDLE_COLORS[output.type])}
+            className="!w-3 !h-3 handle-output"
             style={{ top: `${((index + 1) / (nodeDef.outputs.length + 1)) * 100}%` }}
           />
         ))}

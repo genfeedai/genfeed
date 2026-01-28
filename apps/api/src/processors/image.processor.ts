@@ -33,7 +33,7 @@ export class ImageProcessor extends BaseProcessor<ImageJobData> {
   }
 
   async process(job: Job<ImageJobData>): Promise<JobResult> {
-    const { executionId, nodeId, nodeData } = job.data;
+    const { executionId, nodeId, nodeData, debugMode } = job.data;
 
     this.logger.log(`Processing image generation job: ${job.id} for node ${nodeId}`);
 
@@ -66,13 +66,50 @@ export class ImageProcessor extends BaseProcessor<ImageJobData> {
           ? this.filesService.urlsToBase64(nodeData.inputImages)
           : [];
 
+        // Get prompt from inputPrompt (from connection) or prompt (legacy/direct)
+        const prompt = (nodeData.inputPrompt ?? nodeData.prompt) as string | undefined;
+
         const prediction = await this.replicateService.generateImage(executionId, nodeId, model, {
-          prompt: nodeData.prompt,
+          prompt: prompt ?? '',
           inputImages,
           aspectRatio: nodeData.aspectRatio,
           resolution: nodeData.resolution,
           outputFormat: nodeData.outputFormat,
+          selectedModel: nodeData.selectedModel,
+          schemaParams: nodeData.schemaParams,
+          debugMode,
         });
+
+        // Handle debug mode - skip polling and return mock data
+        if (prediction.debugPayload) {
+          this.logger.log(`[DEBUG] Returning mock data for node ${nodeId}`);
+
+          const mockOutput = { image: prediction.output as string };
+          await this.executionsService.updateNodeResult(
+            executionId,
+            nodeId,
+            'complete',
+            mockOutput
+          );
+
+          await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
+            result: {
+              success: true,
+              output: mockOutput,
+              debugPayload: prediction.debugPayload,
+            },
+          });
+
+          await this.queueManager.addJobLog(job.id as string, '[DEBUG] Mock prediction completed');
+          await this.queueManager.continueExecution(executionId, job.data.workflowId);
+
+          return {
+            success: true,
+            output: mockOutput,
+            predictionId: prediction.id,
+          };
+        }
+
         predictionId = prediction.id;
         await job.updateProgress({ percent: 30, message: 'Prediction created' });
         await this.queueManager.addJobLog(job.id as string, `Created prediction: ${predictionId}`);
@@ -82,24 +119,49 @@ export class ImageProcessor extends BaseProcessor<ImageJobData> {
       const result = await this.replicatePollerService.pollForCompletion(predictionId, {
         ...POLL_CONFIGS.image,
         onProgress: this.replicatePollerService.createJobProgressCallback(job),
+        onHeartbeat: () => this.queueManager.heartbeatJob(job.id as string),
       });
 
       // Update execution node result
       if (result.success) {
         // Auto-save output to local storage
         let localOutput = result.output;
-        if (result.output?.image && typeof result.output.image === 'string') {
+
+        // Get the image URL - handle all formats:
+        // 1. output is a string (URL directly)
+        // 2. output is an array (most common from Replicate)
+        // 3. output.image is a string (some models return { image: "url" })
+        let imageUrl: string | undefined;
+        if (typeof result.output === 'string') {
+          imageUrl = result.output;
+        } else if (Array.isArray(result.output) && result.output.length > 0) {
+          imageUrl = result.output[0] as string;
+        } else if (result.output?.image) {
+          imageUrl = result.output.image as string;
+        }
+
+        if (imageUrl) {
           try {
             const saved = await this.filesService.downloadAndSaveOutput(
               job.data.workflowId,
               nodeId,
-              result.output.image
+              imageUrl,
+              predictionId
             );
-            localOutput = { ...result.output, image: saved.url, localPath: saved.path };
+            // Normalize output to always have { image: "url" } format
+            if (typeof result.output === 'string' || Array.isArray(result.output)) {
+              localOutput = { image: saved.url, localPath: saved.path };
+            } else {
+              localOutput = { ...result.output, image: saved.url, localPath: saved.path };
+            }
             this.logger.log(`Auto-saved image output to ${saved.path}`);
           } catch (saveError) {
             this.logger.warn(`Failed to auto-save output: ${(saveError as Error).message}`);
             // Continue with remote URL if save fails
+            // Normalize output format even on save failure
+            if (typeof result.output === 'string' || Array.isArray(result.output)) {
+              localOutput = { image: imageUrl };
+            }
           }
         }
 

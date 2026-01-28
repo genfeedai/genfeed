@@ -77,26 +77,29 @@ interface ModelCardProps {
 }
 
 function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
+  const [imgError, setImgError] = useState(false);
+
   return (
     <button
       onClick={() => onSelect(model)}
-      className="group w-full rounded-lg border border-border bg-card p-4 text-left transition hover:border-primary"
+      className="group w-full rounded-lg border border-border bg-card text-left transition hover:border-primary overflow-hidden"
     >
-      <div className="flex items-start gap-3">
-        {/* Thumbnail or placeholder */}
-        {model.thumbnail ? (
+      <div className="flex items-stretch">
+        {/* Thumbnail or placeholder - full height */}
+        {model.thumbnail && !imgError ? (
           <img
             src={model.thumbnail}
             alt={model.displayName}
-            className="h-12 w-12 rounded object-cover"
+            className="w-20 shrink-0 object-cover bg-secondary"
+            onError={() => setImgError(true)}
           />
         ) : (
-          <div className="flex h-12 w-12 items-center justify-center rounded bg-secondary">
-            <Sparkles className="h-5 w-5 text-muted-foreground" />
+          <div className="flex w-20 shrink-0 items-center justify-center bg-secondary">
+            <Sparkles className="h-6 w-6 text-muted-foreground" />
           </div>
         )}
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 p-4">
           {/* Name and provider */}
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-medium text-foreground">{model.displayName}</h3>
@@ -154,6 +157,7 @@ function ModelBrowserModalComponent({
   const [models, setModels] = useState<ProviderModel[]>([]);
   const [configuredProviders, setConfiguredProviders] = useState<ProviderType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [hasFetched, setHasFetched] = useState(false);
 
   const fetchModels = useCallback(
     async (signal: AbortSignal) => {
@@ -201,6 +205,7 @@ function ModelBrowserModalComponent({
         }
       } finally {
         setIsLoading(false);
+        setHasFetched(true);
       }
     },
     [searchQuery, providerFilter, capabilities, replicateKey, falKey, hfKey]
@@ -220,6 +225,13 @@ function ModelBrowserModalComponent({
       controller.abort();
     };
   }, [isOpen, fetchModels]);
+
+  // Reset state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setHasFetched(false);
+    }
+  }, [isOpen]);
 
   // Filter recent models by capabilities
   const filteredRecentModels = useMemo(() => {
@@ -310,7 +322,7 @@ function ModelBrowserModalComponent({
         {/* Content */}
         <div className="flex-1 overflow-auto p-6">
           {/* Warning when no providers configured */}
-          {!isLoading && configuredProviders.length === 0 && (
+          {!isLoading && hasFetched && configuredProviders.length === 0 && (
             <div className="mb-6 flex items-start gap-3 rounded-lg border border-yellow-500/20 bg-yellow-500/10 p-4">
               <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-yellow-600" />
               <div>

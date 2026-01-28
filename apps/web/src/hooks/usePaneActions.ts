@@ -2,6 +2,7 @@ import type { NodeType } from '@genfeedai/types';
 import { useReactFlow } from '@xyflow/react';
 import { useCallback } from 'react';
 import { getLayoutedNodes } from '@/lib/autoLayout';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 export function usePaneActions() {
@@ -32,8 +33,18 @@ export function usePaneActions() {
 
   const autoLayout = useCallback(
     (direction: 'TB' | 'LR' = 'LR') => {
+      const edgeStyle = useSettingsStore.getState().edgeStyle;
       const layoutedNodes = getLayoutedNodes(nodes, edges, { direction });
       reactFlow.setNodes(layoutedNodes);
+
+      // Normalize all edges to use consistent style
+      reactFlow.setEdges((eds) =>
+        eds.map((edge) => ({
+          ...edge,
+          type: edgeStyle,
+        }))
+      );
+
       // Fit view after layout with a small delay to allow DOM update
       setTimeout(() => {
         reactFlow.fitView({ padding: 0.2 });

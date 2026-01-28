@@ -49,20 +49,28 @@ export function ToolbarDropdown({ label, items }: ToolbarDropdownProps) {
 
       {isOpen && (
         <div className="absolute left-0 top-full z-50 mt-1 min-w-[180px] rounded-lg border border-border bg-card py-1 shadow-lg">
-          {items.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => {
-                item.onClick();
-                setIsOpen(false);
-              }}
-              className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground transition hover:bg-secondary"
-            >
-              <span className="h-4 w-4 shrink-0">{item.icon}</span>
-              <span>{item.label}</span>
-              {item.external && <span className="ml-auto text-xs text-muted-foreground">↗</span>}
-            </button>
-          ))}
+          {items.map((item) => {
+            if (item.separator) {
+              return <div key={item.id} className="my-1 h-px bg-border" />;
+            }
+
+            return (
+              <button
+                key={item.id}
+                onClick={() => {
+                  if (item.disabled || !item.onClick) return;
+                  item.onClick();
+                  setIsOpen(false);
+                }}
+                disabled={item.disabled}
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-sm text-foreground transition hover:bg-secondary disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              >
+                <span className="h-4 w-4 shrink-0">{item.icon}</span>
+                <span>{item.label}</span>
+                {item.external && <span className="ml-auto text-xs text-muted-foreground">↗</span>}
+              </button>
+            );
+          })}
         </div>
       )}
     </div>

@@ -1,4 +1,30 @@
-import { IsArray, IsBoolean, IsIn, IsNumber, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsNumber,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+
+class SelectedModelDto {
+  @IsString()
+  provider: string;
+
+  @IsString()
+  modelId: string;
+
+  @IsOptional()
+  @IsString()
+  displayName?: string;
+
+  @IsOptional()
+  @IsObject()
+  inputSchema?: Record<string, unknown>;
+}
 
 export class GenerateVideoDto {
   @IsString()
@@ -50,4 +76,18 @@ export class GenerateVideoDto {
   @IsOptional()
   @IsNumber()
   seed?: number;
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => SelectedModelDto)
+  selectedModel?: SelectedModelDto;
+
+  @IsOptional()
+  @IsObject()
+  schemaParams?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsBoolean()
+  debugMode?: boolean;
 }

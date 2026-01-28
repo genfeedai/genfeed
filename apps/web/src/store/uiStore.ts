@@ -17,6 +17,7 @@ interface UIStore {
   showPalette: boolean;
   showMinimap: boolean;
   showAIGenerator: boolean;
+  showDebugPanel: boolean;
 
   // Selection
   selectedNodeId: string | null;
@@ -39,6 +40,8 @@ interface UIStore {
   togglePalette: () => void;
   toggleMinimap: () => void;
   toggleAIGenerator: () => void;
+  toggleDebugPanel: () => void;
+  setShowDebugPanel: (show: boolean) => void;
   selectNode: (nodeId: string | null) => void;
   selectEdge: (edgeId: string | null) => void;
   setHighlightedNodeIds: (ids: string[]) => void;
@@ -65,6 +68,7 @@ export const useUIStore = create<UIStore>((set) => ({
   showPalette: true,
   showMinimap: true,
   showAIGenerator: false,
+  showDebugPanel: false,
   selectedNodeId: null,
   selectedEdgeId: null,
   highlightedNodeIds: [],
@@ -83,6 +87,14 @@ export const useUIStore = create<UIStore>((set) => ({
 
   toggleAIGenerator: () => {
     set((state) => ({ showAIGenerator: !state.showAIGenerator }));
+  },
+
+  toggleDebugPanel: () => {
+    set((state) => ({ showDebugPanel: !state.showDebugPanel }));
+  },
+
+  setShowDebugPanel: (show) => {
+    set({ showDebugPanel: show });
   },
 
   selectNode: (nodeId) => {

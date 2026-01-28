@@ -98,4 +98,12 @@ export class CreateWorkflowDto {
   @ValidateNested({ each: true })
   @Type(() => NodeGroupDto)
   groups?: NodeGroupDto[];
+
+  @IsOptional()
+  @IsString()
+  thumbnail?: string;
+
+  @IsOptional()
+  @IsString()
+  thumbnailNodeId?: string;
 }

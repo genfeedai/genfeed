@@ -3,6 +3,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put, Query } from '@nestjs/
 import type { CreateWorkflowDto } from '@/dto/create-workflow.dto';
 import { ImportWorkflowDto } from '@/dto/import-workflow.dto';
 import { QueryWorkflowDto } from '@/dto/query-workflow.dto';
+import { SetThumbnailDto } from '@/dto/set-thumbnail.dto';
 import type { UpdateWorkflowDto } from '@/dto/update-workflow.dto';
 import type { CostEstimate, WorkflowNodeForCost } from '@/interfaces/cost.interface';
 import type { WorkflowExport } from '@/interfaces/workflow-export.interface';
@@ -75,6 +76,14 @@ export class WorkflowsController {
   @Post(':id/duplicate')
   duplicate(@Param('id') id: string) {
     return this.workflowsService.duplicate(id);
+  }
+
+  /**
+   * Set the thumbnail for a workflow
+   */
+  @Put(':id/thumbnail')
+  setThumbnail(@Param('id') id: string, @Body() dto: SetThumbnailDto) {
+    return this.workflowsService.setThumbnail(id, dto.thumbnailUrl, dto.nodeId);
   }
 
   /**

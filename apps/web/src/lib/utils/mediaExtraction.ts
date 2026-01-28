@@ -36,8 +36,13 @@ export function getMediaFromNode(nodeType: NodeType, data: WorkflowNodeData): Me
     }
     case 'output': {
       const outData = data as OutputNodeData;
-      const mediaType = outData.inputType === 'text' ? null : outData.inputType;
-      return { url: outData.inputMedia, type: mediaType };
+      if (outData.inputVideo) {
+        return { url: outData.inputVideo, type: 'video' };
+      }
+      if (outData.inputImage) {
+        return { url: outData.inputImage, type: 'image' };
+      }
+      return { url: null, type: null };
     }
     default:
       return { url: null, type: null };

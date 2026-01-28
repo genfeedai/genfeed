@@ -1,7 +1,7 @@
 /**
  * Auto-generated Replicate model types
  * DO NOT EDIT - Run `bun run sync:replicate` to regenerate
- * Generated at: 2026-01-23T11:12:52.916Z
+ * Generated at: 2026-01-28T20:10:03.794Z
  */
 
 // This file is auto-generated. Do not edit manually.
@@ -75,6 +75,426 @@ export interface NanoBananaProInput {
 
 /** Output type for google/nano-banana-pro */
 export type NanoBananaProOutput = string;
+
+/**
+ * Input parameters for prunaai/z-image-turbo
+ */
+export interface ZImageTurboInput {
+  /**
+   * Text prompt for image generation
+   */
+  prompt: string;
+  /**
+   * Height of the generated image
+   * @default 1024
+   * @range min: 64, max: 2048
+   */
+  height?: number;
+  /**
+   * Width of the generated image
+   * @default 1024
+   * @range min: 64, max: 2048
+   */
+  width?: number;
+  /**
+   * Number of inference steps.
+   * @default 8
+   * @range min: 1, max: 50
+   */
+  num_inference_steps?: number;
+  /**
+   * Guidance scale. Should be 0 for Turbo models
+   * @default 0
+   * @range min: 0, max: 20
+   */
+  guidance_scale?: number;
+  /**
+   * Random seed. Set for reproducible generation
+   */
+  seed?: number;
+  /**
+   * Apply additional optimizations for faster generation
+   * @default false
+   */
+  go_fast?: boolean;
+  /**
+   * Format of the output images
+   * @default "jpg"
+   */
+  output_format?: unknown;
+  /**
+   * Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs
+   * @default 80
+   * @range min: 0, max: 100
+   */
+  output_quality?: number;
+}
+
+/** Output type for prunaai/z-image-turbo */
+export type ZImageTurboOutput = string;
+
+/**
+ * Input parameters for black-forest-labs/flux-schnell
+ */
+export interface FluxSchnellInput {
+  /**
+   * Prompt for generated image
+   */
+  prompt: string;
+  /**
+   * Aspect ratio for the generated image
+   * @default "1:1"
+   */
+  aspect_ratio?: unknown;
+  /**
+   * Number of outputs to generate
+   * @default 1
+   * @range min: 1, max: 4
+   */
+  num_outputs?: number;
+  /**
+   * Number of denoising steps. 4 is recommended, and lower number of steps produce lower quality outputs, faster.
+   * @default 4
+   * @range min: 1, max: 4
+   */
+  num_inference_steps?: number;
+  /**
+   * Random seed. Set for reproducible generation
+   */
+  seed?: number;
+  /**
+   * Format of the output images
+   * @default "webp"
+   */
+  output_format?: unknown;
+  /**
+   * Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs
+   * @default 80
+   * @range min: 0, max: 100
+   */
+  output_quality?: number;
+  /**
+   * Disable safety checker for generated images.
+   * @default false
+   */
+  disable_safety_checker?: boolean;
+  /**
+   * Run faster predictions with model optimized for speed (currently fp8 quantized); disable to run in original bf16. Note that outputs will not be deterministic when this is enabled, even if you set a seed.
+   * @default true
+   */
+  go_fast?: boolean;
+  /**
+   * Approximate number of megapixels for generated image
+   * @default "1"
+   */
+  megapixels?: unknown;
+}
+
+/** Output type for black-forest-labs/flux-schnell */
+export type FluxSchnellOutput = string[];
+
+/**
+ * Input parameters for black-forest-labs/flux-dev
+ */
+export interface FluxDevInput {
+  /**
+   * Prompt for generated image
+   */
+  prompt: string;
+  /**
+   * Aspect ratio for the generated image
+   * @default "1:1"
+   */
+  aspect_ratio?: unknown;
+  /**
+   * Input image for image to image mode. The aspect ratio of your output will match this image
+   */
+  image?: string;
+  /**
+   * Prompt strength when using img2img. 1.0 corresponds to full destruction of information in image
+   * @default 0.8
+   * @range min: 0, max: 1
+   */
+  prompt_strength?: number;
+  /**
+   * Number of outputs to generate
+   * @default 1
+   * @range min: 1, max: 4
+   */
+  num_outputs?: number;
+  /**
+   * Number of denoising steps. Recommended range is 28-50, and lower number of steps produce lower quality outputs, faster.
+   * @default 28
+   * @range min: 1, max: 50
+   */
+  num_inference_steps?: number;
+  /**
+   * Guidance for generated image
+   * @default 3
+   * @range min: 0, max: 10
+   */
+  guidance?: number;
+  /**
+   * Random seed. Set for reproducible generation
+   */
+  seed?: number;
+  /**
+   * Format of the output images
+   * @default "webp"
+   */
+  output_format?: unknown;
+  /**
+   * Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs
+   * @default 80
+   * @range min: 0, max: 100
+   */
+  output_quality?: number;
+  /**
+   * Disable safety checker for generated images.
+   * @default false
+   */
+  disable_safety_checker?: boolean;
+  /**
+   * Run faster predictions with model optimized for speed (currently fp8 quantized); disable to run in original bf16. Note that outputs will not be deterministic when this is enabled, even if you set a seed.
+   * @default true
+   */
+  go_fast?: boolean;
+  /**
+   * Approximate number of megapixels for generated image
+   * @default "1"
+   */
+  megapixels?: unknown;
+}
+
+/** Output type for black-forest-labs/flux-dev */
+export type FluxDevOutput = string[];
+
+/**
+ * Input parameters for black-forest-labs/flux-1.1-pro
+ */
+export interface Flux11ProInput {
+  /**
+   * Aspect ratio for the generated image
+   * @default "1:1"
+   */
+  aspect_ratio?: unknown;
+  /**
+   * Format of the output images.
+   * @default "webp"
+   */
+  output_format?: unknown;
+  /**
+   * Random seed. Set for reproducible generation
+   */
+  seed?: number;
+  /**
+   * Width of the generated image in text-to-image mode. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32). Note: Ignored in img2img and inpainting modes.
+   * @range min: 256, max: 1440
+   */
+  width?: number;
+  /**
+   * Height of the generated image in text-to-image mode. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32). Note: Ignored in img2img and inpainting modes.
+   * @range min: 256, max: 1440
+   */
+  height?: number;
+  /**
+   * Text prompt for image generation
+   */
+  prompt: string;
+  /**
+   * Image to use with Flux Redux. This is used together with the text prompt to guide the generation towards the composition of the image_prompt. Must be jpeg, png, gif, or webp.
+   */
+  image_prompt?: string;
+  /**
+   * Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs
+   * @default 80
+   * @range min: 0, max: 100
+   */
+  output_quality?: number;
+  /**
+   * Safety tolerance, 1 is most strict and 6 is most permissive
+   * @default 2
+   * @range min: 1, max: 6
+   */
+  safety_tolerance?: number;
+  /**
+   * Automatically modify the prompt for more creative generation
+   * @default false
+   */
+  prompt_upsampling?: boolean;
+}
+
+/** Output type for black-forest-labs/flux-1.1-pro */
+export type Flux11ProOutput = string;
+
+/**
+ * Input parameters for stability-ai/sdxl
+ */
+export interface SDXLInput {
+  /**
+   * Input prompt
+   * @default "An astronaut riding a rainbow unicorn"
+   */
+  prompt?: string;
+  /**
+   * Input Negative Prompt
+   * @default ""
+   */
+  negative_prompt?: string;
+  /**
+   * Input image for img2img or inpaint mode
+   */
+  image?: string;
+  /**
+   * Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted.
+   */
+  mask?: string;
+  /**
+   * Width of output image
+   * @default 1024
+   */
+  width?: number;
+  /**
+   * Height of output image
+   * @default 1024
+   */
+  height?: number;
+  /**
+   * Number of images to output.
+   * @default 1
+   * @range min: 1, max: 4
+   */
+  num_outputs?: number;
+  /**
+   * scheduler
+   * @default "K_EULER"
+   */
+  scheduler?: unknown;
+  /**
+   * Number of denoising steps
+   * @default 50
+   * @range min: 1, max: 500
+   */
+  num_inference_steps?: number;
+  /**
+   * Scale for classifier-free guidance
+   * @default 7.5
+   * @range min: 1, max: 50
+   */
+  guidance_scale?: number;
+  /**
+   * Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image
+   * @default 0.8
+   * @range min: 0, max: 1
+   */
+  prompt_strength?: number;
+  /**
+   * Random seed. Leave blank to randomize the seed
+   */
+  seed?: number;
+  /**
+   * Which refine style to use
+   * @default "no_refiner"
+   */
+  refine?: unknown;
+  /**
+   * For expert_ensemble_refiner, the fraction of noise to use
+   * @default 0.8
+   * @range min: 0, max: 1
+   */
+  high_noise_frac?: number;
+  /**
+   * For base_image_refiner, the number of steps to refine, defaults to num_inference_steps
+   */
+  refine_steps?: number;
+  /**
+   * Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking.
+   * @default true
+   */
+  apply_watermark?: boolean;
+  /**
+   * LoRA additive scale. Only applicable on trained models.
+   * @default 0.6
+   * @range min: 0, max: 1
+   */
+  lora_scale?: number;
+  /**
+   * Replicate LoRA weights to use. Leave blank to use the default weights.
+   */
+  replicate_weights?: string;
+  /**
+   * Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)
+   * @default false
+   */
+  disable_safety_checker?: boolean;
+}
+
+/** Output type for stability-ai/sdxl */
+export type SDXLOutput = string[];
+
+/**
+ * Input parameters for bytedance/sdxl-lightning-4step
+ */
+export interface SDXLLightningInput {
+  /**
+   * Input prompt
+   * @default "self-portrait of a woman, lightning in the background"
+   */
+  prompt?: string;
+  /**
+   * Negative Input prompt
+   * @default "worst quality, low quality"
+   */
+  negative_prompt?: string;
+  /**
+   * Width of output image. Recommended 1024 or 1280
+   * @default 1024
+   * @range min: 256, max: 1280
+   */
+  width?: number;
+  /**
+   * Height of output image. Recommended 1024 or 1280
+   * @default 1024
+   * @range min: 256, max: 1280
+   */
+  height?: number;
+  /**
+   * Number of images to output.
+   * @default 1
+   * @range min: 1, max: 4
+   */
+  num_outputs?: number;
+  /**
+   * scheduler
+   * @default "K_EULER"
+   */
+  scheduler?: unknown;
+  /**
+   * Number of denoising steps. 4 for best results
+   * @default 4
+   * @range min: 1, max: 10
+   */
+  num_inference_steps?: number;
+  /**
+   * Scale for classifier-free guidance
+   * @default 0
+   * @range min: 0, max: 50
+   */
+  guidance_scale?: number;
+  /**
+   * Random seed. Leave blank to randomize the seed
+   * @default 0
+   */
+  seed?: number;
+  /**
+   * Disable safety checker for generated images
+   * @default false
+   */
+  disable_safety_checker?: boolean;
+}
+
+/** Output type for bytedance/sdxl-lightning-4step */
+export type SDXLLightningOutput = string[];
 
 // =============================================================================
 // VIDEO MODELS
@@ -259,6 +679,79 @@ export interface KlingV26MotionControlInput {
 
 /** Output type for kwaivgi/kling-v2.6-motion-control */
 export type KlingV26MotionControlOutput = string;
+
+/**
+ * Input parameters for minimax/video-01
+ */
+export interface MinimaxVideo01Input {
+  /**
+   * Text prompt for generation
+   */
+  prompt: string;
+  /**
+   * Use prompt optimizer
+   * @default true
+   */
+  prompt_optimizer?: boolean;
+  /**
+   * First frame image for video generation. The output video will have the same aspect ratio as this image.
+   */
+  first_frame_image?: string;
+  /**
+   * An optional character reference image to use as the subject in the generated video (this will use the S2V-01 model)
+   */
+  subject_reference?: string;
+}
+
+/** Output type for minimax/video-01 */
+export type MinimaxVideo01Output = string;
+
+/**
+ * Input parameters for luma/ray
+ */
+export interface LumaRayInput {
+  /**
+   * Aspect ratio of the video. Ignored if a start frame, end frame or video ID is given.
+   * @default "16:9"
+   */
+  aspect_ratio?: unknown;
+  /**
+   * Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback. This input is ignored if end_image or end_video_id are set.
+   * @default false
+   */
+  loop?: boolean;
+  /**
+   * Text prompt for video generation
+   */
+  prompt: string;
+  /**
+   * An optional last frame of the video to use as the ending frame.
+   */
+  end_image?: string;
+  /**
+   * An optional first frame of the video to use as the starting frame.
+   */
+  start_image?: string;
+  /**
+   * Prepend a new video generation to the beginning of an existing one (Also called 'reverse extend'). You can combine this with start_image, or start_video_id.
+   */
+  end_video_id?: string;
+  /**
+   * Deprecated: Use end_image instead
+   */
+  end_image_url?: string;
+  /**
+   * Continue or extend a video generation with a new generation. You can combine this with end_image, or end_video_id.
+   */
+  start_video_id?: string;
+  /**
+   * Deprecated: Use start_image instead
+   */
+  start_image_url?: string;
+}
+
+/** Output type for luma/ray */
+export type LumaRayOutput = string;
 
 // =============================================================================
 // LLM MODELS
@@ -560,10 +1053,18 @@ export type PixverseLipsyncOutput = string;
 export type ReplicateModelId =
   | 'google/nano-banana'
   | 'google/nano-banana-pro'
+  | 'prunaai/z-image-turbo'
+  | 'black-forest-labs/flux-schnell'
+  | 'black-forest-labs/flux-dev'
+  | 'black-forest-labs/flux-1.1-pro'
+  | 'stability-ai/sdxl'
+  | 'bytedance/sdxl-lightning-4step'
   | 'google/veo-3.1-fast'
   | 'google/veo-3.1'
   | 'kwaivgi/kling-v2.5-turbo-pro'
   | 'kwaivgi/kling-v2.6-motion-control'
+  | 'minimax/video-01'
+  | 'luma/ray'
   | 'meta/meta-llama-3.1-405b-instruct'
   | 'luma/reframe-image'
   | 'luma/reframe-video'
@@ -576,10 +1077,18 @@ export type ReplicateModelId =
 export interface ReplicateModelInputMap {
   'google/nano-banana': NanoBananaInput;
   'google/nano-banana-pro': NanoBananaProInput;
+  'prunaai/z-image-turbo': ZImageTurboInput;
+  'black-forest-labs/flux-schnell': FluxSchnellInput;
+  'black-forest-labs/flux-dev': FluxDevInput;
+  'black-forest-labs/flux-1.1-pro': Flux11ProInput;
+  'stability-ai/sdxl': SDXLInput;
+  'bytedance/sdxl-lightning-4step': SDXLLightningInput;
   'google/veo-3.1-fast': Veo31FastInput;
   'google/veo-3.1': Veo31Input;
   'kwaivgi/kling-v2.5-turbo-pro': KlingV25TurboProInput;
   'kwaivgi/kling-v2.6-motion-control': KlingV26MotionControlInput;
+  'minimax/video-01': MinimaxVideo01Input;
+  'luma/ray': LumaRayInput;
   'meta/meta-llama-3.1-405b-instruct': MetaLlama31Input;
   'luma/reframe-image': LumaReframeImageInput;
   'luma/reframe-video': LumaReframeVideoInput;
@@ -593,10 +1102,18 @@ export interface ReplicateModelInputMap {
 export interface ReplicateModelOutputMap {
   'google/nano-banana': NanoBananaOutput;
   'google/nano-banana-pro': NanoBananaProOutput;
+  'prunaai/z-image-turbo': ZImageTurboOutput;
+  'black-forest-labs/flux-schnell': FluxSchnellOutput;
+  'black-forest-labs/flux-dev': FluxDevOutput;
+  'black-forest-labs/flux-1.1-pro': Flux11ProOutput;
+  'stability-ai/sdxl': SDXLOutput;
+  'bytedance/sdxl-lightning-4step': SDXLLightningOutput;
   'google/veo-3.1-fast': Veo31FastOutput;
   'google/veo-3.1': Veo31Output;
   'kwaivgi/kling-v2.5-turbo-pro': KlingV25TurboProOutput;
   'kwaivgi/kling-v2.6-motion-control': KlingV26MotionControlOutput;
+  'minimax/video-01': MinimaxVideo01Output;
+  'luma/ray': LumaRayOutput;
   'meta/meta-llama-3.1-405b-instruct': MetaLlama31Output;
   'luma/reframe-image': LumaReframeImageOutput;
   'luma/reframe-video': LumaReframeVideoOutput;

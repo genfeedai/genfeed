@@ -1,4 +1,25 @@
-import { IsArray, IsIn, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsArray,
+  IsBoolean,
+  IsIn,
+  IsObject,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
+
+class SelectedModelDto {
+  @IsString()
+  provider: string;
+
+  @IsString()
+  modelId: string;
+
+  @IsOptional()
+  @IsString()
+  displayName?: string;
+}
 
 export class GenerateImageDto {
   @IsString()
@@ -7,9 +28,16 @@ export class GenerateImageDto {
   @IsString()
   nodeId: string;
 
+  @IsOptional()
   @IsString()
   @IsIn(['nano-banana', 'nano-banana-pro'])
-  model: 'nano-banana' | 'nano-banana-pro';
+  model?: 'nano-banana' | 'nano-banana-pro';
+
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => SelectedModelDto)
+  selectedModel?: SelectedModelDto;
 
   @IsString()
   prompt: string;
@@ -30,4 +58,12 @@ export class GenerateImageDto {
   @IsOptional()
   @IsString()
   outputFormat?: string;
+
+  @IsOptional()
+  @IsObject()
+  schemaParams?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsBoolean()
+  debugMode?: boolean;
 }

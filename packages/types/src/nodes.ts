@@ -43,12 +43,14 @@ export interface ProviderModel {
   description?: string;
   thumbnail?: string;
   pricing?: string;
+  inputSchema?: Record<string, unknown>;
 }
 
 export interface SelectedModel {
   provider: ProviderType;
   modelId: string;
   displayName: string;
+  inputSchema?: Record<string, unknown>;
 }
 
 // =============================================================================
@@ -220,6 +222,9 @@ export interface ImageGenNodeData extends BaseNodeData {
   provider?: ProviderType;
   selectedModel?: SelectedModel;
 
+  // Dynamic schema parameters (from model's inputSchema)
+  schemaParams?: Record<string, unknown>;
+
   // Job state
   jobId: string | null;
 }
@@ -245,6 +250,9 @@ export interface VideoGenNodeData extends BaseNodeData {
   // Provider (optional, defaults to replicate)
   provider?: ProviderType;
   selectedModel?: SelectedModel;
+
+  // Dynamic schema parameters (from model's inputSchema)
+  schemaParams?: Record<string, unknown>;
 
   // Job state
   jobId: string | null;
@@ -718,10 +726,13 @@ export interface SubtitleNodeData extends BaseNodeData {
 // OUTPUT NODE DATA
 // =============================================================================
 
+export type OutputInputType = 'image' | 'video' | null;
+
 export interface OutputNodeData extends BaseNodeData {
-  // Inputs from connections
-  inputMedia: string | null;
-  inputType: 'image' | 'video' | 'text' | null;
+  // Inputs from connections (accepts either image or video)
+  inputImage: string | null;
+  inputVideo: string | null;
+  inputType: OutputInputType; // Auto-detected from connection
 
   // Output name for saving
   outputName: string;
@@ -1361,20 +1372,23 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
     },
   },
 
-  // Output nodes (deprecated - outputs auto-save now)
-  // Kept for backwards compatibility with existing workflows
+  // Output nodes
   output: {
     type: 'output',
     label: 'Output',
-    description: 'Final workflow output (deprecated - outputs auto-save now)',
+    description: 'Download workflow output with custom filename',
     category: 'output',
-    icon: 'CheckCircle',
-    inputs: [{ id: 'media', type: 'image', label: 'Media', required: true }],
+    icon: 'Download',
+    inputs: [
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'video', type: 'video', label: 'Video' },
+    ],
     outputs: [],
     defaultData: {
       label: 'Output',
       status: 'idle',
-      inputMedia: null,
+      inputImage: null,
+      inputVideo: null,
       inputType: null,
       outputName: 'output',
     },
@@ -1461,7 +1475,7 @@ const NODE_ORDER: Record<NodeCategory, NodeType[]> = {
     'subtitle',
     'animation',
   ],
-  output: [],
+  output: ['output'],
   composition: ['workflowRef', 'workflowInput', 'workflowOutput'],
 };
 

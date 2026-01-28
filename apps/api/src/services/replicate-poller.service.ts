@@ -9,6 +9,10 @@ export interface PollOptions {
   progressStart?: number;
   progressEnd?: number;
   onProgress?: (progress: number, status: string) => Promise<void>;
+  /** Callback to send heartbeat during polling to prevent stale job recovery */
+  onHeartbeat?: () => Promise<void>;
+  /** Send heartbeat every N poll attempts (default: 24 = ~2 min for 5s polls) */
+  heartbeatInterval?: number;
 }
 
 /**
@@ -58,11 +62,28 @@ export class ReplicatePollerService {
    * Returns a JobResult when the prediction succeeds, fails, or times out
    */
   async pollForCompletion(predictionId: string, options: PollOptions): Promise<JobResult> {
-    const { maxAttempts, pollInterval, progressStart = 30, progressEnd = 90, onProgress } = options;
+    const {
+      maxAttempts,
+      pollInterval,
+      progressStart = 30,
+      progressEnd = 90,
+      onProgress,
+      onHeartbeat,
+      heartbeatInterval = 24, // Default ~2 min for 5s polls, ~4 min for 10s polls
+    } = options;
 
     const progressRange = progressEnd - progressStart;
 
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // Send heartbeat periodically to prevent stale job recovery
+      if (onHeartbeat && attempt > 0 && attempt % heartbeatInterval === 0) {
+        try {
+          await onHeartbeat();
+        } catch (heartbeatError) {
+          this.logger.warn(`Heartbeat failed for prediction ${predictionId}: ${heartbeatError}`);
+        }
+      }
+
       const prediction = await this.replicateService.getPredictionStatus(predictionId);
 
       // Calculate progress as a percentage of the range

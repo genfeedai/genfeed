@@ -4,6 +4,8 @@ import type { WorkflowFile } from '@genfeedai/types';
 import {
   AlertCircle,
   BookMarked,
+  Bug,
+  Copy,
   DollarSign,
   FolderOpen,
   LayoutGrid,
@@ -13,6 +15,7 @@ import {
   Plus,
   RotateCcw,
   Save,
+  SaveAll,
   Settings,
   Sparkles,
   Square,
@@ -20,18 +23,22 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { WorkflowSwitcher } from '@/components/workflow/WorkflowSwitcher';
 import { usePaneActions } from '@/hooks/usePaneActions';
 import { logger } from '@/lib/logger';
+import { calculateWorkflowCost } from '@/lib/replicate/client';
 import { useExecutionStore } from '@/store/executionStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { CommentNavigator } from './CommentNavigator';
 import { DiscordIcon, XIcon } from './icons';
 import { OverflowMenu } from './OverflowMenu';
+import { SaveAsDialog } from './SaveAsDialog';
 import { SaveIndicator } from './SaveIndicator';
 import { ToolbarDropdown } from './ToolbarDropdown';
 import type { DropdownItem } from './types';
@@ -68,7 +75,10 @@ function isValidWorkflow(data: unknown): data is WorkflowFile {
 }
 
 export function Toolbar() {
-  const { exportWorkflow, selectedNodeIds } = useWorkflowStore();
+  const router = useRouter();
+  const { exportWorkflow, selectedNodeIds, workflowId, workflowName, duplicateWorkflowApi, nodes } =
+    useWorkflowStore();
+  const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
   const {
     isRunning,
     executeWorkflow,
@@ -80,14 +90,44 @@ export function Toolbar() {
     clearValidationErrors,
     estimatedCost,
     actualCost,
+    setEstimatedCost,
   } = useExecutionStore();
   const { toggleAIGenerator, openModal } = useUIStore();
+  const debugMode = useSettingsStore((s) => s.debugMode);
   const { autoLayout } = usePaneActions();
 
   const uniqueErrorMessages = useMemo(() => {
     if (!validationErrors?.errors.length) return [];
     return [...new Set(validationErrors.errors.map((e) => e.message))];
   }, [validationErrors]);
+
+  // Memoize cost-relevant data to avoid recalculating on every position change
+  const costRelevantData = useMemo(
+    () =>
+      nodes.map((node) => ({
+        type: node.type,
+        model: node.data.model,
+        resolution: node.data.resolution,
+        duration: node.data.duration,
+        generateAudio: node.data.generateAudio,
+      })),
+    [nodes]
+  );
+
+  // Track previous cost data to avoid unnecessary recalculations
+  const prevCostDataRef = useRef<string>('');
+
+  // Update estimated cost when cost-relevant node data changes
+  useEffect(() => {
+    const costData = JSON.stringify(costRelevantData);
+
+    // Only recalculate if cost-relevant data changed
+    if (costData !== prevCostDataRef.current) {
+      prevCostDataRef.current = costData;
+      const cost = calculateWorkflowCost(nodes);
+      setEstimatedCost(cost);
+    }
+  }, [costRelevantData, nodes, setEstimatedCost]);
 
   const handleSave = useCallback(() => {
     const workflow = exportWorkflow();
@@ -158,8 +198,51 @@ export function Toolbar() {
   const hasSelection = selectedNodeIds.length > 0;
   const showResumeButton = canResumeFromFailed();
 
+  const handleDuplicate = useCallback(async () => {
+    if (!workflowId) return;
+    try {
+      const duplicated = await duplicateWorkflowApi(workflowId);
+      router.push(`/workflows/${duplicated._id}`);
+    } catch (error) {
+      logger.error('Failed to duplicate workflow', error, { context: 'Toolbar' });
+    }
+  }, [workflowId, duplicateWorkflowApi, router]);
+
+  const handleSaveAs = useCallback(
+    async (newName: string) => {
+      if (!workflowId) return;
+      try {
+        const duplicated = await duplicateWorkflowApi(workflowId);
+        // Navigate to the duplicated workflow - the name will be set on the new workflow
+        router.push(`/workflows/${duplicated._id}?rename=${encodeURIComponent(newName)}`);
+        setShowSaveAsDialog(false);
+      } catch (error) {
+        logger.error('Failed to save workflow as copy', error, { context: 'Toolbar' });
+      }
+    },
+    [workflowId, duplicateWorkflowApi, router]
+  );
+
   const fileMenuItems: DropdownItem[] = useMemo(
     () => [
+      {
+        id: 'duplicate',
+        label: 'Duplicate Workflow',
+        icon: <Copy className="h-4 w-4" />,
+        onClick: handleDuplicate,
+        disabled: !workflowId,
+      },
+      {
+        id: 'saveAs',
+        label: 'Save As...',
+        icon: <SaveAll className="h-4 w-4" />,
+        onClick: () => setShowSaveAsDialog(true),
+        disabled: !workflowId,
+      },
+      {
+        id: 'separator-1',
+        separator: true,
+      },
       {
         id: 'export',
         label: 'Export Workflow',
@@ -172,14 +255,8 @@ export function Toolbar() {
         icon: <FolderOpen className="h-4 w-4" />,
         onClick: handleLoad,
       },
-      {
-        id: 'layout',
-        label: 'Auto-layout',
-        icon: <LayoutGrid className="h-4 w-4" />,
-        onClick: () => autoLayout('LR'),
-      },
     ],
-    [handleSave, handleLoad, autoLayout]
+    [handleSave, handleLoad, handleDuplicate, workflowId]
   );
 
   const resourcesMenuItems: DropdownItem[] = useMemo(
@@ -276,6 +353,24 @@ export function Toolbar() {
         {/* Divider */}
         <div className="h-8 w-px bg-border" />
 
+        {/* Debug Mode Badge */}
+        {debugMode && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={() => openModal('settings')}
+                className="flex items-center gap-1.5 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-sm text-amber-500 transition hover:bg-amber-500/20"
+              >
+                <Bug className="h-4 w-4" />
+                <span className="font-medium">Debug</span>
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p>Debug mode active - API calls are mocked</p>
+            </TooltipContent>
+          </Tooltip>
+        )}
+
         {/* Cost Indicator */}
         <Tooltip>
           <TooltipTrigger asChild>
@@ -296,6 +391,18 @@ export function Toolbar() {
           </TooltipTrigger>
           <TooltipContent side="bottom">
             <p>View cost breakdown</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Auto-layout Button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" onClick={() => autoLayout('LR')}>
+              <LayoutGrid className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Auto-layout nodes</p>
           </TooltipContent>
         </Tooltip>
 
@@ -403,6 +510,14 @@ export function Toolbar() {
             </div>
           </div>
         )}
+
+        {/* Save As Dialog */}
+        <SaveAsDialog
+          isOpen={showSaveAsDialog}
+          currentName={workflowName}
+          onSave={handleSaveAs}
+          onClose={() => setShowSaveAsDialog(false)}
+        />
       </div>
     </TooltipProvider>
   );

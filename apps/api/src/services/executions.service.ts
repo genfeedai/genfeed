@@ -54,14 +54,15 @@ const PASSTHROUGH_NODE_TYPES = [
 /**
  * Mapping of node types to their output handle -> data field mapping
  * Used to extract output values from passthrough nodes
+ * Note: 'output' is the default handle name when sourceHandle is undefined in React Flow edges
  */
 const PASSTHROUGH_OUTPUT_MAP: Record<string, Record<string, string>> = {
-  imageInput: { image: 'image' },
-  videoInput: { video: 'video' },
-  audioInput: { audio: 'audio' },
-  prompt: { text: 'prompt' },
-  template: { text: 'resolvedPrompt' },
-  workflowInput: { value: 'value' },
+  imageInput: { image: 'image', output: 'image' },
+  videoInput: { video: 'video', output: 'video' },
+  audioInput: { audio: 'audio', output: 'audio' },
+  prompt: { text: 'prompt', output: 'prompt' },
+  template: { text: 'resolvedPrompt', output: 'resolvedPrompt' },
+  workflowInput: { value: 'value', output: 'value' },
 };
 
 @Injectable()
@@ -76,10 +77,14 @@ export class ExecutionsService {
   ) {}
 
   // Execution methods
-  async createExecution(workflowId: string): Promise<ExecutionDocument> {
+  async createExecution(
+    workflowId: string,
+    options?: { debugMode?: boolean }
+  ): Promise<ExecutionDocument> {
     const execution = new this.executionModel({
       workflowId: new Types.ObjectId(workflowId),
       status: 'pending',
+      debugMode: options?.debugMode ?? false,
     });
     return execution.save();
   }
@@ -196,6 +201,28 @@ export class ExecutionsService {
       nodeId,
       predictionId,
       status: 'pending',
+    });
+    return job.save();
+  }
+
+  /**
+   * Create a debug job with mock data and debug payload
+   * Used when debug mode is enabled to record the would-be API call
+   */
+  async createDebugJob(
+    executionId: string,
+    nodeId: string,
+    mockPredictionId: string,
+    output: Record<string, unknown>,
+    debugPayload: { model: string; input: Record<string, unknown>; timestamp: string }
+  ): Promise<Job> {
+    const job = new this.jobModel({
+      executionId: new Types.ObjectId(executionId),
+      nodeId,
+      predictionId: mockPredictionId,
+      status: 'succeeded',
+      output,
+      result: { debugPayload },
     });
     return job.save();
   }
@@ -350,17 +377,19 @@ export class ExecutionsService {
         continue;
       }
 
+      this.logger.log(
+        `Edge: ${sourceNode.type}[${edge.sourceHandle ?? 'undefined'}] -> ${nodeId}[${edge.targetHandle ?? 'undefined'}]`
+      );
+
       // Get output value from source node
       let outputValue: unknown;
 
       // Check if source is a passthrough node
       if ((PASSTHROUGH_NODE_TYPES as readonly string[]).includes(sourceNode.type)) {
         outputValue = this.getPassthroughOutput(sourceNode, edge.sourceHandle);
-        if (outputValue) {
-          this.logger.debug(
-            `Passthrough ${sourceNode.type} output: ${typeof outputValue === 'string' ? outputValue.substring(0, 50) : outputValue}`
-          );
-        }
+        this.logger.log(
+          `Passthrough ${sourceNode.type} output (handle=${edge.sourceHandle ?? 'undefined'}): ${outputValue === undefined ? 'UNDEFINED' : outputValue === null ? 'NULL' : typeof outputValue === 'string' ? outputValue.substring(0, 80) : JSON.stringify(outputValue)}`
+        );
       } else {
         // Processing nodes: get from execution results
         const nodeResult = execution.nodeResults.find((r) => r.nodeId === edge.source);
@@ -375,6 +404,10 @@ export class ExecutionsService {
         const targetHandle = edge.targetHandle ?? 'input';
         const mappedField = this.mapHandleToInputField(targetHandle, nodeData);
 
+        this.logger.log(
+          `Mapping: targetHandle=${targetHandle} -> mappedField=${mappedField}, isArray=${Array.isArray(resolvedInputs[mappedField])}`
+        );
+
         // Handle array inputs (like imageInput which accepts multiple)
         if (Array.isArray(resolvedInputs[mappedField])) {
           resolvedInputs[mappedField] = [
@@ -385,8 +418,18 @@ export class ExecutionsService {
           resolvedInputs[mappedField] = outputValue;
         }
 
-        this.logger.debug(`Mapped ${sourceNode.type}.${edge.sourceHandle} -> ${mappedField}`);
+        this.logger.log(`Mapped ${sourceNode.type}.${edge.sourceHandle} -> ${mappedField}`);
+      } else {
+        this.logger.warn(`No output value from ${sourceNode.type} for edge to ${nodeId}`);
       }
+    }
+
+    // Log final resolved inputs (especially arrays)
+    const inputImages = resolvedInputs.inputImages;
+    if (Array.isArray(inputImages)) {
+      this.logger.log(
+        `Final inputImages for ${nodeId}: ${inputImages.length} items - ${JSON.stringify(inputImages.map((img: string) => img?.substring?.(0, 50) ?? img))}`
+      );
     }
 
     return resolvedInputs;
@@ -399,7 +442,7 @@ export class ExecutionsService {
     const handle = sourceHandle ?? 'output';
     const outputMap = PASSTHROUGH_OUTPUT_MAP[node.type];
 
-    if (outputMap && outputMap[handle]) {
+    if (outputMap?.[handle]) {
       return node.data[outputMap[handle]];
     }
 
@@ -416,6 +459,8 @@ export class ExecutionsService {
 
   /**
    * Map a target handle ID to the corresponding input field name
+   * Note: React Flow may omit handle IDs from edges when there's only one handle,
+   * defaulting to 'input' for target and 'output' for source
    */
   private mapHandleToInputField(targetHandle: string, nodeData: Record<string, unknown>): string {
     // Direct match
@@ -424,14 +469,18 @@ export class ExecutionsService {
     }
 
     // Common input field mappings
+    // 'input' is the default when targetHandle is undefined in React Flow
     const handleMappings: Record<string, string[]> = {
       images: ['inputImages', 'imageInput'],
-      image: ['inputImage', 'image', 'imageInput'],
+      image: ['inputImage', 'image', 'imageInput', 'inputImages'],
+      lastFrame: ['lastFrame', 'inputLastFrame'], // Video end frame
       prompt: ['inputPrompt', 'prompt'],
       text: ['inputText', 'inputPrompt', 'text'],
       video: ['inputVideo', 'video'],
       audio: ['inputAudio', 'audio'],
       media: ['inputMedia'],
+      // Default fallback for undefined handle IDs
+      input: ['inputImage', 'inputImages', 'inputVideo', 'inputAudio', 'inputPrompt', 'inputMedia'],
     };
 
     const candidates = handleMappings[targetHandle] ?? [];

@@ -1,28 +1,32 @@
-import { Copy, Lock, LockOpen, Scissors, Trash2 } from 'lucide-react';
+import { Copy, Image, Lock, LockOpen, Scissors, Trash2 } from 'lucide-react';
 import { type ContextMenuItemConfig, createSeparator } from '@/components/context-menu/ContextMenu';
 
 interface NodeMenuOptions {
   nodeId: string;
   isLocked: boolean;
+  hasMediaOutput: boolean;
   onDuplicate: (nodeId: string) => void;
   onLock: (nodeId: string) => void;
   onUnlock: (nodeId: string) => void;
   onCut: (nodeId: string) => void;
   onCopy: (nodeId: string) => void;
   onDelete: (nodeId: string) => void;
+  onSetAsThumbnail?: (nodeId: string) => void;
 }
 
 export function getNodeMenuItems({
   nodeId,
   isLocked,
+  hasMediaOutput,
   onDuplicate,
   onLock,
   onUnlock,
   onCut,
   onCopy,
   onDelete,
+  onSetAsThumbnail,
 }: NodeMenuOptions): ContextMenuItemConfig[] {
-  return [
+  const items: ContextMenuItemConfig[] = [
     {
       id: 'duplicate',
       label: 'Duplicate',
@@ -30,7 +34,21 @@ export function getNodeMenuItems({
       shortcut: '⌘D',
       onClick: () => onDuplicate(nodeId),
     },
-    createSeparator('separator-1'),
+  ];
+
+  // Add "Set as Thumbnail" option for nodes with media output
+  if (hasMediaOutput && onSetAsThumbnail) {
+    items.push({
+      id: 'setThumbnail',
+      label: 'Set as Thumbnail',
+      icon: <Image className="w-4 h-4" />,
+      onClick: () => onSetAsThumbnail(nodeId),
+    });
+  }
+
+  items.push(createSeparator('separator-1'));
+
+  items.push(
     isLocked
       ? {
           id: 'unlock',
@@ -45,8 +63,12 @@ export function getNodeMenuItems({
           icon: <Lock className="w-4 h-4" />,
           shortcut: 'L',
           onClick: () => onLock(nodeId),
-        },
-    createSeparator('separator-2'),
+        }
+  );
+
+  items.push(createSeparator('separator-2'));
+
+  items.push(
     {
       id: 'cut',
       label: 'Cut',
@@ -60,15 +82,19 @@ export function getNodeMenuItems({
       icon: <Copy className="w-4 h-4" />,
       shortcut: '⌘C',
       onClick: () => onCopy(nodeId),
-    },
-    createSeparator('separator-3'),
-    {
-      id: 'delete',
-      label: 'Delete',
-      icon: <Trash2 className="w-4 h-4" />,
-      shortcut: '⌫',
-      danger: true,
-      onClick: () => onDelete(nodeId),
-    },
-  ];
+    }
+  );
+
+  items.push(createSeparator('separator-3'));
+
+  items.push({
+    id: 'delete',
+    label: 'Delete',
+    icon: <Trash2 className="w-4 h-4" />,
+    shortcut: '⌫',
+    danger: true,
+    onClick: () => onDelete(nodeId),
+  });
+
+  return items;
 }

@@ -1,16 +1,17 @@
 'use client';
 
 import { ReactFlowProvider } from '@xyflow/react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { AnnotationModal } from '@/components/annotation/AnnotationModal';
 import { WorkflowCanvas } from '@/components/canvas/WorkflowCanvas';
 import { CommandPalette } from '@/components/command-palette';
 import { CostModal } from '@/components/cost';
 import { AIGeneratorPanel } from '@/components/panels/AIGeneratorPanel';
+import { DebugPanel } from '@/components/panels/DebugPanel';
 import { NodePalette } from '@/components/panels/NodePalette';
 import { PromptEditorModal } from '@/components/prompt-editor/PromptEditorModal';
-import { PromptLibraryModal } from '@/components/prompt-library';
+import { CreatePromptModal, PromptLibraryModal } from '@/components/prompt-library';
 import { SettingsModal } from '@/components/settings/SettingsModal';
 import { TemplatesModal } from '@/components/templates/TemplatesModal';
 import { Toolbar } from '@/components/toolbar';
@@ -18,6 +19,7 @@ import { WelcomeModal } from '@/components/welcome/WelcomeModal';
 import { GenerateWorkflowModal } from '@/components/workflow/GenerateWorkflowModal';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
+import { usePromptLibraryStore } from '@/store/promptLibraryStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -25,16 +27,21 @@ import { useWorkflowStore } from '@/store/workflowStore';
 export default function WorkflowEditorPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const workflowId = params.id as string;
+  const renameParam = searchParams.get('rename');
 
-  const { showPalette, showAIGenerator, activeModal, openModal } = useUIStore();
+  const { showPalette, showAIGenerator, showDebugPanel, activeModal, openModal } = useUIStore();
   const hasSeenWelcome = useSettingsStore((s) => s.hasSeenWelcome);
   const autoSaveEnabled = useSettingsStore((s) => s.autoSaveEnabled);
+  const debugMode = useSettingsStore((s) => s.debugMode);
+  const isCreatePromptModalOpen = usePromptLibraryStore((s) => s.isCreateModalOpen);
   const {
     loadWorkflowById,
     createNewWorkflow,
     isLoading,
     workflowId: currentWorkflowId,
+    setWorkflowName,
   } = useWorkflowStore();
 
   const [error, setError] = useState<string | null>(null);
@@ -70,6 +77,15 @@ export default function WorkflowEditorPage() {
     return () => controller.abort();
   }, [workflowId, loadWorkflowById, createNewWorkflow, router]);
 
+  // Handle rename from Save As feature
+  useEffect(() => {
+    if (renameParam && currentWorkflowId) {
+      setWorkflowName(renameParam);
+      // Clear the rename param from URL
+      router.replace(`/workflows/${workflowId}`);
+    }
+  }, [renameParam, currentWorkflowId, setWorkflowName, router, workflowId]);
+
   // Show welcome modal on first visit
   useEffect(() => {
     if (!hasSeenWelcome && !activeModal && currentWorkflowId) {
@@ -77,8 +93,12 @@ export default function WorkflowEditorPage() {
     }
   }, [hasSeenWelcome, activeModal, openModal, currentWorkflowId]);
 
-  // Loading state
-  if (isLoading || (workflowId === 'new' && !currentWorkflowId)) {
+  // Show loading if:
+  // 1. Currently loading
+  // 2. Creating new workflow
+  // 3. Workflow not yet loaded (requested ID doesn't match loaded ID)
+  const isWorkflowNotLoaded = workflowId !== 'new' && workflowId !== currentWorkflowId;
+  if (isLoading || (workflowId === 'new' && !currentWorkflowId) || isWorkflowNotLoaded) {
     return (
       <div className="h-screen w-screen flex items-center justify-center bg-[var(--background)]">
         <div className="flex flex-col items-center gap-4">
@@ -139,9 +159,12 @@ export default function WorkflowEditorPage() {
             <WorkflowCanvas />
           </div>
           {showAIGenerator && <AIGeneratorPanel />}
+          {debugMode && showDebugPanel && <DebugPanel />}
         </div>
       </main>
       <PromptLibraryModal />
+      {/* Render CreatePromptModal independently when library modal is closed (e.g., saving from PromptNode) */}
+      {isCreatePromptModalOpen && activeModal !== 'promptLibrary' && <CreatePromptModal />}
       <PromptEditorModal />
       <SettingsModal />
       <AnnotationModal />

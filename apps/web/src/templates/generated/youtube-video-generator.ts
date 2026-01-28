@@ -289,7 +289,7 @@ Ensure visual continuity between scenes. Total runtime: 10 minutes (20 × 30 sec
       source: 'subtitle',
       target: 'output',
       sourceHandle: 'video',
-      targetHandle: 'media',
+      targetHandle: 'video',
     },
   ],
   edgeStyle: 'smoothstep',

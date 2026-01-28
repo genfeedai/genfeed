@@ -15,6 +15,17 @@ import { calculateWorkflowCost } from '@/lib/replicate/client';
 import { useExecutionStore } from '@/store/executionStore';
 import type { WorkflowStore } from '../types';
 
+/**
+ * Normalize edges loaded from storage to use React Flow edge types.
+ * Migrates legacy 'bezier' type to 'default'.
+ */
+function normalizeEdgeTypes(edges: WorkflowEdge[]): WorkflowEdge[] {
+  return edges.map((edge) => ({
+    ...edge,
+    type: edge.type === 'bezier' ? 'default' : edge.type,
+  }));
+}
+
 export interface PersistenceSlice {
   loadWorkflow: (workflow: WorkflowFile) => void;
   clearWorkflow: () => void;
@@ -44,7 +55,7 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
   loadWorkflow: (workflow) => {
     set({
       nodes: workflow.nodes,
-      edges: workflow.edges,
+      edges: normalizeEdgeTypes(workflow.edges),
       edgeStyle: workflow.edgeStyle,
       workflowName: workflow.name,
       workflowId: null,
@@ -353,7 +364,7 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
 
       set({
         nodes,
-        edges: workflow.edges as WorkflowEdge[],
+        edges: normalizeEdgeTypes(workflow.edges as WorkflowEdge[]),
         edgeStyle: workflow.edgeStyle as EdgeStyle,
         workflowName: workflow.name,
         workflowId: workflow._id,

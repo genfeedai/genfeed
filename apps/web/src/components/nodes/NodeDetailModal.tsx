@@ -1,18 +1,23 @@
 'use client';
 
-import type { NodeType, WorkflowNodeData } from '@genfeedai/types';
+import type { NodeType, PromptNodeData, WorkflowNodeData } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { Download, X, ZoomIn, ZoomOut } from 'lucide-react';
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { getMediaFromNode } from '@/lib/utils/mediaExtraction';
+import { usePromptEditorStore } from '@/store/promptEditorStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
+
+// Node types that should open the prompt editor instead of preview
+const PROMPT_NODE_TYPES: NodeType[] = ['prompt', 'negative-prompt'];
 
 export function NodeDetailModal() {
   const { activeModal, nodeDetailNodeId, closeNodeDetailModal } = useUIStore();
   const { getNodeById } = useWorkflowStore();
+  const { openEditor } = usePromptEditorStore();
 
   const [zoomLevel, setZoomLevel] = useState(1);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -24,6 +29,17 @@ export function NodeDetailModal() {
     if (!nodeDetailNodeId) return null;
     return getNodeById(nodeDetailNodeId);
   }, [nodeDetailNodeId, getNodeById]);
+
+  // Redirect prompt-type nodes to the prompt editor
+  useEffect(() => {
+    if (activeModal !== 'nodeDetail' || !node) return;
+
+    if (PROMPT_NODE_TYPES.includes(node.type as NodeType)) {
+      const promptData = node.data as PromptNodeData;
+      closeNodeDetailModal();
+      openEditor(node.id, promptData.prompt ?? '');
+    }
+  }, [activeModal, node, closeNodeDetailModal, openEditor]);
 
   // Get media info
   const mediaInfo = useMemo(() => {
@@ -106,7 +122,13 @@ export function NodeDetailModal() {
     document.body.removeChild(link);
   }, [mediaInfo, node]);
 
+  // Don't render for prompt nodes (they redirect to prompt editor)
   if (activeModal !== 'nodeDetail' || !node || !nodeDef) {
+    return null;
+  }
+
+  // Prompt nodes are handled by the prompt editor
+  if (PROMPT_NODE_TYPES.includes(node.type as NodeType)) {
     return null;
   }
 

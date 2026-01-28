@@ -1,3 +1,4 @@
+import { createReadStream } from 'node:fs';
 import {
   BadRequestException,
   Controller,
@@ -11,7 +12,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import type { Response } from 'express';
-import { createReadStream } from 'fs';
 import {
   FilesService,
   type FileType,

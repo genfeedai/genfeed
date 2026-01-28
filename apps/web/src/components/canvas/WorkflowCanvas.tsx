@@ -15,7 +15,13 @@ import { PanelLeft } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import '@xyflow/react/dist/style.css';
 
-import type { NodeType, WorkflowEdge, WorkflowNode } from '@genfeedai/types';
+import type {
+  ImageGenNodeData,
+  NodeType,
+  VideoGenNodeData,
+  WorkflowEdge,
+  WorkflowNode,
+} from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { GroupOverlay } from '@/components/canvas/GroupOverlay';
 import { ContextMenu } from '@/components/context-menu';
@@ -23,9 +29,29 @@ import { nodeTypes } from '@/components/nodes';
 import { NodeDetailModal } from '@/components/nodes/NodeDetailModal';
 import { useContextMenu } from '@/hooks/useContextMenu';
 import { CATEGORY_COLORS, DEFAULT_NODE_COLOR } from '@/lib/constants/colors';
+import { useExecutionStore } from '@/store/executionStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
+
+/**
+ * Check if the model's schema supports image input
+ */
+function supportsImageInput(schema: Record<string, unknown> | undefined): boolean {
+  if (!schema) return true; // Default to true if no schema
+
+  const properties = (schema as { properties?: Record<string, unknown> }).properties;
+  if (!properties) return true;
+
+  // Check for common image input field names
+  return !!(
+    properties.image ||
+    properties.image_input ||
+    properties.start_image ||
+    properties.first_frame_image ||
+    properties.reference_images
+  );
+}
 
 export function WorkflowCanvas() {
   const {
@@ -56,6 +82,7 @@ export function WorkflowCanvas() {
     openNodeDetailModal,
   } = useUIStore();
   const { edgeStyle, showMinimap } = useSettingsStore();
+  const { isRunning, currentNodeId } = useExecutionStore();
 
   // Minimap visibility on pan/zoom (n8n-style)
   const [isMinimapVisible, setIsMinimapVisible] = useState(false);
@@ -175,21 +202,85 @@ export function WorkflowCanvas() {
     }
   }, [selectedNodeIds, getConnectedNodeIds, setHighlightedNodeIds]);
 
-  // Compute edges with highlight/dim classes
-  const styledEdges = useMemo(() => {
-    if (highlightedNodeIds.length === 0) {
-      return edges;
-    }
+  // Create stable node lookup map to avoid recreating callback on every node position change
+  const nodeMap = useMemo(() => new Map(nodes.map((n) => [n.id, n])), [nodes]);
 
+  // Check if an edge targets a disabled input on a node
+  const isEdgeTargetingDisabledInput = useCallback(
+    (edge: WorkflowEdge): boolean => {
+      const targetNode = nodeMap.get(edge.target);
+      if (!targetNode) return false;
+
+      // Check imageGen nodes - 'images' handle
+      if (targetNode.type === 'imageGen' && edge.targetHandle === 'images') {
+        const nodeData = targetNode.data as ImageGenNodeData;
+        const hasImageSupport = supportsImageInput(nodeData?.selectedModel?.inputSchema);
+        return !hasImageSupport;
+      }
+
+      // Check videoGen nodes - 'image' or 'lastFrame' handles
+      if (targetNode.type === 'videoGen') {
+        if (edge.targetHandle === 'image' || edge.targetHandle === 'lastFrame') {
+          const nodeData = targetNode.data as VideoGenNodeData;
+          const hasImageSupport = supportsImageInput(nodeData?.selectedModel?.inputSchema);
+          return !hasImageSupport;
+        }
+      }
+
+      return false;
+    },
+    [nodeMap]
+  );
+
+  // Compute edges with highlight/dim classes and execution state
+  const styledEdges = useMemo(() => {
     return edges.map((edge) => {
-      const isConnected =
-        highlightedNodeIds.includes(edge.source) && highlightedNodeIds.includes(edge.target);
-      return {
-        ...edge,
-        className: isConnected ? 'highlighted' : 'dimmed',
-      };
+      // Check if this edge targets a disabled input
+      const isDisabledTarget = isEdgeTargetingDisabledInput(edge);
+
+      // During execution - all edges show "pipe flow" effect
+      if (isRunning) {
+        // Edge connected to currently executing node gets stronger highlight
+        const isExecutingEdge =
+          currentNodeId && (edge.source === currentNodeId || edge.target === currentNodeId);
+
+        // If targeting disabled input, show as disabled even during execution
+        if (isDisabledTarget) {
+          return {
+            ...edge,
+            animated: false,
+            className: 'edge-disabled',
+          };
+        }
+
+        return {
+          ...edge,
+          animated: false, // We use CSS animation instead
+          className: isExecutingEdge ? 'executing' : 'active-pipe',
+        };
+      }
+
+      // If targeting disabled input, always show as disabled
+      if (isDisabledTarget) {
+        return {
+          ...edge,
+          className: 'edge-disabled',
+        };
+      }
+
+      // Selection highlighting (when not running)
+      if (highlightedNodeIds.length > 0) {
+        const isConnected =
+          highlightedNodeIds.includes(edge.source) && highlightedNodeIds.includes(edge.target);
+        return {
+          ...edge,
+          className: isConnected ? 'highlighted' : 'dimmed',
+        };
+      }
+
+      return edge;
     });
-  }, [edges, highlightedNodeIds]);
+  }, [edges, highlightedNodeIds, isRunning, currentNodeId, isEdgeTargetingDisabledInput]);
 
   const handleNodeClick = useCallback(
     (_event: React.MouseEvent, node: WorkflowNode) => {

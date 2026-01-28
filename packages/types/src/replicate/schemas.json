@@ -4,6 +4,7 @@
     "name": "NanoBanana",
     "category": "image",
     "description": "Google's latest image editing model in Gemini 2.5",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/ed879e99-71b5-4689-bed3-e7305e35a28a/this.png",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -55,13 +56,14 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:50.393Z"
+    "fetchedAt": "2026-01-28T20:09:59.487Z"
   },
   {
     "modelId": "google/nano-banana-pro",
     "name": "NanoBananaPro",
     "category": "image",
     "description": "Google's state of the art image generation and editing model 🍌🍌",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/5ee636db-8712-442f-9644-63980f6786f4/banana2.png",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -133,13 +135,721 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:50.597Z"
+    "fetchedAt": "2026-01-28T20:09:59.701Z"
+  },
+  {
+    "modelId": "prunaai/z-image-turbo",
+    "name": "ZImageTurbo",
+    "category": "image",
+    "description": "Z-Image Turbo is a super fast text-to-image model of 6B parameters developed by Tongyi-MAI.",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/3fb764f9-6196-4cb7-b4f3-4b7b265cd822/z-img-sm.jpg",
+    "inputSchema": {
+      "type": "object",
+      "title": "Input",
+      "required": [
+        "prompt"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "title": "Seed",
+          "x-order": 5,
+          "nullable": true,
+          "description": "Random seed. Set for reproducible generation"
+        },
+        "width": {
+          "type": "integer",
+          "title": "Width",
+          "default": 1024,
+          "maximum": 2048,
+          "minimum": 64,
+          "x-order": 2,
+          "description": "Width of the generated image"
+        },
+        "height": {
+          "type": "integer",
+          "title": "Height",
+          "default": 1024,
+          "maximum": 2048,
+          "minimum": 64,
+          "x-order": 1,
+          "description": "Height of the generated image"
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "x-order": 0,
+          "description": "Text prompt for image generation"
+        },
+        "go_fast": {
+          "type": "boolean",
+          "title": "Go Fast",
+          "default": false,
+          "x-order": 6,
+          "description": "Apply additional optimizations for faster generation"
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "jpg",
+          "x-order": 7,
+          "description": "Format of the output images"
+        },
+        "guidance_scale": {
+          "type": "number",
+          "title": "Guidance Scale",
+          "default": 0,
+          "maximum": 20,
+          "minimum": 0,
+          "x-order": 4,
+          "description": "Guidance scale. Should be 0 for Turbo models"
+        },
+        "output_quality": {
+          "type": "integer",
+          "title": "Output Quality",
+          "default": 80,
+          "maximum": 100,
+          "minimum": 0,
+          "x-order": 8,
+          "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs"
+        },
+        "num_inference_steps": {
+          "type": "integer",
+          "title": "Num Inference Steps",
+          "default": 8,
+          "maximum": 50,
+          "minimum": 1,
+          "x-order": 3,
+          "description": "Number of inference steps."
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "string",
+      "title": "Output",
+      "format": "uri"
+    },
+    "fetchedAt": "2026-01-28T20:09:59.888Z"
+  },
+  {
+    "modelId": "black-forest-labs/flux-schnell",
+    "name": "FluxSchnell",
+    "category": "image",
+    "description": "The fastest image generation model tailored for local development and personal use",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/67c990ba-bb67-4355-822f-2bd8c42b2f0d/flux-schnell.webp",
+    "inputSchema": {
+      "type": "object",
+      "title": "Input",
+      "required": [
+        "prompt"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "title": "Seed",
+          "x-order": 4,
+          "description": "Random seed. Set for reproducible generation"
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "x-order": 0,
+          "description": "Prompt for generated image"
+        },
+        "go_fast": {
+          "type": "boolean",
+          "title": "Go Fast",
+          "default": true,
+          "x-order": 8,
+          "description": "Run faster predictions with model optimized for speed (currently fp8 quantized); disable to run in original bf16. Note that outputs will not be deterministic when this is enabled, even if you set a seed."
+        },
+        "megapixels": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/megapixels"
+            }
+          ],
+          "default": "1",
+          "x-order": 9,
+          "description": "Approximate number of megapixels for generated image"
+        },
+        "num_outputs": {
+          "type": "integer",
+          "title": "Num Outputs",
+          "default": 1,
+          "maximum": 4,
+          "minimum": 1,
+          "x-order": 2,
+          "description": "Number of outputs to generate"
+        },
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "1:1",
+          "x-order": 1,
+          "description": "Aspect ratio for the generated image"
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "webp",
+          "x-order": 5,
+          "description": "Format of the output images"
+        },
+        "output_quality": {
+          "type": "integer",
+          "title": "Output Quality",
+          "default": 80,
+          "maximum": 100,
+          "minimum": 0,
+          "x-order": 6,
+          "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs"
+        },
+        "num_inference_steps": {
+          "type": "integer",
+          "title": "Num Inference Steps",
+          "default": 4,
+          "maximum": 4,
+          "minimum": 1,
+          "x-order": 3,
+          "description": "Number of denoising steps. 4 is recommended, and lower number of steps produce lower quality outputs, faster."
+        },
+        "disable_safety_checker": {
+          "type": "boolean",
+          "title": "Disable Safety Checker",
+          "default": false,
+          "x-order": 7,
+          "description": "Disable safety checker for generated images."
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "title": "Output"
+    },
+    "fetchedAt": "2026-01-28T20:10:00.123Z"
+  },
+  {
+    "modelId": "black-forest-labs/flux-dev",
+    "name": "FluxDev",
+    "category": "image",
+    "description": "A 12 billion parameter rectified flow transformer capable of generating images from text descriptions",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/cb4203e5-9ece-42e7-b326-98ff3fa35c3a/Replicate_Prediction_15.webp",
+    "inputSchema": {
+      "type": "object",
+      "title": "Input",
+      "required": [
+        "prompt"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "title": "Seed",
+          "x-order": 7,
+          "description": "Random seed. Set for reproducible generation"
+        },
+        "image": {
+          "type": "string",
+          "title": "Image",
+          "format": "uri",
+          "x-order": 2,
+          "description": "Input image for image to image mode. The aspect ratio of your output will match this image"
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "x-order": 0,
+          "description": "Prompt for generated image"
+        },
+        "go_fast": {
+          "type": "boolean",
+          "title": "Go Fast",
+          "default": true,
+          "x-order": 11,
+          "description": "Run faster predictions with model optimized for speed (currently fp8 quantized); disable to run in original bf16. Note that outputs will not be deterministic when this is enabled, even if you set a seed."
+        },
+        "guidance": {
+          "type": "number",
+          "title": "Guidance",
+          "default": 3,
+          "maximum": 10,
+          "minimum": 0,
+          "x-order": 6,
+          "description": "Guidance for generated image"
+        },
+        "megapixels": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/megapixels"
+            }
+          ],
+          "default": "1",
+          "x-order": 12,
+          "description": "Approximate number of megapixels for generated image"
+        },
+        "num_outputs": {
+          "type": "integer",
+          "title": "Num Outputs",
+          "default": 1,
+          "maximum": 4,
+          "minimum": 1,
+          "x-order": 4,
+          "description": "Number of outputs to generate"
+        },
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "1:1",
+          "x-order": 1,
+          "description": "Aspect ratio for the generated image"
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "webp",
+          "x-order": 8,
+          "description": "Format of the output images"
+        },
+        "output_quality": {
+          "type": "integer",
+          "title": "Output Quality",
+          "default": 80,
+          "maximum": 100,
+          "minimum": 0,
+          "x-order": 9,
+          "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs"
+        },
+        "prompt_strength": {
+          "type": "number",
+          "title": "Prompt Strength",
+          "default": 0.8,
+          "maximum": 1,
+          "minimum": 0,
+          "x-order": 3,
+          "description": "Prompt strength when using img2img. 1.0 corresponds to full destruction of information in image"
+        },
+        "num_inference_steps": {
+          "type": "integer",
+          "title": "Num Inference Steps",
+          "default": 28,
+          "maximum": 50,
+          "minimum": 1,
+          "x-order": 5,
+          "description": "Number of denoising steps. Recommended range is 28-50, and lower number of steps produce lower quality outputs, faster."
+        },
+        "disable_safety_checker": {
+          "type": "boolean",
+          "title": "Disable Safety Checker",
+          "default": false,
+          "x-order": 10,
+          "description": "Disable safety checker for generated images."
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "title": "Output"
+    },
+    "fetchedAt": "2026-01-28T20:10:00.317Z"
+  },
+  {
+    "modelId": "black-forest-labs/flux-1.1-pro",
+    "name": "Flux11Pro",
+    "category": "image",
+    "description": "Faster, better FLUX Pro. Text-to-image model with excellent image quality, prompt adherence, and output diversity.",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/bd872eff-363a-4e10-8cc1-84057afa9f57/flux-1.1-cover.webp",
+    "inputSchema": {
+      "type": "object",
+      "title": "Input",
+      "required": [
+        "prompt"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "title": "Seed",
+          "description": "Random seed. Set for reproducible generation"
+        },
+        "width": {
+          "type": "integer",
+          "title": "Width",
+          "maximum": 1440,
+          "minimum": 256,
+          "description": "Width of the generated image in text-to-image mode. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32). Note: Ignored in img2img and inpainting modes."
+        },
+        "height": {
+          "type": "integer",
+          "title": "Height",
+          "maximum": 1440,
+          "minimum": 256,
+          "description": "Height of the generated image in text-to-image mode. Only used when aspect_ratio=custom. Must be a multiple of 32 (if it's not, it will be rounded to nearest multiple of 32). Note: Ignored in img2img and inpainting modes."
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "description": "Text prompt for image generation"
+        },
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "1:1",
+          "x-order": 2,
+          "description": "Aspect ratio for the generated image"
+        },
+        "image_prompt": {
+          "type": "string",
+          "title": "Image Prompt",
+          "format": "uri",
+          "description": "Image to use with Flux Redux. This is used together with the text prompt to guide the generation towards the composition of the image_prompt. Must be jpeg, png, gif, or webp."
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "webp",
+          "x-order": 8,
+          "description": "Format of the output images."
+        },
+        "output_quality": {
+          "type": "integer",
+          "title": "Output Quality",
+          "default": 80,
+          "maximum": 100,
+          "minimum": 0,
+          "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs"
+        },
+        "safety_tolerance": {
+          "type": "integer",
+          "title": "Safety Tolerance",
+          "default": 2,
+          "maximum": 6,
+          "minimum": 1,
+          "description": "Safety tolerance, 1 is most strict and 6 is most permissive"
+        },
+        "prompt_upsampling": {
+          "type": "boolean",
+          "title": "Prompt Upsampling",
+          "default": false,
+          "description": "Automatically modify the prompt for more creative generation"
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "string",
+      "title": "Output",
+      "format": "uri"
+    },
+    "fetchedAt": "2026-01-28T20:10:00.651Z"
+  },
+  {
+    "modelId": "stability-ai/sdxl",
+    "name": "SDXL",
+    "category": "image",
+    "description": "A text-to-image generative AI model that creates beautiful images",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/9065f9e3-40da-4742-8cb8-adfa8e794c0d/sdxl_cover.jpg",
+    "inputSchema": {
+      "type": "object",
+      "title": "Input",
+      "properties": {
+        "mask": {
+          "type": "string",
+          "title": "Mask",
+          "format": "uri",
+          "x-order": 3,
+          "description": "Input mask for inpaint mode. Black areas will be preserved, white areas will be inpainted."
+        },
+        "seed": {
+          "type": "integer",
+          "title": "Seed",
+          "x-order": 11,
+          "description": "Random seed. Leave blank to randomize the seed"
+        },
+        "image": {
+          "type": "string",
+          "title": "Image",
+          "format": "uri",
+          "x-order": 2,
+          "description": "Input image for img2img or inpaint mode"
+        },
+        "width": {
+          "type": "integer",
+          "title": "Width",
+          "default": 1024,
+          "x-order": 4,
+          "description": "Width of output image"
+        },
+        "height": {
+          "type": "integer",
+          "title": "Height",
+          "default": 1024,
+          "x-order": 5,
+          "description": "Height of output image"
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "default": "An astronaut riding a rainbow unicorn",
+          "x-order": 0,
+          "description": "Input prompt"
+        },
+        "refine": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/refine"
+            }
+          ],
+          "default": "no_refiner",
+          "x-order": 12,
+          "description": "Which refine style to use"
+        },
+        "scheduler": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/scheduler"
+            }
+          ],
+          "default": "K_EULER",
+          "x-order": 7,
+          "description": "scheduler"
+        },
+        "lora_scale": {
+          "type": "number",
+          "title": "Lora Scale",
+          "default": 0.6,
+          "maximum": 1,
+          "minimum": 0,
+          "x-order": 16,
+          "description": "LoRA additive scale. Only applicable on trained models."
+        },
+        "num_outputs": {
+          "type": "integer",
+          "title": "Num Outputs",
+          "default": 1,
+          "maximum": 4,
+          "minimum": 1,
+          "x-order": 6,
+          "description": "Number of images to output."
+        },
+        "refine_steps": {
+          "type": "integer",
+          "title": "Refine Steps",
+          "x-order": 14,
+          "description": "For base_image_refiner, the number of steps to refine, defaults to num_inference_steps"
+        },
+        "guidance_scale": {
+          "type": "number",
+          "title": "Guidance Scale",
+          "default": 7.5,
+          "maximum": 50,
+          "minimum": 1,
+          "x-order": 9,
+          "description": "Scale for classifier-free guidance"
+        },
+        "apply_watermark": {
+          "type": "boolean",
+          "title": "Apply Watermark",
+          "default": true,
+          "x-order": 15,
+          "description": "Applies a watermark to enable determining if an image is generated in downstream applications. If you have other provisions for generating or deploying images safely, you can use this to disable watermarking."
+        },
+        "high_noise_frac": {
+          "type": "number",
+          "title": "High Noise Frac",
+          "default": 0.8,
+          "maximum": 1,
+          "minimum": 0,
+          "x-order": 13,
+          "description": "For expert_ensemble_refiner, the fraction of noise to use"
+        },
+        "negative_prompt": {
+          "type": "string",
+          "title": "Negative Prompt",
+          "default": "",
+          "x-order": 1,
+          "description": "Input Negative Prompt"
+        },
+        "prompt_strength": {
+          "type": "number",
+          "title": "Prompt Strength",
+          "default": 0.8,
+          "maximum": 1,
+          "minimum": 0,
+          "x-order": 10,
+          "description": "Prompt strength when using img2img / inpaint. 1.0 corresponds to full destruction of information in image"
+        },
+        "replicate_weights": {
+          "type": "string",
+          "title": "Replicate Weights",
+          "x-order": 17,
+          "description": "Replicate LoRA weights to use. Leave blank to use the default weights."
+        },
+        "num_inference_steps": {
+          "type": "integer",
+          "title": "Num Inference Steps",
+          "default": 50,
+          "maximum": 500,
+          "minimum": 1,
+          "x-order": 8,
+          "description": "Number of denoising steps"
+        },
+        "disable_safety_checker": {
+          "type": "boolean",
+          "title": "Disable Safety Checker",
+          "default": false,
+          "x-order": 18,
+          "description": "Disable safety checker for generated images. This feature is only available through the API. See [https://replicate.com/docs/how-does-replicate-work#safety](https://replicate.com/docs/how-does-replicate-work#safety)"
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "title": "Output"
+    },
+    "fetchedAt": "2026-01-28T20:10:00.841Z"
+  },
+  {
+    "modelId": "bytedance/sdxl-lightning-4step",
+    "name": "SDXLLightning",
+    "category": "image",
+    "description": "SDXL-Lightning by ByteDance: a fast text-to-image model that makes high-quality images in 4 steps",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/779f3f58-c3db-4403-a01b-3ffed97a1449/out-0-1.jpg",
+    "inputSchema": {
+      "type": "object",
+      "title": "Input",
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "title": "Seed",
+          "default": 0,
+          "x-order": 8,
+          "description": "Random seed. Leave blank to randomize the seed"
+        },
+        "width": {
+          "type": "integer",
+          "title": "Width",
+          "default": 1024,
+          "maximum": 1280,
+          "minimum": 256,
+          "x-order": 2,
+          "description": "Width of output image. Recommended 1024 or 1280"
+        },
+        "height": {
+          "type": "integer",
+          "title": "Height",
+          "default": 1024,
+          "maximum": 1280,
+          "minimum": 256,
+          "x-order": 3,
+          "description": "Height of output image. Recommended 1024 or 1280"
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "default": "self-portrait of a woman, lightning in the background",
+          "x-order": 0,
+          "description": "Input prompt"
+        },
+        "scheduler": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/scheduler"
+            }
+          ],
+          "default": "K_EULER",
+          "x-order": 5,
+          "description": "scheduler"
+        },
+        "num_outputs": {
+          "type": "integer",
+          "title": "Num Outputs",
+          "default": 1,
+          "maximum": 4,
+          "minimum": 1,
+          "x-order": 4,
+          "description": "Number of images to output."
+        },
+        "guidance_scale": {
+          "type": "number",
+          "title": "Guidance Scale",
+          "default": 0,
+          "maximum": 50,
+          "minimum": 0,
+          "x-order": 7,
+          "description": "Scale for classifier-free guidance"
+        },
+        "negative_prompt": {
+          "type": "string",
+          "title": "Negative Prompt",
+          "default": "worst quality, low quality",
+          "x-order": 1,
+          "description": "Negative Input prompt"
+        },
+        "num_inference_steps": {
+          "type": "integer",
+          "title": "Num Inference Steps",
+          "default": 4,
+          "maximum": 10,
+          "minimum": 1,
+          "x-order": 6,
+          "description": "Number of denoising steps. 4 for best results"
+        },
+        "disable_safety_checker": {
+          "type": "boolean",
+          "title": "Disable Safety Checker",
+          "default": false,
+          "x-order": 9,
+          "description": "Disable safety checker for generated images"
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uri"
+      },
+      "title": "Output"
+    },
+    "fetchedAt": "2026-01-28T20:10:01.030Z"
   },
   {
     "modelId": "google/veo-3.1-fast",
     "name": "Veo31Fast",
     "category": "video",
     "description": "New and improved version of Veo 3 Fast, with higher-fidelity video, context-aware audio and last frame support",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_cover_image/50afb54f-55b0-40ab-b48f-febb033a9c54/replicate-prediction-8m82ekaj7hr.jpeg",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -227,13 +937,14 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:50.782Z"
+    "fetchedAt": "2026-01-28T20:10:01.259Z"
   },
   {
     "modelId": "google/veo-3.1",
     "name": "Veo31",
     "category": "video",
     "description": "New and improved version of Veo 3, with higher-fidelity video, context-aware audio, reference image and last frame support",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/7600d853-2847-4c46-afc9-faef04fea2c5/veo3.1-sm.mp4",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -332,13 +1043,14 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:50.973Z"
+    "fetchedAt": "2026-01-28T20:10:01.464Z"
   },
   {
     "modelId": "kwaivgi/kling-v2.5-turbo-pro",
     "name": "KlingV25TurboPro",
     "category": "video",
     "description": "Kling 2.5 Turbo Pro: Unlock pro-level text-to-video and image-to-video creation with smooth motion, cinematic depth, and remarkable prompt adherence.",
+    "coverImageUrl": "https://replicate.delivery/xezq/17c3JG1SzH6NCduMiKp1Cxyqvpad0GXRf507Pqq5GOqNsZsKA/tmpg4w3kyjz.mp4",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -409,13 +1121,14 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:51.339Z"
+    "fetchedAt": "2026-01-28T20:10:01.696Z"
   },
   {
     "modelId": "kwaivgi/kling-v2.6-motion-control",
     "name": "KlingV26MotionControl",
     "category": "video",
     "description": "Enables precise control of character actions and expressions from a reference image.",
+    "coverImageUrl": "https://replicate.delivery/xezq/xNPHY8OYsDbvDpAI22C9pa0FgDJcdV3ZzX2HBUj8nkAygcdF/tmp2jsjo2ed.mp4",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -479,13 +1192,136 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:51.531Z"
+    "fetchedAt": "2026-01-28T20:10:01.900Z"
+  },
+  {
+    "modelId": "minimax/video-01",
+    "name": "MinimaxVideo01",
+    "category": "video",
+    "description": "Generate 6s videos with prompts or images. (Also known as Hailuo). Use a subject reference to make a video with a character and the S2V-01 model.",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/b56c831c-4c68-4443-b69e-b71b105afe7f/minimax.webp",
+    "inputSchema": {
+      "type": "object",
+      "title": "Input",
+      "required": [
+        "prompt"
+      ],
+      "properties": {
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "description": "Text prompt for generation"
+        },
+        "prompt_optimizer": {
+          "type": "boolean",
+          "title": "Prompt Optimizer",
+          "default": true,
+          "description": "Use prompt optimizer"
+        },
+        "first_frame_image": {
+          "type": "string",
+          "title": "First Frame Image",
+          "format": "uri",
+          "description": "First frame image for video generation. The output video will have the same aspect ratio as this image."
+        },
+        "subject_reference": {
+          "type": "string",
+          "title": "Subject Reference",
+          "format": "uri",
+          "description": "An optional character reference image to use as the subject in the generated video (this will use the S2V-01 model)"
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "string",
+      "title": "Output",
+      "format": "uri"
+    },
+    "fetchedAt": "2026-01-28T20:10:02.105Z"
+  },
+  {
+    "modelId": "luma/ray",
+    "name": "LumaRay",
+    "category": "video",
+    "description": "Fast, high quality text-to-video and image-to-video (Also known as Dream Machine)",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/496f8ab2-3a87-4fe7-9867-5572460c2b5e/ray-cover.webp",
+    "inputSchema": {
+      "type": "object",
+      "title": "Input",
+      "required": [
+        "prompt"
+      ],
+      "properties": {
+        "loop": {
+          "type": "boolean",
+          "title": "Loop",
+          "default": false,
+          "description": "Whether the video should loop, with the last frame matching the first frame for smooth, continuous playback. This input is ignored if end_image or end_video_id are set."
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "description": "Text prompt for video generation"
+        },
+        "end_image": {
+          "type": "string",
+          "title": "End Image",
+          "format": "uri",
+          "description": "An optional last frame of the video to use as the ending frame."
+        },
+        "start_image": {
+          "type": "string",
+          "title": "Start Image",
+          "format": "uri",
+          "description": "An optional first frame of the video to use as the starting frame."
+        },
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "16:9",
+          "x-order": 1,
+          "description": "Aspect ratio of the video. Ignored if a start frame, end frame or video ID is given."
+        },
+        "end_video_id": {
+          "type": "string",
+          "title": "End Video Id",
+          "description": "Prepend a new video generation to the beginning of an existing one (Also called 'reverse extend'). You can combine this with start_image, or start_video_id."
+        },
+        "end_image_url": {
+          "type": "string",
+          "title": "End Image Url",
+          "deprecated": true,
+          "description": "Deprecated: Use end_image instead"
+        },
+        "start_video_id": {
+          "type": "string",
+          "title": "Start Video Id",
+          "description": "Continue or extend a video generation with a new generation. You can combine this with end_image, or end_video_id."
+        },
+        "start_image_url": {
+          "type": "string",
+          "title": "Start Image Url",
+          "deprecated": true,
+          "description": "Deprecated: Use start_image instead"
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "string",
+      "title": "Output",
+      "format": "uri"
+    },
+    "fetchedAt": "2026-01-28T20:10:02.312Z"
   },
   {
     "modelId": "meta/meta-llama-3.1-405b-instruct",
     "name": "MetaLlama31",
     "category": "llm",
     "description": "Meta's flagship 405 billion parameter language model, fine-tuned for chat completions",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/81ca001f-6a0a-4bef-b2f1-32466887df20/meta-logo.png",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -578,13 +1414,14 @@
       "x-cog-array-type": "iterator",
       "x-cog-array-display": "concatenate"
     },
-    "fetchedAt": "2026-01-23T11:12:51.728Z"
+    "fetchedAt": "2026-01-28T20:10:02.508Z"
   },
   {
     "modelId": "luma/reframe-image",
     "name": "LumaReframeImage",
     "category": "reframe",
     "description": "Change the aspect ratio of any photo using AI (not cropping)",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_cover_image/6718c188-d6a3-4572-953c-bd5455c359ca/tmp5_8g7kz2.png",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -663,13 +1500,14 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:51.958Z"
+    "fetchedAt": "2026-01-28T20:10:02.745Z"
   },
   {
     "modelId": "luma/reframe-video",
     "name": "LumaReframeVideo",
     "category": "reframe",
     "description": "Change the aspect ratio of any video up to 30 seconds long, outputs will be 720p",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/a3d9c60a-0a0b-4907-980d-275483b78a45/replicate-prediction-j6fp3jym.webp",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -738,13 +1576,14 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:52.148Z"
+    "fetchedAt": "2026-01-28T20:10:02.939Z"
   },
   {
     "modelId": "sync/lipsync-2",
     "name": "Lipsync2",
     "category": "lipsync",
     "description": "Generate realistic lipsyncs with Sync Labs' 2.0 model",
+    "coverImageUrl": "https://replicate.delivery/xezq/wJSCHDW1zvqcBtInTLFK9rW6N52db0y5FImHrJlyjYi12gQF/tmpr6cxkcvr.mp4",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -796,13 +1635,14 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:52.337Z"
+    "fetchedAt": "2026-01-28T20:10:03.133Z"
   },
   {
     "modelId": "sync/lipsync-2-pro",
     "name": "Lipsync2Pro",
     "category": "lipsync",
     "description": "Studio-grade lipsync in minutes, not weeks",
+    "coverImageUrl": "https://replicate.delivery/xezq/boKOqiuyz9omClm432RN1vzB3wejNr36em4lmJ2SC6If6KnqA/tmp47bgpsi_.mp4",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -854,13 +1694,14 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:52.530Z"
+    "fetchedAt": "2026-01-28T20:10:03.341Z"
   },
   {
     "modelId": "bytedance/latentsync",
     "name": "LatentSync",
     "category": "lipsync",
     "description": "LatentSync: generate high-quality lip sync animations",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_cover_image/97983814-f48f-4d0f-9a09-88876354fc26/replicate-prediction-r0v9_XP3VwZC.jpg",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -902,13 +1743,14 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:52.725Z"
+    "fetchedAt": "2026-01-28T20:10:03.528Z"
   },
   {
     "modelId": "pixverse/lipsync",
     "name": "PixverseLipsync",
     "category": "lipsync",
     "description": "Generate realistic lipsync animations from audio for high-quality synchronization",
+    "coverImageUrl": "https://replicate.delivery/xezq/IFUeAG1KsQWCHKURDyq182XIeJDVq5l0qVNGkksLttbvPyXVA/tmp__afyey0.mp4",
     "inputSchema": {
       "type": "object",
       "title": "Input",
@@ -938,6 +1780,6 @@
       "title": "Output",
       "format": "uri"
     },
-    "fetchedAt": "2026-01-23T11:12:52.915Z"
+    "fetchedAt": "2026-01-28T20:10:03.793Z"
   }
 ]

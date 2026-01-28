@@ -314,7 +314,7 @@ export const FULL_PIPELINE_TEMPLATE: WorkflowFile = {
       source: 'stitch-1',
       target: 'output-1',
       sourceHandle: 'video',
-      targetHandle: 'media',
+      targetHandle: 'video',
     },
   ],
   edgeStyle: 'smoothstep',

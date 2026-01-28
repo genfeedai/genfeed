@@ -129,7 +129,7 @@ export const FACECAM_AVATAR_TEMPLATE: WorkflowFile = {
       source: 'lipSync',
       target: 'output',
       sourceHandle: 'video',
-      targetHandle: 'media',
+      targetHandle: 'video',
     },
   ],
   edgeStyle: 'smoothstep',

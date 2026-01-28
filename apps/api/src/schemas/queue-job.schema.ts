@@ -64,6 +64,10 @@ export class QueueJob extends Document {
   @Prop({ default: false })
   movedToDlq: boolean;
 
+  /** Last heartbeat timestamp - updated during long-running polling operations */
+  @Prop()
+  lastHeartbeat?: Date;
+
   createdAt: Date;
   updatedAt: Date;
 }

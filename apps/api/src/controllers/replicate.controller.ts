@@ -21,12 +21,17 @@ export class ReplicateController {
         aspectRatio: dto.aspectRatio,
         resolution: dto.resolution,
         outputFormat: dto.outputFormat,
+        selectedModel: dto.selectedModel,
+        schemaParams: dto.schemaParams,
+        debugMode: dto.debugMode,
       }
     );
 
     return {
       predictionId: prediction.id,
       status: prediction.status,
+      output: prediction.debugPayload ? prediction.output : undefined,
+      debugPayload: prediction.debugPayload,
     };
   }
 
@@ -47,12 +52,17 @@ export class ReplicateController {
         generateAudio: dto.generateAudio,
         negativePrompt: dto.negativePrompt,
         seed: dto.seed,
+        selectedModel: dto.selectedModel,
+        schemaParams: dto.schemaParams,
+        debugMode: dto.debugMode,
       }
     );
 
     return {
       predictionId: prediction.id,
       status: prediction.status,
+      output: prediction.debugPayload ? prediction.output : undefined,
+      debugPayload: prediction.debugPayload,
     };
   }
 

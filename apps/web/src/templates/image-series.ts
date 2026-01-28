@@ -132,7 +132,7 @@ export const IMAGE_SERIES_TEMPLATE: WorkflowFile = {
       source: 'imageGen-2',
       target: 'output-1',
       sourceHandle: 'image',
-      targetHandle: 'media',
+      targetHandle: 'image',
     },
   ],
   edgeStyle: 'smoothstep',

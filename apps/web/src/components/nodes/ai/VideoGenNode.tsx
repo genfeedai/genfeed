@@ -1,28 +1,58 @@
 'use client';
 
-import { VIDEO_ASPECT_RATIOS, VIDEO_DURATIONS, VIDEO_RESOLUTIONS } from '@genfeedai/core';
-import type {
-  AspectRatio,
-  ProviderModel,
-  VideoDuration,
-  VideoGenNodeData,
-  VideoModel,
-  VideoResolution,
-} from '@genfeedai/types';
+import type { ProviderModel, VideoGenNodeData, VideoModel } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, Play, RefreshCw, Search } from 'lucide-react';
-import { memo, useCallback, useState } from 'react';
+import { AlertCircle, ImageIcon, Loader2, Play, RefreshCw } from 'lucide-react';
+import Image from 'next/image';
+import { memo, useCallback, useMemo, useState } from 'react';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import { SchemaInputs } from '@/components/nodes/SchemaInputs';
 import { Button } from '@/components/ui/button';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const MODELS: { value: VideoModel; label: string; description: string }[] = [
-  { value: 'veo-3.1-fast', label: 'Veo 3.1 Fast', description: 'Fast, $0.10-0.15/sec' },
-  { value: 'veo-3.1', label: 'Veo 3.1', description: 'High quality, $0.20-0.40/sec' },
+  { value: 'veo-3.1-fast', label: 'Veo 3.1 Fast', description: 'Fast' },
+  { value: 'veo-3.1', label: 'Veo 3.1', description: 'High quality' },
 ];
+
+/**
+ * Extract default values from schema properties
+ */
+function getSchemaDefaults(schema: Record<string, unknown> | undefined): Record<string, unknown> {
+  if (!schema) return {};
+
+  const properties = (schema as { properties?: Record<string, { default?: unknown }> }).properties;
+  if (!properties) return {};
+
+  const defaults: Record<string, unknown> = {};
+  for (const [key, prop] of Object.entries(properties)) {
+    if (prop.default !== undefined) {
+      defaults[key] = prop.default;
+    }
+  }
+  return defaults;
+}
+
+/**
+ * Check if the model's schema supports image/video input
+ */
+function supportsImageInput(schema: Record<string, unknown> | undefined): boolean {
+  if (!schema) return true; // Default to true if no schema
+
+  const properties = (schema as { properties?: Record<string, unknown> }).properties;
+  if (!properties) return true;
+
+  // Check for common image/video input field names
+  return !!(
+    properties.image ||
+    properties.start_image ||
+    properties.first_frame_image ||
+    properties.reference_images
+  );
+}
 
 function VideoGenNodeComponent(props: NodeProps) {
   const { id, type, data } = props;
@@ -33,6 +63,22 @@ function VideoGenNodeComponent(props: NodeProps) {
 
   const [isModelBrowserOpen, setIsModelBrowserOpen] = useState(false);
 
+  // Get schema properties from selected model
+  const schemaProperties = useMemo(() => {
+    const schema = nodeData.selectedModel?.inputSchema as
+      | {
+          properties?: Record<string, unknown>;
+        }
+      | undefined;
+    return schema?.properties as Record<string, unknown> | undefined;
+  }, [nodeData.selectedModel?.inputSchema]);
+
+  // Check if model supports image input
+  const modelSupportsImageInput = useMemo(
+    () => supportsImageInput(nodeData.selectedModel?.inputSchema),
+    [nodeData.selectedModel?.inputSchema]
+  );
+
   const handleModelSelect = useCallback(
     (model: ProviderModel) => {
       // Map provider model to our internal model format
@@ -41,59 +87,38 @@ function VideoGenNodeComponent(props: NodeProps) {
         'google/veo-3.1': 'veo-3.1',
       };
 
-      const internalModel = modelMap[model.id];
-      if (internalModel) {
-        updateNodeData<VideoGenNodeData>(id, {
-          model: internalModel,
-          provider: model.provider,
-          selectedModel: {
-            provider: model.provider,
-            modelId: model.id,
-            displayName: model.displayName,
-          },
-        });
-      }
-    },
-    [id, updateNodeData]
-  );
+      const internalModel = modelMap[model.id] ?? ('veo-3.1-fast' as VideoModel);
 
-  const handleModelChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData<VideoGenNodeData>(id, { model: e.target.value as VideoModel });
-    },
-    [id, updateNodeData]
-  );
+      // Extract defaults from the new model's schema
+      const schemaDefaults = getSchemaDefaults(model.inputSchema);
 
-  const handleAspectRatioChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData<VideoGenNodeData>(id, { aspectRatio: e.target.value as AspectRatio });
-    },
-    [id, updateNodeData]
-  );
-
-  const handleResolutionChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData<VideoGenNodeData>(id, { resolution: e.target.value as VideoResolution });
-    },
-    [id, updateNodeData]
-  );
-
-  const handleDurationChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
       updateNodeData<VideoGenNodeData>(id, {
-        duration: parseInt(e.target.value, 10) as VideoDuration,
+        model: internalModel,
+        provider: model.provider,
+        selectedModel: {
+          provider: model.provider,
+          modelId: model.id,
+          displayName: model.displayName,
+          inputSchema: model.inputSchema,
+        },
+        // Initialize schemaParams with defaults from new model
+        schemaParams: schemaDefaults,
       });
     },
     [id, updateNodeData]
   );
 
-  const handleAudioToggle = useCallback(() => {
-    updateNodeData<VideoGenNodeData>(id, { generateAudio: !nodeData.generateAudio });
-  }, [id, nodeData.generateAudio, updateNodeData]);
-
-  const handleNegativePromptChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<VideoGenNodeData>(id, { negativePrompt: e.target.value });
+  const handleSchemaParamChange = useCallback(
+    (key: string, value: unknown) => {
+      // Get fresh state to avoid stale closure issues with rapid changes
+      const currentNode = useWorkflowStore.getState().getNodeById(id);
+      const currentData = currentNode?.data as VideoGenNodeData | undefined;
+      updateNodeData<VideoGenNodeData>(id, {
+        schemaParams: {
+          ...(currentData?.schemaParams ?? {}),
+          [key]: value,
+        },
+      });
     },
     [id, updateNodeData]
   );
@@ -102,123 +127,114 @@ function VideoGenNodeComponent(props: NodeProps) {
     executeNode(id);
   }, [id, executeNode]);
 
+  const modelDisplayName =
+    nodeData.selectedModel?.displayName ||
+    MODELS.find((m) => m.value === nodeData.model)?.label ||
+    nodeData.model;
+
+  const headerActions = (
+    <>
+      <Button
+        variant="secondary"
+        size="sm"
+        onClick={() => setIsModelBrowserOpen(true)}
+        className="h-5 px-2 text-[10px]"
+      >
+        Browse
+      </Button>
+      {nodeData.outputVideo && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleGenerate}
+          disabled={nodeData.status === 'processing'}
+          className="h-5 w-5"
+          title="Regenerate"
+        >
+          <RefreshCw className="h-3 w-3" />
+        </Button>
+      )}
+    </>
+  );
+
+  // Determine which inputs to disable based on model support
+  const disabledInputs = useMemo(() => {
+    if (modelSupportsImageInput) return undefined;
+    return ['image', 'lastFrame'];
+  }, [modelSupportsImageInput]);
+
   return (
-    <BaseNode {...props}>
-      <div className="space-y-3">
-        {/* Model Selection */}
-        <div>
-          <label className="text-xs text-[var(--muted-foreground)]">Model</label>
-          <div className="flex gap-2">
-            <select
-              value={nodeData.model}
-              onChange={handleModelChange}
-              className="flex-1 px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-            >
-              {MODELS.map((model) => (
-                <option key={model.value} value={model.value}>
-                  {model.label} - {model.description}
-                </option>
-              ))}
-            </select>
-            <Button
-              variant="outline"
-              size="icon-sm"
-              onClick={() => setIsModelBrowserOpen(true)}
-              title="Browse models"
-            >
-              <Search className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
-          {/* Duration */}
-          <div>
-            <label className="text-xs text-[var(--muted-foreground)]">Duration</label>
-            <select
-              value={nodeData.duration}
-              onChange={handleDurationChange}
-              className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-            >
-              {VIDEO_DURATIONS.map((d) => (
-                <option key={d} value={d}>
-                  {d}s
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Resolution */}
-          <div>
-            <label className="text-xs text-[var(--muted-foreground)]">Resolution</label>
-            <select
-              value={nodeData.resolution}
-              onChange={handleResolutionChange}
-              className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-            >
-              {VIDEO_RESOLUTIONS.map((res) => (
-                <option key={res} value={res}>
-                  {res}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Aspect Ratio */}
-        <div>
-          <label className="text-xs text-[var(--muted-foreground)]">Aspect Ratio</label>
-          <select
-            value={nodeData.aspectRatio}
-            onChange={handleAspectRatioChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          >
-            {VIDEO_ASPECT_RATIOS.map((ratio) => (
-              <option key={ratio} value={ratio}>
-                {ratio}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Audio Toggle */}
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={nodeData.generateAudio}
-            onChange={handleAudioToggle}
-            className="w-4 h-4 rounded border-[var(--border)] bg-[var(--background)] text-[var(--primary)] focus:ring-[var(--primary)]"
+    <BaseNode
+      {...props}
+      title={modelDisplayName}
+      headerActions={headerActions}
+      disabledInputs={disabledInputs}
+    >
+      <div className="flex-1 flex flex-col gap-3 min-h-0">
+        {/* Dynamic Schema Inputs */}
+        {schemaProperties && (
+          <SchemaInputs
+            schema={schemaProperties}
+            values={nodeData.schemaParams ?? {}}
+            onChange={handleSchemaParamChange}
           />
-          <span className="text-sm text-[var(--foreground)]">Generate Audio</span>
-        </label>
+        )}
 
-        {/* Negative Prompt */}
-        <div>
-          <label className="text-xs text-[var(--muted-foreground)]">Negative Prompt</label>
-          <input
-            type="text"
-            value={nodeData.negativePrompt}
-            onChange={handleNegativePromptChange}
-            placeholder="What to exclude..."
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          />
-        </div>
+        {/* Hint when model doesn't support image input */}
+        {!modelSupportsImageInput && nodeData.inputImage && (
+          <div className="text-xs text-amber-500 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3" />
+            This model doesn&apos;t use image inputs
+          </div>
+        )}
+
+        {/* Input Image Preview - shows connected image or empty dropzone */}
+        {!nodeData.outputVideo && modelSupportsImageInput && (
+          <div className="flex-1 min-h-[100px] rounded-md overflow-hidden bg-black/20">
+            {nodeData.inputImage ? (
+              <div className="relative w-full h-full min-h-[100px]">
+                <Image
+                  src={nodeData.inputImage}
+                  alt="Input image"
+                  fill
+                  className="object-contain"
+                  unoptimized
+                />
+                {nodeData.status === 'processing' && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+                    <div className="flex flex-col items-center gap-2">
+                      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                      <span className="text-xs text-white/80">Generating...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex h-full min-h-[100px] w-full flex-col items-center justify-center gap-1 border border-dashed border-border/50 rounded-md">
+                <ImageIcon className="h-6 w-6 text-muted-foreground/30" />
+                <span className="text-[10px] text-muted-foreground/50">Connect start frame</span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Output Preview */}
         {nodeData.outputVideo && (
-          <div className="relative">
+          <div className="relative aspect-video w-full rounded overflow-hidden bg-black/20">
             <video
               src={nodeData.outputVideo}
-              className="w-full h-20 object-cover rounded cursor-pointer"
+              className="absolute inset-0 w-full h-full object-contain cursor-pointer"
               controls
             />
-            <button
-              onClick={handleGenerate}
-              disabled={nodeData.status === 'processing'}
-              className="absolute top-1 right-1 p-1 bg-black/50 rounded-full hover:bg-black/70 transition disabled:opacity-50"
-            >
-              <RefreshCw className="w-3 h-3" />
-            </button>
+            {/* Processing overlay spinner */}
+            {nodeData.status === 'processing' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="text-xs text-white/80">Generating...</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
@@ -227,7 +243,8 @@ function VideoGenNodeComponent(props: NodeProps) {
           <button
             onClick={handleGenerate}
             disabled={!hasRequiredInputs}
-            className="w-full py-2 bg-[var(--primary)] text-white rounded text-sm font-medium hover:opacity-90 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full py-2 rounded-md text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+            style={{ backgroundColor: 'var(--node-color)', color: 'var(--background)' }}
           >
             <Play className="w-4 h-4" />
             Generate Video

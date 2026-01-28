@@ -50,10 +50,18 @@ export class JobRecoveryService implements OnModuleInit {
     const staleThreshold = new Date(Date.now() - this.STALE_THRESHOLD_MS);
 
     // Find jobs that were in-progress when server may have crashed
+    // Jobs are considered stalled if BOTH:
+    // 1. updatedAt is older than threshold (no status change)
+    // 2. lastHeartbeat is null OR older than threshold (no heartbeat during polling)
     const stalledJobs = await this.queueJobModel
       .find({
         status: { $in: [JOB_STATUS.ACTIVE, JOB_STATUS.PENDING] },
         updatedAt: { $lt: staleThreshold },
+        $or: [
+          { lastHeartbeat: { $exists: false } },
+          { lastHeartbeat: null },
+          { lastHeartbeat: { $lt: staleThreshold } },
+        ],
         movedToDlq: false,
       })
       .lean<StalledJob[]>();

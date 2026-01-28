@@ -7,7 +7,7 @@ import { logger } from '@/lib/logger';
 // =============================================================================
 
 export type ProviderType = 'replicate' | 'fal' | 'huggingface';
-export type EdgeStyle = 'bezier' | 'smoothstep' | 'straight';
+export type EdgeStyle = 'default' | 'smoothstep' | 'straight';
 
 export interface ProviderConfig {
   apiKey: string | null;
@@ -52,8 +52,12 @@ interface SettingsStore {
   // Onboarding
   hasSeenWelcome: boolean;
 
+  // Developer
+  debugMode: boolean;
+
   // Actions
   toggleAutoSave: () => void;
+  setDebugMode: (enabled: boolean) => void;
   setProviderKey: (provider: ProviderType, key: string | null) => void;
   setProviderEnabled: (provider: ProviderType, enabled: boolean) => void;
   setDefaultModel: (type: 'image' | 'video', model: string, provider: ProviderType) => void;
@@ -93,11 +97,12 @@ const DEFAULT_SETTINGS = {
     videoModel: 'veo-3.1',
     videoProvider: 'replicate' as ProviderType,
   },
-  edgeStyle: 'bezier' as EdgeStyle,
+  edgeStyle: 'default' as EdgeStyle,
   showMinimap: true,
   autoSaveEnabled: true,
   recentModels: [] as RecentModel[],
   hasSeenWelcome: false,
+  debugMode: false,
 };
 
 // =============================================================================
@@ -114,11 +119,15 @@ function loadFromStorage(): Partial<typeof DEFAULT_SETTINGS> {
       return {
         providers: { ...DEFAULT_SETTINGS.providers, ...parsed.providers },
         defaults: { ...DEFAULT_SETTINGS.defaults, ...parsed.defaults },
-        edgeStyle: parsed.edgeStyle ?? DEFAULT_SETTINGS.edgeStyle,
+        edgeStyle:
+          parsed.edgeStyle === 'bezier'
+            ? 'default'
+            : (parsed.edgeStyle ?? DEFAULT_SETTINGS.edgeStyle),
         showMinimap: parsed.showMinimap ?? DEFAULT_SETTINGS.showMinimap,
         autoSaveEnabled: parsed.autoSaveEnabled ?? true,
         recentModels: parsed.recentModels ?? [],
         hasSeenWelcome: parsed.hasSeenWelcome ?? false,
+        debugMode: parsed.debugMode ?? false,
       };
     }
   } catch {
@@ -135,6 +144,7 @@ function saveToStorage(state: {
   autoSaveEnabled: boolean;
   recentModels: RecentModel[];
   hasSeenWelcome: boolean;
+  debugMode: boolean;
 }) {
   if (typeof window === 'undefined') return;
 
@@ -161,6 +171,7 @@ function saveToStorage(state: {
       autoSaveEnabled: state.autoSaveEnabled,
       recentModels: state.recentModels.slice(0, MAX_RECENT_MODELS),
       hasSeenWelcome: state.hasSeenWelcome,
+      debugMode: state.debugMode,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
   } catch {
@@ -182,6 +193,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   autoSaveEnabled: initialState.autoSaveEnabled,
   recentModels: initialState.recentModels,
   hasSeenWelcome: initialState.hasSeenWelcome,
+  debugMode: initialState.debugMode,
 
   toggleAutoSave: () => {
     set((state) => {
@@ -245,6 +257,11 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
       saveToStorage({ ...state, ...newState });
       return newState;
     });
+    // Also update the current workflow's edges
+    // Import dynamically to avoid circular dependency
+    import('@/store/workflowStore').then(({ useWorkflowStore }) => {
+      useWorkflowStore.getState().setEdgeStyle(style);
+    });
   },
 
   setShowMinimap: (show) => {
@@ -306,6 +323,14 @@ export const useSettingsStore = create<SettingsStore>((set, get) => ({
   setHasSeenWelcome: (seen) => {
     set((state) => {
       const newState = { hasSeenWelcome: seen };
+      saveToStorage({ ...state, ...newState });
+      return newState;
+    });
+  },
+
+  setDebugMode: (enabled) => {
+    set((state) => {
+      const newState = { debugMode: enabled };
       saveToStorage({ ...state, ...newState });
       return newState;
     });

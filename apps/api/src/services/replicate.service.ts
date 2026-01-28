@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import Replicate from 'replicate';
 import { CostCalculatorService } from '@/services/cost-calculator.service';
 import { ExecutionsService } from '@/services/executions.service';
+import { FilesService } from '@/services/files.service';
+import { SchemaMapperService } from '@/services/schema-mapper.service';
 
 // Model identifiers (Replicate official models)
 export const MODELS = {
@@ -30,12 +32,24 @@ export const MODELS = {
   pixverseLipSync: 'pixverse/lipsync',
 } as const;
 
+export interface SelectedModel {
+  provider: string;
+  modelId: string;
+  displayName?: string;
+  inputSchema?: Record<string, unknown>;
+}
+
 export interface ImageGenInput {
   prompt: string;
   inputImages?: string[];
   aspectRatio?: string;
   resolution?: string;
   outputFormat?: string;
+  selectedModel?: SelectedModel;
+  /** Dynamic parameters from model's input schema */
+  schemaParams?: Record<string, unknown>;
+  /** Debug mode - skip API calls and return mock data */
+  debugMode?: boolean;
 }
 
 export interface VideoGenInput {
@@ -49,6 +63,11 @@ export interface VideoGenInput {
   generateAudio?: boolean;
   negativePrompt?: string;
   seed?: number;
+  selectedModel?: SelectedModel;
+  /** Dynamic parameters from model's input schema */
+  schemaParams?: Record<string, unknown>;
+  /** Debug mode - skip API calls and return mock data */
+  debugMode?: boolean;
 }
 
 export interface LLMInput {
@@ -152,12 +171,70 @@ export interface PredictionResult {
   metrics?: {
     predict_time?: number;
   };
+  debugPayload?: {
+    model: string;
+    input: Record<string, unknown>;
+    timestamp: string;
+  };
 }
 
 @Injectable()
 export class ReplicateService {
   private readonly logger = new Logger(ReplicateService.name);
   private readonly replicate: Replicate;
+
+  /**
+   * Convert a local file URL to base64 data URI
+   * Replicate can't access localhost URLs, so we need to send the actual file data
+   */
+  private convertLocalUrlToBase64(url: string | undefined): string | undefined {
+    if (!url) return undefined;
+    const result = this.filesService.urlToBase64(url);
+    // Log if conversion didn't happen (still a URL)
+    if (result && !result.startsWith('data:') && result.includes('localhost')) {
+      this.logger.warn(`Failed to convert URL to base64: ${url.substring(0, 100)}`);
+    }
+    return result;
+  }
+
+  /**
+   * Convert all local URLs in schemaParams to base64
+   * This handles cases where image URLs are passed via schemaParams
+   */
+  private convertSchemaParamsUrls(
+    schemaParams: Record<string, unknown> | undefined
+  ): Record<string, unknown> | undefined {
+    if (!schemaParams) return undefined;
+
+    // Keys that typically contain image/video URLs
+    const urlKeys = [
+      'image',
+      'image_input',
+      'start_image',
+      'end_image',
+      'last_frame',
+      'reference_images',
+      'video',
+      'audio',
+    ];
+
+    const converted = { ...schemaParams };
+
+    for (const key of urlKeys) {
+      if (key in converted) {
+        const value = converted[key];
+        if (typeof value === 'string') {
+          converted[key] = this.convertLocalUrlToBase64(value);
+        } else if (Array.isArray(value)) {
+          converted[key] = value.map((v) =>
+            typeof v === 'string' ? this.convertLocalUrlToBase64(v) : v
+          );
+        }
+      }
+    }
+
+    return converted;
+  }
 
   /** Map Topaz model names to enhance model display names */
   private static readonly TOPAZ_ENHANCE_MODEL_MAP: Record<string, string> = {
@@ -180,7 +257,9 @@ export class ReplicateService {
     private readonly configService: ConfigService,
     @Inject(forwardRef(() => ExecutionsService))
     private readonly executionsService: ExecutionsService,
-    private readonly costCalculatorService: CostCalculatorService
+    readonly _costCalculatorService: CostCalculatorService,
+    private readonly filesService: FilesService,
+    private readonly schemaMapper: SchemaMapperService
   ) {
     this.replicate = new Replicate({
       auth: this.configService.get<string>('REPLICATE_API_TOKEN'),
@@ -188,33 +267,93 @@ export class ReplicateService {
   }
 
   /**
-   * Generate an image using nano-banana models
+   * Generate an image using various image generation models
+   * Supports dynamic model selection via selectedModel, with fallback to legacy model field
    */
   async generateImage(
     executionId: string,
     nodeId: string,
-    model: 'nano-banana' | 'nano-banana-pro',
+    model: 'nano-banana' | 'nano-banana-pro' | undefined,
     input: ImageGenInput
   ): Promise<PredictionResult> {
-    const modelId = model === 'nano-banana' ? MODELS.nanoBanana : MODELS.nanoBananaPro;
+    // Use selectedModel.modelId if available, otherwise fall back to legacy model mapping
+    let modelId: string;
+    if (input.selectedModel?.modelId) {
+      modelId = input.selectedModel.modelId;
+    } else {
+      modelId = model === 'nano-banana' ? MODELS.nanoBanana : MODELS.nanoBananaPro;
+    }
+
+    // Convert local URLs to base64 (Replicate can't access localhost)
+    this.logger.debug(`Received inputImages: ${JSON.stringify(input.inputImages)}`);
+    const inputImages = input.inputImages
+      ? input.inputImages.map((url) => this.convertLocalUrlToBase64(url))
+      : [];
+    this.logger.debug(`Converted images count: ${inputImages.filter(Boolean).length}`);
+
+    // Get the model's input schema
+    const inputSchema = input.selectedModel?.inputSchema;
+
+    // Convert schemaParams URLs to base64 if present
+    const convertedSchemaParams = this.convertSchemaParamsUrls(input.schemaParams);
+
+    // Use schema mapper to build prediction input with correct field names
+    const predictionInput = this.schemaMapper.mapImageInput(
+      {
+        prompt: input.prompt,
+        inputImages: inputImages.filter(Boolean) as string[],
+        aspectRatio: input.aspectRatio,
+        resolution: input.resolution,
+        outputFormat: input.outputFormat,
+      },
+      inputSchema,
+      convertedSchemaParams
+    );
+
+    this.logger.debug(
+      `Image prediction input for ${modelId}: ${JSON.stringify(Object.keys(predictionInput))}`
+    );
+
+    // Debug mode: skip actual API call and return mock data
+    if (input.debugMode) {
+      const mockId = `debug-img-${Date.now()}`;
+      const mockOutput = 'https://placehold.co/1024x1024/1a1a2e/ffd700?text=DEBUG+IMAGE';
+      const debugPayload = {
+        model: modelId,
+        input: predictionInput,
+        timestamp: new Date().toISOString(),
+      };
+
+      this.logger.log(`[DEBUG] Mock image prediction ${mockId} for node ${nodeId}`);
+
+      // Create debug job record so SSE stream can return it
+      await this.executionsService.createDebugJob(
+        executionId,
+        nodeId,
+        mockId,
+        { image: mockOutput },
+        debugPayload
+      );
+
+      return {
+        id: mockId,
+        status: 'succeeded',
+        output: mockOutput,
+        debugPayload,
+      } as PredictionResult;
+    }
 
     const prediction = await this.replicate.predictions.create({
       model: modelId,
-      input: {
-        prompt: input.prompt,
-        image_input: input.inputImages ?? [],
-        aspect_ratio: input.aspectRatio ?? '1:1',
-        output_format: input.outputFormat ?? 'jpg',
-        ...(model === 'nano-banana-pro' && {
-          resolution: input.resolution ?? '2K',
-        }),
-      },
+      input: predictionInput,
     });
 
     // Create job record in database
     await this.executionsService.createJob(executionId, nodeId, prediction.id);
 
-    this.logger.log(`Created image prediction ${prediction.id} for node ${nodeId}`);
+    this.logger.log(
+      `Created image prediction ${prediction.id} with model ${modelId} for node ${nodeId}`
+    );
 
     return prediction as PredictionResult;
   }
@@ -228,28 +367,89 @@ export class ReplicateService {
     model: 'veo-3.1-fast' | 'veo-3.1',
     input: VideoGenInput
   ): Promise<PredictionResult> {
-    const modelId = model === 'veo-3.1-fast' ? MODELS.veoFast : MODELS.veo;
+    // Use selectedModel.modelId if available, otherwise fall back to legacy model mapping
+    let modelId: string;
+    if (input.selectedModel?.modelId) {
+      modelId = input.selectedModel.modelId;
+    } else {
+      modelId = model === 'veo-3.1-fast' ? MODELS.veoFast : MODELS.veo;
+    }
+
+    // Convert local URLs to base64 (Replicate can't access localhost)
+    const image = this.convertLocalUrlToBase64(input.image);
+    const lastFrame = this.convertLocalUrlToBase64(input.lastFrame);
+    const referenceImages = input.referenceImages
+      ? input.referenceImages.map((url) => this.convertLocalUrlToBase64(url))
+      : undefined;
+
+    // Get the model's input schema
+    const inputSchema = input.selectedModel?.inputSchema;
+
+    // Convert schemaParams URLs to base64 if present
+    const convertedSchemaParams = this.convertSchemaParamsUrls(input.schemaParams);
+
+    // Use schema mapper to build prediction input with correct field names
+    const predictionInput = this.schemaMapper.mapVideoInput(
+      {
+        prompt: input.prompt,
+        image: image ?? undefined,
+        lastFrame: lastFrame ?? undefined,
+        referenceImages: referenceImages?.filter(Boolean) as string[] | undefined,
+        duration: input.duration,
+        aspectRatio: input.aspectRatio,
+        resolution: input.resolution,
+        generateAudio: input.generateAudio,
+        negativePrompt: input.negativePrompt,
+        seed: input.seed,
+      },
+      inputSchema,
+      convertedSchemaParams
+    );
+
+    this.logger.debug(
+      `Video prediction input for ${modelId}: ${JSON.stringify(Object.keys(predictionInput))}`
+    );
+
+    // Debug mode: skip actual API call and return mock data
+    if (input.debugMode) {
+      const mockId = `debug-vid-${Date.now()}`;
+      const mockOutput = 'https://placehold.co/1920x1080/1a1a2e/ffd700?text=DEBUG+VIDEO';
+      const debugPayload = {
+        model: modelId,
+        input: predictionInput,
+        timestamp: new Date().toISOString(),
+      };
+
+      this.logger.log(`[DEBUG] Mock video prediction ${mockId} for node ${nodeId}`);
+
+      // Create debug job record so SSE stream can return it
+      await this.executionsService.createDebugJob(
+        executionId,
+        nodeId,
+        mockId,
+        { video: mockOutput },
+        debugPayload
+      );
+
+      return {
+        id: mockId,
+        status: 'succeeded',
+        output: mockOutput,
+        debugPayload,
+      } as PredictionResult;
+    }
 
     const prediction = await this.replicate.predictions.create({
       model: modelId,
-      input: {
-        prompt: input.prompt,
-        image: input.image,
-        last_frame: input.lastFrame,
-        reference_images: input.referenceImages,
-        duration: input.duration ?? 8,
-        aspect_ratio: input.aspectRatio ?? '16:9',
-        resolution: input.resolution ?? '1080p',
-        generate_audio: input.generateAudio ?? true,
-        negative_prompt: input.negativePrompt,
-        seed: input.seed,
-      },
+      input: predictionInput,
     });
 
     // Create job record in database
     await this.executionsService.createJob(executionId, nodeId, prediction.id);
 
-    this.logger.log(`Created video prediction ${prediction.id} for node ${nodeId}`);
+    this.logger.log(
+      `Created video prediction ${prediction.id} with model ${modelId} for node ${nodeId}`
+    );
 
     return prediction as PredictionResult;
   }
@@ -263,9 +463,12 @@ export class ReplicateService {
     nodeId: string,
     input: MotionControlInput
   ): Promise<PredictionResult> {
+    // Convert local URL to base64 (Replicate can't access localhost)
+    const image = this.convertLocalUrlToBase64(input.image);
+
     // Build input based on mode
     const baseInput: Record<string, unknown> = {
-      image: input.image,
+      image,
       prompt: input.prompt || '',
       duration: input.duration ?? 5,
       aspect_ratio: input.aspectRatio ?? '16:9',
@@ -335,10 +538,12 @@ export class ReplicateService {
     nodeId: string,
     input: LumaReframeImageInput
   ): Promise<PredictionResult> {
+    const image = this.convertLocalUrlToBase64(input.image);
+
     const prediction = await this.replicate.predictions.create({
       model: MODELS.lumaReframeImage,
       input: {
-        image: input.image,
+        image,
         aspect_ratio: input.aspectRatio,
         model: input.model ?? 'photon-flash-1',
         prompt: input.prompt || undefined,
@@ -361,10 +566,12 @@ export class ReplicateService {
     nodeId: string,
     input: LumaReframeVideoInput
   ): Promise<PredictionResult> {
+    const video = this.convertLocalUrlToBase64(input.video);
+
     const prediction = await this.replicate.predictions.create({
       model: MODELS.lumaReframeVideo,
       input: {
-        video: input.video,
+        video,
         aspect_ratio: input.aspectRatio,
         prompt: input.prompt || undefined,
         grid_position_x: input.gridPosition?.x ?? 0.5,
@@ -386,10 +593,12 @@ export class ReplicateService {
     nodeId: string,
     input: TopazImageUpscaleInput
   ): Promise<PredictionResult> {
+    const image = this.convertLocalUrlToBase64(input.image);
+
     const prediction = await this.replicate.predictions.create({
       model: MODELS.topazImageUpscale,
       input: {
-        image: input.image,
+        image,
         enhance_model: input.enhanceModel,
         upscale_factor: input.upscaleFactor,
         output_format: input.outputFormat,
@@ -413,10 +622,12 @@ export class ReplicateService {
     nodeId: string,
     input: TopazVideoUpscaleInput
   ): Promise<PredictionResult> {
+    const video = this.convertLocalUrlToBase64(input.video);
+
     const prediction = await this.replicate.predictions.create({
       model: MODELS.topazVideoUpscale,
       input: {
-        video: input.video,
+        video,
         target_resolution: input.targetResolution,
         target_fps: input.targetFps,
       },
@@ -494,17 +705,22 @@ export class ReplicateService {
   ): Promise<PredictionResult> {
     const modelId = ReplicateService.LIP_SYNC_MODEL_MAP[input.model] ?? MODELS.lipSync2;
 
+    // Convert local URLs to base64 (Replicate can't access localhost)
+    const audio = this.convertLocalUrlToBase64(input.audio);
+    const image = input.image ? this.convertLocalUrlToBase64(input.image) : undefined;
+    const video = input.video ? this.convertLocalUrlToBase64(input.video) : undefined;
+
     // Build input based on model - different models have different input formats
     const modelInput: Record<string, unknown> = {
-      audio: input.audio,
+      audio,
     };
 
     // Add image or video based on what's provided
-    if (input.image) {
-      modelInput.image = input.image;
+    if (image) {
+      modelInput.image = image;
     }
-    if (input.video) {
-      modelInput.video = input.video;
+    if (video) {
+      modelInput.video = video;
     }
 
     // Add model-specific options for sync labs models

@@ -37,17 +37,44 @@ interface WorkflowCardProps {
   onDuplicate: (id: string) => void;
 }
 
+function isVideoUrl(url: string): boolean {
+  const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
+  const lowerUrl = url.toLowerCase();
+  return videoExtensions.some((ext) => lowerUrl.includes(ext));
+}
+
 function WorkflowCard({ workflow, onDelete, onDuplicate }: WorkflowCardProps) {
   const [showMenu, setShowMenu] = useState(false);
+  const hasThumbnail = Boolean(workflow.thumbnail);
+  const isVideo = hasThumbnail && isVideoUrl(workflow.thumbnail!);
 
   return (
     <Link
       href={`/workflows/${workflow._id}`}
       className="group relative flex flex-col bg-[var(--card)] border border-[var(--border)] rounded-lg p-4 hover:border-white transition-all duration-200"
     >
-      {/* Workflow preview */}
+      {/* Workflow preview / Thumbnail */}
       <div className="aspect-video bg-[var(--secondary)] rounded-md mb-3 overflow-hidden">
-        <WorkflowPreview nodes={workflow.nodes ?? []} edges={workflow.edges ?? []} />
+        {hasThumbnail ? (
+          isVideo ? (
+            <video
+              src={workflow.thumbnail!}
+              className="h-full w-full object-cover object-center"
+              autoPlay
+              muted
+              loop
+              playsInline
+            />
+          ) : (
+            <img
+              src={workflow.thumbnail!}
+              alt={workflow.name}
+              className="h-full w-full object-cover object-center"
+            />
+          )
+        ) : (
+          <WorkflowPreview nodes={workflow.nodes ?? []} edges={workflow.edges ?? []} />
+        )}
       </div>
 
       {/* Info */}

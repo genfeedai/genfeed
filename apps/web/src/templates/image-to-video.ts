@@ -125,7 +125,7 @@ export const IMAGE_TO_VIDEO_TEMPLATE: WorkflowFile = {
       source: 'animation-1',
       target: 'output-1',
       sourceHandle: 'video',
-      targetHandle: 'media',
+      targetHandle: 'video',
     },
   ],
   edgeStyle: 'smoothstep',

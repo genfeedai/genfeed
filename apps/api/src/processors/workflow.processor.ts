@@ -56,7 +56,7 @@ export class WorkflowProcessor extends WorkerHost {
    * Webhook handler continues execution when nodes complete
    */
   private async processWorkflowOrchestration(job: Job<WorkflowJobData>): Promise<void> {
-    const { executionId, workflowId } = job.data;
+    const { executionId, workflowId, debugMode } = job.data;
 
     this.logger.log(`Processing workflow execution: ${executionId}`);
 
@@ -94,17 +94,29 @@ export class WorkflowProcessor extends WorkerHost {
         dependsOn: string[];
       }> = [];
 
+      // Collect passthrough node IDs first
+      const passthroughNodeIds = new Set<string>();
+      for (const nodeId of executionOrder) {
+        const node = nodes.find((n) => n.id === nodeId);
+        if (node && (PASSTHROUGH_NODE_TYPES as readonly string[]).includes(node.type)) {
+          passthroughNodeIds.add(nodeId);
+        }
+      }
+
       for (const nodeId of executionOrder) {
         const node = nodes.find((n) => n.id === nodeId);
         if (!node) continue;
 
         // Skip passthrough nodes - mark as complete immediately
-        if ((PASSTHROUGH_NODE_TYPES as readonly string[]).includes(node.type)) {
+        if (passthroughNodeIds.has(nodeId)) {
           await this.executionsService.updateNodeResult(executionId, nodeId, 'complete', {});
           continue;
         }
 
-        const dependsOn = dependencyMap.get(nodeId) ?? [];
+        // Filter out passthrough nodes from dependencies since they're already complete
+        const dependsOn = (dependencyMap.get(nodeId) ?? []).filter(
+          (depId) => !passthroughNodeIds.has(depId)
+        );
         pendingNodes.push({
           nodeId: node.id,
           nodeType: node.type,
@@ -127,7 +139,7 @@ export class WorkflowProcessor extends WorkerHost {
       // Other ready nodes will be enqueued as previous ones complete
       if (readyNodes.length > 0) {
         const firstNode = readyNodes[0];
-        // Pass workflow definition for input resolution
+        // Pass workflow definition for input resolution and debugMode
         const workflowDef = { nodes, edges };
         await this.queueManager.enqueueNode(
           executionId,
@@ -136,7 +148,8 @@ export class WorkflowProcessor extends WorkerHost {
           firstNode.nodeType,
           firstNode.nodeData,
           firstNode.dependsOn,
-          workflowDef
+          workflowDef,
+          { debugMode }
         );
         await this.executionsService.removeFromPendingNodes(executionId, firstNode.nodeId);
 

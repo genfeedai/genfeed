@@ -18,6 +18,15 @@ interface WorkflowNode {
   data: Record<string, unknown>;
 }
 
+// Node types that can produce media outputs for thumbnails
+const MEDIA_OUTPUT_NODE_TYPES = new Set([
+  'imageGen',
+  'videoGen',
+  'imageInput',
+  'videoInput',
+  'output',
+]);
+
 @Injectable()
 export class WorkflowsService {
   private readonly logger = new Logger(WorkflowsService.name);
@@ -43,6 +52,8 @@ export class WorkflowsService {
       groups: dto.groups ?? [],
       interface: workflowInterface,
       isReusable,
+      thumbnail: dto.thumbnail ?? null,
+      thumbnailNodeId: dto.thumbnailNodeId ?? null,
     });
     return workflow.save();
   }
@@ -80,6 +91,19 @@ export class WorkflowsService {
       this.logger.log(
         `Workflow ${id} interface updated: ${workflowInterface.inputs.length} inputs, ${workflowInterface.outputs.length} outputs`
       );
+
+      // Auto-select thumbnail if not set and nodes have media outputs
+      const existingWorkflow = await this.workflowModel.findOne({ _id: id, isDeleted: false });
+      if (existingWorkflow && !existingWorkflow.thumbnail) {
+        const autoThumbnail = this.findAutoThumbnail(nodes);
+        if (autoThumbnail) {
+          updates.thumbnail = autoThumbnail.url;
+          updates.thumbnailNodeId = autoThumbnail.nodeId;
+          this.logger.log(
+            `Auto-selected thumbnail for workflow ${id} from node ${autoThumbnail.nodeId}`
+          );
+        }
+      }
     }
 
     const workflow = await this.workflowModel
@@ -88,6 +112,58 @@ export class WorkflowsService {
     if (!workflow) {
       throw new NotFoundException(`Workflow ${id} not found`);
     }
+    return workflow;
+  }
+
+  /**
+   * Find a node with media output to use as auto-thumbnail
+   * Priority: video outputs > image outputs
+   */
+  private findAutoThumbnail(nodes: WorkflowNode[]): { url: string; nodeId: string } | null {
+    // First, look for video outputs
+    for (const node of nodes) {
+      if (!MEDIA_OUTPUT_NODE_TYPES.has(node.type)) continue;
+
+      const data = node.data as Record<string, unknown>;
+      if (data.status !== 'complete') continue;
+
+      if (data.outputVideo && typeof data.outputVideo === 'string') {
+        return { url: data.outputVideo, nodeId: node.id };
+      }
+    }
+
+    // Then, look for image outputs
+    for (const node of nodes) {
+      if (!MEDIA_OUTPUT_NODE_TYPES.has(node.type)) continue;
+
+      const data = node.data as Record<string, unknown>;
+      if (data.status !== 'complete') continue;
+
+      if (data.outputImage && typeof data.outputImage === 'string') {
+        return { url: data.outputImage, nodeId: node.id };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Set the thumbnail for a workflow
+   */
+  async setThumbnail(id: string, thumbnailUrl: string, nodeId: string): Promise<WorkflowDocument> {
+    const workflow = await this.workflowModel
+      .findOneAndUpdate(
+        { _id: id, isDeleted: false },
+        { $set: { thumbnail: thumbnailUrl, thumbnailNodeId: nodeId } },
+        { new: true }
+      )
+      .exec();
+
+    if (!workflow) {
+      throw new NotFoundException(`Workflow ${id} not found`);
+    }
+
+    this.logger.log(`Set thumbnail for workflow ${id} from node ${nodeId}`);
     return workflow;
   }
 
@@ -118,6 +194,8 @@ export class WorkflowsService {
       groups: original.groups,
       interface: workflowInterface,
       isReusable,
+      thumbnail: original.thumbnail,
+      thumbnailNodeId: original.thumbnailNodeId,
     });
     return duplicate.save();
   }

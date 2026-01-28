@@ -48,6 +48,8 @@ export interface WorkflowData {
   edges: WorkflowEdge[];
   edgeStyle: string;
   groups?: NodeGroup[];
+  thumbnail?: string | null;
+  thumbnailNodeId?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -106,6 +108,17 @@ export const workflowsApi = {
    */
   duplicate: (id: string, signal?: AbortSignal): Promise<WorkflowData> =>
     apiClient.post<WorkflowData>(`/workflows/${id}/duplicate`, undefined, { signal }),
+
+  /**
+   * Set the thumbnail for a workflow
+   */
+  setThumbnail: (
+    id: string,
+    thumbnailUrl: string,
+    nodeId: string,
+    signal?: AbortSignal
+  ): Promise<WorkflowData> =>
+    apiClient.put<WorkflowData>(`/workflows/${id}/thumbnail`, { thumbnailUrl, nodeId }, { signal }),
 
   // Composition endpoints
 

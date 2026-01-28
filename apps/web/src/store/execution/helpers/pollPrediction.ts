@@ -6,17 +6,22 @@ import { getOutputUpdate } from './outputHelpers';
 
 /**
  * Poll for prediction completion (used for individual node execution)
+ * @param signal - Optional AbortSignal to cancel polling when execution is stopped
  */
 export async function pollPrediction(
   predictionId: string,
   nodeId: string,
   workflowStore: ReturnType<typeof useWorkflowStore.getState>,
-  executionStore: ReturnType<typeof useExecutionStore.getState>
+  executionStore: ReturnType<typeof useExecutionStore.getState>,
+  signal?: AbortSignal
 ): Promise<void> {
   const maxAttempts = 120; // 10 minutes max
   const pollInterval = 5000; // 5 seconds
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
+    // Check if aborted before making request
+    if (signal?.aborted) return;
+
     const data = await apiClient.get<{
       id: string;
       status: string;
@@ -42,7 +47,13 @@ export async function pollPrediction(
         data.output as Record<string, unknown>,
         workflowStore
       );
-      workflowStore.updateNodeData(nodeId, { status: NODE_STATUS.complete, ...outputUpdate });
+      // Clear error on success
+      workflowStore.updateNodeData(nodeId, {
+        status: NODE_STATUS.complete,
+        error: null,
+        ...outputUpdate,
+      });
+      workflowStore.propagateOutputsDownstream(nodeId);
       return;
     }
 
@@ -54,7 +65,28 @@ export async function pollPrediction(
       return;
     }
 
-    await new Promise((resolve) => setTimeout(resolve, pollInterval));
+    // Abortable delay - allows cancellation during wait
+    await new Promise<void>((resolve, reject) => {
+      const timeout = setTimeout(resolve, pollInterval);
+      if (signal) {
+        signal.addEventListener(
+          'abort',
+          () => {
+            clearTimeout(timeout);
+            reject(new DOMException('Aborted', 'AbortError'));
+          },
+          { once: true }
+        );
+      }
+    }).catch((error) => {
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return; // Gracefully exit on abort
+      }
+      throw error;
+    });
+
+    // Check again after delay
+    if (signal?.aborted) return;
   }
 
   workflowStore.updateNodeData(nodeId, {

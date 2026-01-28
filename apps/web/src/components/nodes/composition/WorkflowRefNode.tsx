@@ -9,13 +9,13 @@ import { Label } from '@/components/ui/label';
 import { apiClient } from '@/lib/api/client';
 import { useWorkflowStore } from '@/store/workflowStore';
 
-// Handle color classes (duplicated from BaseNode for dynamic handles)
+// Handle color CSS variables (used inline for guaranteed override)
 const HANDLE_COLORS: Record<string, string> = {
-  image: 'handle-image',
-  video: 'handle-video',
-  text: 'handle-text',
-  number: 'handle-number',
-  audio: 'handle-audio',
+  image: 'var(--handle-image)',
+  video: 'var(--handle-video)',
+  text: 'var(--handle-text)',
+  number: 'var(--handle-number)',
+  audio: 'var(--handle-audio)',
 };
 
 interface ReferencableWorkflow {
@@ -202,8 +202,11 @@ function WorkflowRefNodeComponent(props: NodeProps) {
           type="target"
           position={Position.Left}
           id={input.id}
-          className={clsx('!w-3 !h-3', HANDLE_COLORS[input.type])}
-          style={{ top: `${((index + 1) / (inputHandles.length + 1)) * 100}%` }}
+          className="!w-3 !h-3"
+          style={{
+            top: `${((index + 1) / (inputHandles.length + 1)) * 100}%`,
+            background: HANDLE_COLORS[input.type],
+          }}
           title={`${input.label} (${input.type})${input.required ? ' - required' : ''}`}
         />
       ))}
@@ -332,8 +335,11 @@ function WorkflowRefNodeComponent(props: NodeProps) {
           type="source"
           position={Position.Right}
           id={output.id}
-          className={clsx('!w-3 !h-3', HANDLE_COLORS[output.type])}
-          style={{ top: `${((index + 1) / (outputHandles.length + 1)) * 100}%` }}
+          className="!w-3 !h-3"
+          style={{
+            top: `${((index + 1) / (outputHandles.length + 1)) * 100}%`,
+            background: HANDLE_COLORS[output.type],
+          }}
           title={`${output.label} (${output.type})`}
         />
       ))}

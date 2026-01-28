@@ -119,25 +119,27 @@ function WorkflowPreviewInner({ nodes, edges }: WorkflowPreviewProps) {
   }
 
   return (
-    <ReactFlow
-      nodes={previewNodes}
-      edges={previewEdges}
-      nodeTypes={previewNodeTypes}
-      fitView
-      fitViewOptions={{ padding: 0.3, minZoom: 0.5, maxZoom: 1.5 }}
-      nodesDraggable={false}
-      nodesConnectable={false}
-      nodesFocusable={false}
-      edgesFocusable={false}
-      elementsSelectable={false}
-      panOnDrag={false}
-      zoomOnScroll={false}
-      zoomOnDoubleClick={false}
-      zoomOnPinch={false}
-      preventScrolling={false}
-      proOptions={{ hideAttribution: true }}
-      style={{ background: 'transparent' }}
-    />
+    <div className="w-full h-full">
+      <ReactFlow
+        nodes={previewNodes}
+        edges={previewEdges}
+        nodeTypes={previewNodeTypes}
+        fitView
+        fitViewOptions={{ padding: 0.2, minZoom: 0.3, maxZoom: 2 }}
+        nodesDraggable={false}
+        nodesConnectable={false}
+        nodesFocusable={false}
+        edgesFocusable={false}
+        elementsSelectable={false}
+        panOnDrag={false}
+        zoomOnScroll={false}
+        zoomOnDoubleClick={false}
+        zoomOnPinch={false}
+        preventScrolling={false}
+        proOptions={{ hideAttribution: true }}
+        style={{ background: 'transparent', width: '100%', height: '100%' }}
+      />
+    </div>
   );
 }
 

@@ -1,6 +1,19 @@
 import type { NodeStatus, ValidationResult } from '@genfeedai/types';
 
 // =============================================================================
+// DEBUG TYPES
+// =============================================================================
+
+export interface DebugPayload {
+  nodeId: string;
+  nodeName: string;
+  nodeType: string;
+  model: string;
+  input: Record<string, unknown>;
+  timestamp: string;
+}
+
+// =============================================================================
 // JOB TYPES
 // =============================================================================
 
@@ -26,13 +39,29 @@ export interface ExecutionData {
   _id: string;
   workflowId: string;
   status: string;
+  debugMode?: boolean;
   nodeResults: NodeResult[];
+  pendingNodes?: Array<{
+    nodeId: string;
+    nodeType: string;
+    nodeData: Record<string, unknown>;
+    dependsOn: string[];
+  }>;
   jobs?: Array<{
     nodeId: string;
     predictionId: string;
     status: string;
     output?: Record<string, unknown>;
     error?: string;
+    result?: {
+      success?: boolean;
+      output?: Record<string, unknown>;
+      debugPayload?: {
+        model: string;
+        input: Record<string, unknown>;
+        timestamp: string;
+      };
+    };
   }>;
 }
 
@@ -50,6 +79,7 @@ export interface ExecutionState {
   jobs: Map<string, Job>;
   estimatedCost: number;
   actualCost: number;
+  debugPayloads: DebugPayload[];
 }
 
 export interface ExecutionActions {
@@ -71,6 +101,8 @@ export interface HelperActions {
   resetExecution: () => void;
   canResumeFromFailed: () => boolean;
   setEstimatedCost: (cost: number) => void;
+  addDebugPayload: (payload: DebugPayload) => void;
+  clearDebugPayloads: () => void;
 }
 
 export interface ExecutionStore
@@ -87,5 +119,6 @@ export const STATUS_MAP: Record<string, NodeStatus> = {
   pending: 'idle',
   processing: 'processing',
   complete: 'complete',
+  succeeded: 'complete',
   error: 'error',
 };

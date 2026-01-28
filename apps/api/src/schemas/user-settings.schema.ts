@@ -53,7 +53,7 @@ class NodeDefaults {
 // UI preferences
 @Schema({ _id: false })
 class UiPreferences {
-  @Prop({ default: 'bezier' })
+  @Prop({ default: 'default' })
   edgeStyle: string;
 
   @Prop({ default: true })

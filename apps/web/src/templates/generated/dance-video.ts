@@ -119,7 +119,7 @@ export const DANCE_VIDEO_TEMPLATE: WorkflowFile = {
       source: 'motion-control',
       target: 'output',
       sourceHandle: 'video',
-      targetHandle: 'media',
+      targetHandle: 'video',
     },
   ],
   edgeStyle: 'smoothstep',

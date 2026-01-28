@@ -155,7 +155,7 @@ function GenerateWorkflowModalComponent() {
       description: generatedWorkflow.description,
       nodes: generatedWorkflow.nodes as Parameters<typeof loadWorkflow>[0]['nodes'],
       edges: generatedWorkflow.edges as Parameters<typeof loadWorkflow>[0]['edges'],
-      edgeStyle: 'bezier',
+      edgeStyle: 'default',
       groups: [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

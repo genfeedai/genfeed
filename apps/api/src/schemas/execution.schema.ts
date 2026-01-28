@@ -108,6 +108,10 @@ export class Execution extends Document {
     dependsOn: string[];
   }>;
 
+  // Debug mode - skip API calls and return mock data
+  @Prop({ default: false })
+  debugMode: boolean;
+
   createdAt: Date;
   updatedAt: Date;
 }

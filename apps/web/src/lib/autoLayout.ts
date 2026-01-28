@@ -13,83 +13,131 @@ const DEFAULT_NODE_WIDTH = 240;
 const DEFAULT_NODE_HEIGHT = 150;
 
 /**
- * Get the index of a target handle in the node definition
+ * Get handle info for a node type
  */
-function getHandleIndex(nodeType: string, handleId: string): number {
+function getHandleInfo(nodeType: string, handleId: string, type: 'input' | 'output') {
   const nodeDef = NODE_DEFINITIONS[nodeType as NodeType];
-  if (!nodeDef) return -1;
-  return nodeDef.inputs.findIndex((input) => input.id === handleId);
+  if (!nodeDef) return null;
+
+  const handles = type === 'input' ? nodeDef.inputs : nodeDef.outputs;
+  const index = handles.findIndex((h) => h.id === handleId);
+  if (index === -1) return null;
+
+  return { index, total: handles.length };
 }
 
 /**
- * Reorder nodes within the same column to minimize edge crossings.
- * For nodes connecting to the same target, order them by their target handle index.
+ * Calculate the Y offset of a handle relative to node center
+ * Handles are distributed evenly along the node height
  */
-function reorderToMinimizeCrossings(nodes: Node[], edges: Edge[]): Node[] {
-  // Group nodes by approximate X position (same column/rank)
-  const COLUMN_THRESHOLD = 50;
+function getHandleYOffset(handleIndex: number, totalHandles: number, nodeHeight: number): number {
+  // Handles are positioned at (index + 1) / (total + 1) * 100% of the node
+  const percentage = (handleIndex + 1) / (totalHandles + 1);
+  // Convert to offset from center
+  return (percentage - 0.5) * nodeHeight;
+}
+
+/**
+ * Align source nodes so their output handles match target input handle positions.
+ * This creates horizontal edges instead of diagonal ones.
+ */
+function alignHandles(nodes: Node[], edges: Edge[]): Node[] {
+  const nodeMap = new Map(nodes.map((n) => [n.id, n]));
+
+  // Group edges by target to handle multiple inputs to same node
+  const edgesByTarget = new Map<string, Edge[]>();
+  for (const edge of edges) {
+    const existing = edgesByTarget.get(edge.target) ?? [];
+    existing.push(edge);
+    edgesByTarget.set(edge.target, existing);
+  }
+
+  // For each target node, align its source nodes to the correct handle positions
+  for (const [targetId, targetEdges] of edgesByTarget) {
+    const targetNode = nodeMap.get(targetId);
+    if (!targetNode) continue;
+
+    const targetHeight = targetNode.measured?.height ?? DEFAULT_NODE_HEIGHT;
+
+    // Sort edges by target handle index to maintain order
+    targetEdges.sort((a, b) => {
+      const aInfo = getHandleInfo(targetNode.type as string, a.targetHandle ?? '', 'input');
+      const bInfo = getHandleInfo(targetNode.type as string, b.targetHandle ?? '', 'input');
+      return (aInfo?.index ?? 0) - (bInfo?.index ?? 0);
+    });
+
+    // Align each source node
+    for (const edge of targetEdges) {
+      const sourceNode = nodeMap.get(edge.source);
+      if (!sourceNode || !edge.targetHandle) continue;
+
+      const targetHandleInfo = getHandleInfo(targetNode.type as string, edge.targetHandle, 'input');
+      const sourceHandleInfo = getHandleInfo(
+        sourceNode.type as string,
+        edge.sourceHandle ?? 'output',
+        'output'
+      );
+
+      if (!targetHandleInfo || !sourceHandleInfo) continue;
+
+      const sourceHeight = sourceNode.measured?.height ?? DEFAULT_NODE_HEIGHT;
+
+      // Calculate where the target handle is
+      const targetHandleY =
+        targetNode.position.y +
+        targetHeight / 2 +
+        getHandleYOffset(targetHandleInfo.index, targetHandleInfo.total, targetHeight);
+
+      // Calculate where the source handle should be to align
+      const sourceHandleOffset = getHandleYOffset(
+        sourceHandleInfo.index,
+        sourceHandleInfo.total,
+        sourceHeight
+      );
+
+      // Adjust source node position so its handle aligns with target handle
+      sourceNode.position.y = targetHandleY - sourceHeight / 2 - sourceHandleOffset;
+    }
+  }
+
+  // Resolve overlaps within columns
+  return resolveOverlaps(nodes);
+}
+
+/**
+ * Resolve vertical overlaps between nodes in the same column
+ */
+function resolveOverlaps(nodes: Node[]): Node[] {
+  // Group by approximate X position
+  const COLUMN_THRESHOLD = 100;
   const columns = new Map<number, Node[]>();
 
   for (const node of nodes) {
-    // Round to nearest threshold to group nodes in same column
     const columnKey = Math.round(node.position.x / COLUMN_THRESHOLD) * COLUMN_THRESHOLD;
     const column = columns.get(columnKey) ?? [];
     column.push(node);
     columns.set(columnKey, column);
   }
 
-  // For each column, calculate optimal Y order based on target handle positions
+  // For each column, push apart overlapping nodes
   for (const columnNodes of columns.values()) {
     if (columnNodes.length <= 1) continue;
 
-    // Calculate "target handle score" for each node
-    // Lower score = should be positioned higher (lower Y)
-    const nodeScores = new Map<string, number>();
+    // Sort by Y position
+    columnNodes.sort((a, b) => a.position.y - b.position.y);
 
-    for (const node of columnNodes) {
-      const outgoingEdges = edges.filter((e) => e.source === node.id);
-      if (outgoingEdges.length === 0) {
-        nodeScores.set(node.id, node.position.y);
-        continue;
+    // Push apart if overlapping
+    const MIN_GAP = 20;
+    for (let i = 1; i < columnNodes.length; i++) {
+      const prev = columnNodes[i - 1];
+      const curr = columnNodes[i];
+      const prevBottom = prev.position.y + (prev.measured?.height ?? DEFAULT_NODE_HEIGHT);
+      const currTop = curr.position.y;
+
+      if (currTop < prevBottom + MIN_GAP) {
+        curr.position.y = prevBottom + MIN_GAP;
       }
-
-      let totalScore = 0;
-      let count = 0;
-
-      for (const edge of outgoingEdges) {
-        const targetNode = nodes.find((n) => n.id === edge.target);
-        if (!targetNode || !edge.targetHandle) continue;
-
-        // Get handle index - lower index = higher position
-        const handleIndex = getHandleIndex(targetNode.type as string, edge.targetHandle);
-        if (handleIndex >= 0) {
-          // Use target Y + handle index to calculate score
-          // This ensures nodes connecting to higher handles are positioned higher
-          totalScore += targetNode.position.y + handleIndex * 100;
-          count++;
-        }
-      }
-
-      nodeScores.set(node.id, count > 0 ? totalScore / count : node.position.y);
     }
-
-    // Sort nodes by score (lower score = higher position = lower Y)
-    columnNodes.sort((a, b) => {
-      const scoreA = nodeScores.get(a.id) ?? 0;
-      const scoreB = nodeScores.get(b.id) ?? 0;
-      return scoreA - scoreB;
-    });
-
-    // Reassign Y positions while maintaining spacing
-    const minY = Math.min(...columnNodes.map((n) => n.position.y));
-    const spacing =
-      columnNodes.length > 1
-        ? (Math.max(...columnNodes.map((n) => n.position.y)) - minY) / (columnNodes.length - 1)
-        : 0;
-
-    columnNodes.forEach((node, index) => {
-      node.position.y = minY + index * Math.max(spacing, 50);
-    });
   }
 
   return nodes;
@@ -117,6 +165,9 @@ export function getLayoutedNodes(
     ranksep: rankSpacing,
     marginx: 50,
     marginy: 50,
+    // Improve edge crossing minimization
+    ranker: 'network-simplex',
+    acyclicer: 'greedy',
   });
 
   for (const node of nodes) {
@@ -146,6 +197,6 @@ export function getLayoutedNodes(
     };
   });
 
-  // Reorder nodes within columns to minimize edge crossings
-  return reorderToMinimizeCrossings(layoutedNodes, edges);
+  // Align handles to create horizontal edges where possible
+  return alignHandles(layoutedNodes, edges);
 }

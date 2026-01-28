@@ -260,7 +260,9 @@ function TemplatesModalComponent() {
           description: template.description ?? '',
           nodes: template.nodes,
           edges: template.edges,
-          edgeStyle: (template.edgeStyle ?? 'bezier') as EdgeStyle,
+          edgeStyle: (template.edgeStyle === 'bezier'
+            ? 'default'
+            : (template.edgeStyle ?? 'default')) as EdgeStyle,
           groups: [],
           createdAt: now,
           updatedAt: now,

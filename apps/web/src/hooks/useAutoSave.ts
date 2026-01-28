@@ -20,12 +20,15 @@ interface UseAutoSaveReturn {
 export function useAutoSave(enabled = true): UseAutoSaveReturn {
   const isDirty = useWorkflowStore((state) => state.isDirty);
   const isSaving = useWorkflowStore((state) => state.isSaving);
-  const saveWorkflow = useWorkflowStore((state) => state.saveWorkflow);
   const nodes = useWorkflowStore((state) => state.nodes);
 
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Create a stable hash of nodes to detect any data changes (not just length)
+  // This ensures we re-debounce when node data (like schemaParams) changes
+  const _nodesHash = JSON.stringify(nodes.map((n) => ({ id: n.id, data: n.data })));
 
   useEffect(() => {
     // Don't save if disabled, not dirty, already saving, or empty workflow
@@ -39,10 +42,13 @@ export function useAutoSave(enabled = true): UseAutoSaveReturn {
     }
 
     // Schedule save after 2.5s of inactivity
+    // Get fresh state at save time to avoid stale closure issues
     timeoutRef.current = setTimeout(async () => {
       abortControllerRef.current = new AbortController();
 
       try {
+        // Get saveWorkflow fresh from store to ensure we have latest state
+        const { saveWorkflow } = useWorkflowStore.getState();
         await saveWorkflow(abortControllerRef.current.signal);
         setLastSavedAt(new Date());
       } catch (error) {
@@ -61,7 +67,7 @@ export function useAutoSave(enabled = true): UseAutoSaveReturn {
         abortControllerRef.current.abort();
       }
     };
-  }, [isDirty, enabled, isSaving, saveWorkflow, nodes.length]);
+  }, [isDirty, enabled, isSaving, nodes.length]);
 
   return { isSaving, lastSavedAt };
 }

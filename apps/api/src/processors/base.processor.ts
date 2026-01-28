@@ -28,12 +28,23 @@ export abstract class BaseProcessor<T extends NodeJobData> extends WorkerHost {
    * 2. Updates node result to error
    * 3. Moves to DLQ on last attempt
    * 4. Triggers continuation for sequential execution
+   *
+   * For 429 rate limit errors, extracts retry_after and applies appropriate delay
    */
   protected async handleProcessorError(job: Job<T>, error: Error): Promise<never> {
     const { executionId, workflowId, nodeId } = job.data;
 
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const isLastAttempt = job.attemptsMade >= (job.opts.attempts ?? 3) - 1;
+
+    // Check for rate limit (429) error and extract retry_after
+    const retryAfter = this.extractRetryAfter(errorMessage);
+    if (retryAfter && !isLastAttempt) {
+      this.logger.warn(`Rate limited (429) for job ${job.id}, will retry after ${retryAfter}s`);
+      // Add extra buffer to the retry_after time
+      const delayMs = (retryAfter + 2) * 1000;
+      await job.moveToDelayed(Date.now() + delayMs);
+    }
 
     await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.FAILED, {
       error: errorMessage,
@@ -57,6 +68,27 @@ export abstract class BaseProcessor<T extends NodeJobData> extends WorkerHost {
     }
 
     throw error;
+  }
+
+  /**
+   * Extract retry_after value from 429 error message
+   * Returns seconds to wait, or null if not a rate limit error
+   */
+  private extractRetryAfter(errorMessage: string): number | null {
+    // Check if it's a 429 error
+    if (!errorMessage.includes('429') && !errorMessage.includes('Too Many Requests')) {
+      return null;
+    }
+
+    // Try to extract retry_after from the error message
+    // Format: "retry_after":8 or "retry_after": 8
+    const match = errorMessage.match(/"retry_after":\s*(\d+)/);
+    if (match) {
+      return parseInt(match[1], 10);
+    }
+
+    // Default to 10 seconds if we can't extract the value
+    return 10;
   }
 
   /**

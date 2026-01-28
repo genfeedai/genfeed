@@ -40,7 +40,7 @@ export class VideoProcessor extends BaseProcessor<VideoQueueJobData> {
   }
 
   async process(job: Job<VideoQueueJobData>): Promise<JobResult> {
-    const { executionId, nodeId, nodeType } = job.data;
+    const { executionId, nodeId, nodeType, debugMode } = job.data;
 
     this.logger.log(`Processing ${nodeType} job: ${job.id} for node ${nodeId}`);
 
@@ -69,9 +69,12 @@ export class VideoProcessor extends BaseProcessor<VideoQueueJobData> {
         let prediction: { id: string };
         if (nodeType === 'motionControl') {
           const data = job.data as MotionControlJobData;
+          // Get prompt/image from input fields (from connection) or direct fields (legacy)
+          const prompt = data.nodeData.inputPrompt ?? data.nodeData.prompt;
+          const image = data.nodeData.inputImage ?? data.nodeData.image;
           prediction = await this.replicateService.generateMotionControlVideo(executionId, nodeId, {
-            image: data.nodeData.image,
-            prompt: data.nodeData.prompt,
+            image,
+            prompt: prompt ?? '',
             mode: data.nodeData.mode,
             duration: data.nodeData.duration,
             aspectRatio: data.nodeData.aspectRatio,
@@ -86,9 +89,11 @@ export class VideoProcessor extends BaseProcessor<VideoQueueJobData> {
           // Standard video generation
           const data = job.data as VideoJobData;
           const model = data.nodeData.model ?? 'veo-3.1-fast';
+          // Get prompt from inputPrompt (from connection) or prompt (legacy/direct)
+          const prompt = (data.nodeData.inputPrompt ?? data.nodeData.prompt) as string | undefined;
           prediction = await this.replicateService.generateVideo(executionId, nodeId, model, {
-            prompt: data.nodeData.prompt,
-            image: data.nodeData.image,
+            prompt: prompt ?? '',
+            image: data.nodeData.inputImage ?? data.nodeData.image,
             lastFrame: data.nodeData.lastFrame,
             referenceImages: data.nodeData.referenceImages,
             duration: data.nodeData.duration,
@@ -97,7 +102,44 @@ export class VideoProcessor extends BaseProcessor<VideoQueueJobData> {
             generateAudio: data.nodeData.generateAudio,
             negativePrompt: data.nodeData.negativePrompt,
             seed: data.nodeData.seed,
+            selectedModel: data.nodeData.selectedModel,
+            schemaParams: data.nodeData.schemaParams,
+            debugMode,
           });
+
+          // Handle debug mode - skip polling and return mock data
+          if ((prediction as { debugPayload?: unknown }).debugPayload) {
+            const predResult = prediction as { id: string; output: string; debugPayload: unknown };
+            this.logger.log(`[DEBUG] Returning mock data for node ${nodeId}`);
+
+            const mockOutput = { video: predResult.output };
+            await this.executionsService.updateNodeResult(
+              executionId,
+              nodeId,
+              'complete',
+              mockOutput
+            );
+
+            await this.queueManager.updateJobStatus(job.id as string, JOB_STATUS.COMPLETED, {
+              result: {
+                success: true,
+                output: mockOutput,
+                debugPayload: predResult.debugPayload,
+              },
+            });
+
+            await this.queueManager.addJobLog(
+              job.id as string,
+              '[DEBUG] Mock prediction completed'
+            );
+            await this.queueManager.continueExecution(executionId, job.data.workflowId);
+
+            return {
+              success: true,
+              output: mockOutput,
+              predictionId: predResult.id,
+            };
+          }
         }
         predictionId = prediction.id;
         await job.updateProgress({ percent: 15, message: 'Prediction created' });
@@ -108,24 +150,50 @@ export class VideoProcessor extends BaseProcessor<VideoQueueJobData> {
       const result = await this.replicatePollerService.pollForCompletion(predictionId, {
         ...POLL_CONFIGS.video,
         onProgress: this.replicatePollerService.createJobProgressCallback(job),
+        onHeartbeat: () => this.queueManager.heartbeatJob(job.id as string),
+        heartbeatInterval: 12, // Every 2 min for 10s polls (video uses longer intervals)
       });
 
       // Update execution node result
       if (result.success) {
         // Auto-save output to local storage
         let localOutput = result.output;
-        if (result.output?.video && typeof result.output.video === 'string') {
+
+        // Get the video URL - handle all formats:
+        // 1. output is a string (URL directly)
+        // 2. output is an array (most common from Replicate)
+        // 3. output.video is a string (some models return { video: "url" })
+        let videoUrl: string | undefined;
+        if (typeof result.output === 'string') {
+          videoUrl = result.output;
+        } else if (Array.isArray(result.output) && result.output.length > 0) {
+          videoUrl = result.output[0] as string;
+        } else if (result.output?.video) {
+          videoUrl = result.output.video as string;
+        }
+
+        if (videoUrl) {
           try {
             const saved = await this.filesService.downloadAndSaveOutput(
               job.data.workflowId,
               nodeId,
-              result.output.video
+              videoUrl,
+              predictionId
             );
-            localOutput = { ...result.output, video: saved.url, localPath: saved.path };
+            // Normalize output to always have { video: "url" } format
+            if (typeof result.output === 'string' || Array.isArray(result.output)) {
+              localOutput = { video: saved.url, localPath: saved.path };
+            } else {
+              localOutput = { ...result.output, video: saved.url, localPath: saved.path };
+            }
             this.logger.log(`Auto-saved video output to ${saved.path}`);
           } catch (saveError) {
             this.logger.warn(`Failed to auto-save output: ${(saveError as Error).message}`);
             // Continue with remote URL if save fails
+            // Normalize output format even on save failure
+            if (typeof result.output === 'string' || Array.isArray(result.output)) {
+              localOutput = { video: videoUrl };
+            }
           }
         }
 
