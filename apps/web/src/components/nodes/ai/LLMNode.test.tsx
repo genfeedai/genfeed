@@ -50,6 +50,7 @@ describe('LLMNode', () => {
     positionAbsoluteY: 0,
     zIndex: 0,
     dragging: false,
+    draggable: true,
     dragHandle: '',
     parentId: undefined,
     deletable: true,

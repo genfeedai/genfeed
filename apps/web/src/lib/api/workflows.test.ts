@@ -129,13 +129,16 @@ describe('workflowsApi', () => {
             id: 'node-1',
             type: 'prompt',
             position: { x: 0, y: 0 },
-            data: { label: 'Prompt', status: 'idle' },
+            data: { label: 'Prompt', status: 'idle', prompt: '' },
           },
         ],
         edges: [],
       };
 
-      await workflowsApi.update('workflow-1', updateData);
+      await workflowsApi.update(
+        'workflow-1',
+        updateData as unknown as Parameters<typeof workflowsApi.update>[1]
+      );
 
       expect(apiClient.put).toHaveBeenCalledWith(
         '/workflows/workflow-1',

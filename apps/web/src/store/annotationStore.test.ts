@@ -563,7 +563,10 @@ describe('useAnnotationStore', () => {
         const { updateDrawing } = useAnnotationStore.getState();
         updateDrawing({ width: 100, height: 60 });
 
-        const shape = useAnnotationStore.getState().drawingShape;
+        const shape = useAnnotationStore.getState().drawingShape as {
+          width?: number;
+          height?: number;
+        } | null;
         expect(shape?.width).toBe(100);
         expect(shape?.height).toBe(60);
       });

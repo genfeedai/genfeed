@@ -53,6 +53,7 @@ describe('OutputNode', () => {
     positionAbsoluteY: 0,
     zIndex: 0,
     dragging: false,
+    draggable: true,
     dragHandle: '',
     parentId: undefined,
     deletable: true,
@@ -234,7 +235,7 @@ describe('OutputNode', () => {
 
       fireEvent.click(screen.getByTestId('download-button'));
 
-      expect(createdLink?.download).toBe('my-video.mp4');
+      expect((createdLink as HTMLAnchorElement | null)?.download).toBe('my-video.mp4');
 
       appendChildSpy.mockRestore();
     });
@@ -260,7 +261,7 @@ describe('OutputNode', () => {
 
       fireEvent.click(screen.getByTestId('download-button'));
 
-      expect(createdLink?.download).toBe('output.png');
+      expect((createdLink as HTMLAnchorElement | null)?.download).toBe('output.png');
 
       appendChildSpy.mockRestore();
     });

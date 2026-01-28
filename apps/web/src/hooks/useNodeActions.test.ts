@@ -51,7 +51,7 @@ describe('useNodeActions', () => {
     it('should call duplicateNode and return new id', () => {
       const { result } = renderHook(() => useNodeActions());
 
-      let newId: string | undefined;
+      let newId: string | null | undefined;
       act(() => {
         newId = result.current.duplicate('node-1');
       });

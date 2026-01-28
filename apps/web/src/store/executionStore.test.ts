@@ -16,8 +16,9 @@ vi.mock('./workflowStore', () => ({
   },
 }));
 
-// Mock fetch
-global.fetch = vi.fn();
+// Mock fetch with preconnect
+const mockFetch = Object.assign(vi.fn(), { preconnect: vi.fn() }) as typeof fetch;
+global.fetch = mockFetch;
 
 describe('useExecutionStore', () => {
   beforeEach(() => {
@@ -26,10 +27,11 @@ describe('useExecutionStore', () => {
     // Reset store to initial state
     useExecutionStore.setState({
       isRunning: false,
+      executionId: null,
       currentNodeId: null,
-      executionQueue: [],
-      completedNodes: new Set(),
       validationErrors: null,
+      eventSource: null,
+      lastFailedNodeId: null,
       jobs: new Map(),
       estimatedCost: 0,
       actualCost: 0,
@@ -41,10 +43,10 @@ describe('useExecutionStore', () => {
       const state = useExecutionStore.getState();
 
       expect(state.isRunning).toBe(false);
+      expect(state.executionId).toBeNull();
       expect(state.currentNodeId).toBeNull();
-      expect(state.executionQueue).toEqual([]);
-      expect(state.completedNodes.size).toBe(0);
       expect(state.validationErrors).toBeNull();
+      expect(state.lastFailedNodeId).toBeNull();
       expect(state.jobs.size).toBe(0);
       expect(state.estimatedCost).toBe(0);
       expect(state.actualCost).toBe(0);
@@ -156,11 +158,11 @@ describe('useExecutionStore', () => {
   });
 
   describe('stopExecution', () => {
-    it('should stop execution and clear queue', () => {
+    it('should stop execution', () => {
       useExecutionStore.setState({
         isRunning: true,
         currentNodeId: 'node-2',
-        executionQueue: ['node-2', 'node-3', 'node-4'],
+        executionId: 'exec-123',
       });
 
       const { stopExecution } = useExecutionStore.getState();
@@ -169,7 +171,6 @@ describe('useExecutionStore', () => {
       const state = useExecutionStore.getState();
       expect(state.isRunning).toBe(false);
       expect(state.currentNodeId).toBeNull();
-      expect(state.executionQueue).toEqual([]);
     });
   });
 
@@ -193,7 +194,6 @@ describe('useExecutionStore', () => {
   describe('resetExecution', () => {
     it('should reset execution state', () => {
       useExecutionStore.setState({
-        completedNodes: new Set(['node-1', 'node-2']),
         jobs: new Map([
           [
             'pred-1',
@@ -209,29 +209,62 @@ describe('useExecutionStore', () => {
           ],
         ]),
         currentNodeId: 'node-3',
-        executionQueue: ['node-3', 'node-4'],
+        executionId: 'exec-123',
         actualCost: 1.5,
+        lastFailedNodeId: 'node-2',
       });
 
       const { resetExecution } = useExecutionStore.getState();
       resetExecution();
 
       const state = useExecutionStore.getState();
-      expect(state.completedNodes.size).toBe(0);
       expect(state.jobs.size).toBe(0);
       expect(state.currentNodeId).toBeNull();
-      expect(state.executionQueue).toEqual([]);
+      expect(state.executionId).toBeNull();
       expect(state.actualCost).toBe(0);
+      expect(state.lastFailedNodeId).toBeNull();
     });
   });
 
-  describe('getExecutionOrder', () => {
-    it('should return topologically sorted node IDs', () => {
-      // This is tested through the mock
-      const { getExecutionOrder } = useExecutionStore.getState();
-      const order = getExecutionOrder();
+  describe('canResumeFromFailed', () => {
+    it('should return true when there is a failed node', () => {
+      useExecutionStore.setState({
+        lastFailedNodeId: 'node-1',
+        isRunning: false,
+      });
 
-      expect(Array.isArray(order)).toBe(true);
+      const { canResumeFromFailed } = useExecutionStore.getState();
+      expect(canResumeFromFailed()).toBe(true);
+    });
+
+    it('should return false when no failed node', () => {
+      useExecutionStore.setState({
+        lastFailedNodeId: null,
+        isRunning: false,
+      });
+
+      const { canResumeFromFailed } = useExecutionStore.getState();
+      expect(canResumeFromFailed()).toBe(false);
+    });
+
+    it('should return false when still running', () => {
+      useExecutionStore.setState({
+        lastFailedNodeId: 'node-1',
+        isRunning: true,
+      });
+
+      const { canResumeFromFailed } = useExecutionStore.getState();
+      expect(canResumeFromFailed()).toBe(false);
+    });
+  });
+
+  describe('setEstimatedCost', () => {
+    it('should set estimated cost', () => {
+      const { setEstimatedCost } = useExecutionStore.getState();
+
+      setEstimatedCost(2.5);
+
+      expect(useExecutionStore.getState().estimatedCost).toBe(2.5);
     });
   });
 });

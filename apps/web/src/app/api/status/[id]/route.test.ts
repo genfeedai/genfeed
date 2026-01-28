@@ -44,7 +44,7 @@ describe('GET /api/status/[id]', () => {
       id: mockPredictionId,
       status: 'succeeded',
       output: ['https://api.com/output.png'],
-      error: null,
+      error: undefined,
       metrics: { predict_time: 5.2 },
     });
 
@@ -62,9 +62,9 @@ describe('GET /api/status/[id]', () => {
     vi.mocked(getPredictionStatus).mockResolvedValue({
       id: mockPredictionId,
       status: 'processing',
-      output: null,
-      error: null,
-      metrics: null,
+      output: undefined,
+      error: undefined,
+      metrics: undefined,
     });
 
     const request = new NextRequest(`http://localhost/api/status/${mockPredictionId}`);
@@ -78,7 +78,7 @@ describe('GET /api/status/[id]', () => {
   it('should return failed status with error', async () => {
     vi.mocked(getWebhookResult).mockReturnValue({
       status: 'failed',
-      output: null,
+      output: undefined,
       error: 'Model failed to generate output',
       completedAt: new Date().toISOString(),
     });
