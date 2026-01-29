@@ -842,13 +842,9 @@ export type WorkflowNodeData =
 export type WorkflowNode = Node<WorkflowNodeData, NodeType>;
 
 /**
- * Edge data for visual offset calculation (collision avoidance)
+ * Edge data for workflow edges
  */
 export interface WorkflowEdgeData {
-  /** Index within group of parallel edges (0-based) */
-  offsetIndex?: number;
-  /** Total edges in the parallel group */
-  groupSize?: number;
   /** Index signature for React Flow Edge compatibility */
   [key: string]: unknown;
 }
