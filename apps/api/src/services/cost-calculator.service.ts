@@ -179,6 +179,19 @@ export class CostCalculatorService {
     videoDuration?: number,
     inputType?: string
   ): number {
+    // Specific video node type
+    if (nodeType === 'lumaReframeVideo') {
+      const duration = videoDuration ?? 5;
+      return duration * PRICING['luma-reframe-video'];
+    }
+
+    // Specific image node type
+    if (nodeType === 'lumaReframeImage') {
+      const pricing = PRICING['luma-reframe-image'];
+      const modelKey = (model ?? 'photon-flash-1') as keyof typeof pricing;
+      return pricing[modelKey] ?? pricing['photon-flash-1'];
+    }
+
     // For unified 'reframe' node, check inputType
     if (nodeType === 'reframe') {
       if (inputType === 'video') {
@@ -198,6 +211,23 @@ export class CostCalculatorService {
    * Calculate Topaz Upscale cost (unified node)
    */
   calculateTopazCost(nodeType: string, data: Record<string, unknown>): number {
+    // Specific video node type
+    if (nodeType === 'topazVideoUpscale') {
+      const resolution = (data.targetResolution as string) ?? '1080p';
+      const fps = (data.targetFps as number) ?? 30;
+      const duration = (data.duration as number) ?? 10;
+      return this.calculateTopazVideoCost(resolution, fps, duration);
+    }
+
+    // Specific image node type
+    if (nodeType === 'topazImageUpscale') {
+      const baseMP = 2;
+      const factor = this.getUpscaleMultiplier(data.upscaleFactor as string);
+      const outputMP = baseMP * factor;
+      return this.calculateTopazImageCost(outputMP);
+    }
+
+    // For unified 'upscale' node, check inputType
     if (nodeType === 'upscale') {
       const inputType = data.inputType as string;
       if (inputType === 'video') {
