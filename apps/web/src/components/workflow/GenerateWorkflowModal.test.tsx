@@ -18,6 +18,10 @@ vi.mock('@/store/workflowStore', () => ({
   })),
 }));
 
+// Import mocked modules at top level (vi.mock is hoisted above these imports)
+import { useUIStore } from '@/store/uiStore';
+import { useWorkflowStore } from '@/store/workflowStore';
+
 describe('GenerateWorkflowModal', () => {
   const mockGeneratedWorkflow = {
     name: 'Generated Workflow',
@@ -37,26 +41,23 @@ describe('GenerateWorkflowModal', () => {
     ],
   };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
     vi.stubGlobal('fetch', vi.fn());
 
     // Reset store mocks to default values (vi.clearAllMocks doesn't reset mockReturnValue)
-    const { useUIStore } = await import('@/store/uiStore');
     vi.mocked(useUIStore).mockReturnValue({
       showAIGenerator: true,
       toggleAIGenerator: mockToggleAIGenerator,
     } as ReturnType<typeof useUIStore>);
 
-    const { useWorkflowStore } = await import('@/store/workflowStore');
     vi.mocked(useWorkflowStore).mockReturnValue({
       loadWorkflow: mockLoadWorkflow,
     } as ReturnType<typeof useWorkflowStore>);
   });
 
   describe('rendering', () => {
-    it('should not render when showAIGenerator is false', async () => {
-      const { useUIStore } = await import('@/store/uiStore');
+    it('should not render when showAIGenerator is false', () => {
       vi.mocked(useUIStore).mockReturnValue({
         showAIGenerator: false,
         toggleAIGenerator: mockToggleAIGenerator,

@@ -55,15 +55,6 @@ vi.mock('@/components/ui/input', () => ({
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
-// Mock createPortal to render inline instead of into document.body
-vi.mock('react-dom', async () => {
-  const actual = await vi.importActual<typeof import('react-dom')>('react-dom');
-  return {
-    ...actual,
-    createPortal: (node: React.ReactNode) => node,
-  };
-});
-
 describe('ModelBrowserModal', () => {
   const defaultProps = {
     isOpen: true,
