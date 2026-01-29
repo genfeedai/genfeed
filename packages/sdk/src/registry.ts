@@ -17,7 +17,7 @@ class NodeRegistry {
     if (this.nodes.has(definition.type)) {
       console.warn(`Node type "${definition.type}" is already registered. Overwriting.`);
     }
-    this.nodes.set(definition.type, definition as CustomNodeDefinition);
+    this.nodes.set(definition.type, definition as unknown as CustomNodeDefinition);
   }
 
   /**

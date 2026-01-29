@@ -174,8 +174,11 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
 
         // Determine poll config based on whether this is a video operation
         const isVideoOperation =
-          nodeType === 'lipSync' ||
-          ((nodeType === 'reframe' || nodeType === 'upscale') && nodeData.inputType === 'video');
+          nodeType === ProcessingNodeType.LIP_SYNC ||
+          nodeType === ReframeNodeType.LUMA_REFRAME_VIDEO ||
+          nodeType === UpscaleNodeType.TOPAZ_VIDEO_UPSCALE ||
+          ((nodeType === ReframeNodeType.REFRAME || nodeType === UpscaleNodeType.UPSCALE) &&
+            nodeData.inputType === 'video');
 
         const pollConfig = isVideoOperation
           ? POLL_CONFIGS.processing.video
@@ -203,7 +206,17 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
           let outputType: 'image' | 'video' = 'video'; // Default to video for lipSync
 
           // Determine output type based on node type
-          if (nodeType === 'reframe' || nodeType === 'upscale') {
+          if (
+            nodeType === ReframeNodeType.LUMA_REFRAME_IMAGE ||
+            nodeType === UpscaleNodeType.TOPAZ_IMAGE_UPSCALE
+          ) {
+            outputType = 'image';
+          } else if (
+            nodeType === ReframeNodeType.LUMA_REFRAME_VIDEO ||
+            nodeType === UpscaleNodeType.TOPAZ_VIDEO_UPSCALE
+          ) {
+            outputType = 'video';
+          } else if (nodeType === ReframeNodeType.REFRAME || nodeType === UpscaleNodeType.UPSCALE) {
             outputType = nodeData.inputType === 'video' ? 'video' : 'image';
           }
 

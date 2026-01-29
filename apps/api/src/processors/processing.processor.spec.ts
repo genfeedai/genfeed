@@ -1,8 +1,9 @@
 import type { Job } from 'bullmq';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { ReframeNodeType, UpscaleNodeType } from '@genfeedai/types';
+import { ProcessingNodeType, ReframeNodeType, UpscaleNodeType } from '@genfeedai/types';
 import type { ProcessingJobData } from '@/interfaces/job-data.interface';
 import { JOB_STATUS, QUEUE_NAMES } from '@/queue/queue.constants';
+import { POLL_CONFIGS } from '@/services/replicate-poller.service';
 
 // Mock dependencies
 vi.mock('@nestjs/bullmq', () => ({
@@ -24,11 +25,12 @@ const mockExecutionsService = {
   findExistingJob: vi.fn().mockResolvedValue(null),
 };
 
-const mockReplicateService = {
+const mockReplicateService: Record<string, ReturnType<typeof vi.fn>> = {
   reframeImage: vi.fn(),
   reframeVideo: vi.fn(),
   upscaleImage: vi.fn(),
   upscaleVideo: vi.fn(),
+  generateLipSync: vi.fn(),
   getPredictionStatus: vi.fn(),
 };
 
@@ -484,8 +486,25 @@ describe('ProcessingProcessor', () => {
   });
 
   describe('polling timeouts', () => {
-    it('should use longer timeout for video operations', async () => {
-      // This is a behavioral test - video operations should not timeout as quickly
+    it('should use video poll config for lumaReframeVideo', async () => {
+      const job = createMockJob(ReframeNodeType.LUMA_REFRAME_VIDEO, {
+        video: 'test.mp4',
+        inputType: 'video',
+      });
+
+      mockReplicateService.reframeVideo.mockResolvedValueOnce({ id: 'pred-1' });
+
+      await processor.process(job);
+
+      expect(mockReplicatePollerService.pollForCompletion).toHaveBeenCalledWith(
+        'pred-1',
+        expect.objectContaining({
+          pollInterval: POLL_CONFIGS.processing.video.pollInterval,
+        })
+      );
+    });
+
+    it('should use video poll config for topazVideoUpscale', async () => {
       const job = createMockJob(UpscaleNodeType.TOPAZ_VIDEO_UPSCALE, {
         video: 'test.mp4',
         inputType: 'video',
@@ -493,19 +512,171 @@ describe('ProcessingProcessor', () => {
 
       mockReplicateService.upscaleVideo.mockResolvedValueOnce({ id: 'pred-1' });
 
-      const result = await processor.process(job);
+      await processor.process(job);
 
-      expect(result.success).toBe(true);
+      expect(mockReplicatePollerService.pollForCompletion).toHaveBeenCalledWith(
+        'pred-1',
+        expect.objectContaining({
+          pollInterval: POLL_CONFIGS.processing.video.pollInterval,
+        })
+      );
     });
 
-    it('should use shorter timeout for image operations', async () => {
+    it('should use video poll config for lipSync', async () => {
+      const job = createMockJob(ProcessingNodeType.LIP_SYNC, {
+        audio: 'test.mp3',
+        video: 'test.mp4',
+        model: 'wav2lip',
+      });
+
+      mockReplicateService.generateLipSync = vi.fn().mockResolvedValueOnce({ id: 'pred-1' });
+
+      await processor.process(job);
+
+      expect(mockReplicatePollerService.pollForCompletion).toHaveBeenCalledWith(
+        'pred-1',
+        expect.objectContaining({
+          pollInterval: POLL_CONFIGS.processing.video.pollInterval,
+        })
+      );
+    });
+
+    it('should use image poll config for lumaReframeImage', async () => {
       const job = createMockJob(ReframeNodeType.LUMA_REFRAME_IMAGE, { image: 'test.png' });
 
       mockReplicateService.reframeImage.mockResolvedValueOnce({ id: 'pred-1' });
 
-      const result = await processor.process(job);
+      await processor.process(job);
 
-      expect(result.success).toBe(true);
+      expect(mockReplicatePollerService.pollForCompletion).toHaveBeenCalledWith(
+        'pred-1',
+        expect.objectContaining({
+          pollInterval: POLL_CONFIGS.processing.image.pollInterval,
+        })
+      );
+    });
+
+    it('should use image poll config for topazImageUpscale', async () => {
+      const job = createMockJob(UpscaleNodeType.TOPAZ_IMAGE_UPSCALE, { image: 'test.png' });
+
+      mockReplicateService.upscaleImage.mockResolvedValueOnce({ id: 'pred-1' });
+
+      await processor.process(job);
+
+      expect(mockReplicatePollerService.pollForCompletion).toHaveBeenCalledWith(
+        'pred-1',
+        expect.objectContaining({
+          pollInterval: POLL_CONFIGS.processing.image.pollInterval,
+        })
+      );
+    });
+  });
+
+  describe('output type selection', () => {
+    it('should save lumaReframeImage output under image key', async () => {
+      const job = createMockJob(ReframeNodeType.LUMA_REFRAME_IMAGE, { image: 'test.png' });
+
+      mockReplicateService.reframeImage.mockResolvedValueOnce({ id: 'pred-1' });
+      mockReplicatePollerService.pollForCompletion.mockResolvedValueOnce({
+        success: true,
+        output: 'https://example.com/reframed.png',
+      });
+
+      await processor.process(job);
+
+      expect(mockFilesService.downloadAndSaveOutput).toHaveBeenCalled();
+      expect(mockExecutionsService.updateNodeResult).toHaveBeenCalledWith(
+        'exec-1',
+        'node-1',
+        'complete',
+        expect.objectContaining({ image: expect.any(String) })
+      );
+    });
+
+    it('should save topazImageUpscale output under image key', async () => {
+      const job = createMockJob(UpscaleNodeType.TOPAZ_IMAGE_UPSCALE, { image: 'test.png' });
+
+      mockReplicateService.upscaleImage.mockResolvedValueOnce({ id: 'pred-1' });
+      mockReplicatePollerService.pollForCompletion.mockResolvedValueOnce({
+        success: true,
+        output: 'https://example.com/upscaled.png',
+      });
+
+      await processor.process(job);
+
+      expect(mockExecutionsService.updateNodeResult).toHaveBeenCalledWith(
+        'exec-1',
+        'node-1',
+        'complete',
+        expect.objectContaining({ image: expect.any(String) })
+      );
+    });
+
+    it('should save lumaReframeVideo output under video key', async () => {
+      const job = createMockJob(ReframeNodeType.LUMA_REFRAME_VIDEO, {
+        video: 'test.mp4',
+        inputType: 'video',
+      });
+
+      mockReplicateService.reframeVideo.mockResolvedValueOnce({ id: 'pred-1' });
+      mockReplicatePollerService.pollForCompletion.mockResolvedValueOnce({
+        success: true,
+        output: 'https://example.com/reframed.mp4',
+      });
+
+      await processor.process(job);
+
+      expect(mockExecutionsService.updateNodeResult).toHaveBeenCalledWith(
+        'exec-1',
+        'node-1',
+        'complete',
+        expect.objectContaining({ video: expect.any(String) })
+      );
+    });
+
+    it('should save topazVideoUpscale output under video key', async () => {
+      const job = createMockJob(UpscaleNodeType.TOPAZ_VIDEO_UPSCALE, {
+        video: 'test.mp4',
+        inputType: 'video',
+      });
+
+      mockReplicateService.upscaleVideo.mockResolvedValueOnce({ id: 'pred-1' });
+      mockReplicatePollerService.pollForCompletion.mockResolvedValueOnce({
+        success: true,
+        output: 'https://example.com/upscaled.mp4',
+      });
+
+      await processor.process(job);
+
+      expect(mockExecutionsService.updateNodeResult).toHaveBeenCalledWith(
+        'exec-1',
+        'node-1',
+        'complete',
+        expect.objectContaining({ video: expect.any(String) })
+      );
+    });
+
+    it('should use inputType for generic reframe node', async () => {
+      const job = createMockJob(ReframeNodeType.REFRAME, {
+        video: 'test.mp4',
+        aspectRatio: '16:9',
+        inputType: 'video',
+      });
+
+      mockReplicateService.reframeVideo.mockResolvedValueOnce({ id: 'pred-1' });
+      mockReplicatePollerService.pollForCompletion.mockResolvedValueOnce({
+        success: true,
+        output: 'https://example.com/reframed.mp4',
+      });
+
+      await processor.process(job);
+
+      expect(mockExecutionsService.updateNodeResult).toHaveBeenCalledWith(
+        'exec-1',
+        'node-1',
+        'complete',
+        expect.objectContaining({ video: expect.any(String) })
+      );
     });
   });
 });
