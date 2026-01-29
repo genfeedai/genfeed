@@ -170,6 +170,7 @@ describe('ProcessingProcessor', () => {
         aspectRatio: '9:16',
         prompt: 'Convert to portrait',
         gridPosition: 'top',
+        inputType: 'video',
       });
 
       mockReplicateService.reframeVideo.mockResolvedValueOnce({
@@ -237,6 +238,7 @@ describe('ProcessingProcessor', () => {
         video: 'https://example.com/video.mp4',
         targetResolution: '4k',
         targetFps: 60,
+        inputType: 'video',
       });
 
       mockReplicateService.upscaleVideo.mockResolvedValueOnce({
@@ -307,7 +309,10 @@ describe('ProcessingProcessor', () => {
     });
 
     it('should return failure when prediction is canceled', async () => {
-      const job = createMockJob(ReframeNodeType.LUMA_REFRAME_VIDEO, { video: 'test.mp4' });
+      const job = createMockJob(ReframeNodeType.LUMA_REFRAME_VIDEO, {
+        video: 'test.mp4',
+        inputType: 'video',
+      });
 
       mockReplicateService.reframeVideo.mockResolvedValueOnce({ id: 'pred-1' });
       mockReplicatePollerService.pollForCompletion.mockResolvedValueOnce({
@@ -351,7 +356,10 @@ describe('ProcessingProcessor', () => {
     });
 
     it('should update node status to error', async () => {
-      const job = createMockJob(UpscaleNodeType.TOPAZ_VIDEO_UPSCALE, { video: 'test.mp4' });
+      const job = createMockJob(UpscaleNodeType.TOPAZ_VIDEO_UPSCALE, {
+        video: 'test.mp4',
+        inputType: 'video',
+      });
 
       mockReplicateService.upscaleVideo.mockRejectedValueOnce(new Error('Processing failed'));
 
@@ -437,7 +445,10 @@ describe('ProcessingProcessor', () => {
     });
 
     it('should log job completion', async () => {
-      const job = createMockJob(ReframeNodeType.LUMA_REFRAME_VIDEO, { video: 'test.mp4' });
+      const job = createMockJob(ReframeNodeType.LUMA_REFRAME_VIDEO, {
+        video: 'test.mp4',
+        inputType: 'video',
+      });
 
       mockReplicateService.reframeVideo.mockResolvedValueOnce({ id: 'pred-1' });
 
@@ -475,7 +486,10 @@ describe('ProcessingProcessor', () => {
   describe('polling timeouts', () => {
     it('should use longer timeout for video operations', async () => {
       // This is a behavioral test - video operations should not timeout as quickly
-      const job = createMockJob(UpscaleNodeType.TOPAZ_VIDEO_UPSCALE, { video: 'test.mp4' });
+      const job = createMockJob(UpscaleNodeType.TOPAZ_VIDEO_UPSCALE, {
+        video: 'test.mp4',
+        inputType: 'video',
+      });
 
       mockReplicateService.upscaleVideo.mockResolvedValueOnce({ id: 'pred-1' });
 
