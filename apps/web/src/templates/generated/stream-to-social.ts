@@ -1,6 +1,6 @@
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowTemplate } from '@genfeedai/types';
 
-export const STREAM_TO_SOCIAL_TEMPLATE: WorkflowFile = {
+export const STREAM_TO_SOCIAL_TEMPLATE: WorkflowTemplate = {
   version: 1,
   name: 'Stream to Short-Form Content',
   description:

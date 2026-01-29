@@ -51,6 +51,8 @@ export interface ProviderModel {
 }
 
 export interface SelectedModel {
+  /** Alias for modelId - used by hooks that expect id */
+  id?: string;
   provider: ProviderType;
   modelId: string;
   displayName: string;

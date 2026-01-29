@@ -1,6 +1,6 @@
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowTemplate } from '@genfeedai/types';
 
-export const IMAGE_TO_VIDEO_TEMPLATE: WorkflowFile = {
+export const IMAGE_TO_VIDEO_TEMPLATE: WorkflowTemplate = {
   version: 1,
   name: 'Image to Video',
   description: 'Create interpolated video between two images with easing animation',

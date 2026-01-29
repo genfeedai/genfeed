@@ -1,6 +1,6 @@
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowTemplate } from '@genfeedai/types';
 
-export const VOICE_TO_VIDEO_TEMPLATE: WorkflowFile = {
+export const VOICE_TO_VIDEO_TEMPLATE: WorkflowTemplate = {
   version: 1,
   name: 'Voice to Video',
   description: 'Generate a talking-head video from an image and audio file',

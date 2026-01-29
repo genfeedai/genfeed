@@ -1,7 +1,9 @@
 import { useEffect, useRef } from 'react';
 
 interface SelectedModel {
-  id: string;
+  /** Can be id or modelId depending on source */
+  id?: string;
+  modelId?: string;
   inputSchema?: unknown;
   [key: string]: unknown;
 }

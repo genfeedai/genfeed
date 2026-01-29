@@ -1,6 +1,6 @@
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowTemplate } from '@genfeedai/types';
 
-export const IMAGE_SERIES_TEMPLATE: WorkflowFile = {
+export const IMAGE_SERIES_TEMPLATE: WorkflowTemplate = {
   version: 1,
   name: 'Image Series',
   description: 'Generate a series of related images from a concept prompt',

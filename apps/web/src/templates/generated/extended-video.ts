@@ -1,6 +1,6 @@
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowTemplate } from '@genfeedai/types';
 
-export const EXTENDED_VIDEO_TEMPLATE: WorkflowFile = {
+export const EXTENDED_VIDEO_TEMPLATE: WorkflowTemplate = {
   version: 1,
   name: 'Extended Video Pipeline',
   description:

@@ -118,8 +118,9 @@ function nodeStreamToWeb(
 ): ReadableStream<Uint8Array> {
   return new ReadableStream({
     start(controller) {
-      nodeStream.on('data', (chunk: Buffer) => {
-        controller.enqueue(new Uint8Array(chunk));
+      nodeStream.on('data', (chunk: Buffer | string) => {
+        const buffer = typeof chunk === 'string' ? Buffer.from(chunk) : chunk;
+        controller.enqueue(new Uint8Array(buffer));
       });
       nodeStream.on('end', () => {
         controller.close();

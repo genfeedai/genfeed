@@ -1,5 +1,5 @@
 import type { NodeGroup } from './groups';
-import type { WorkflowEdge, WorkflowNode } from './nodes';
+import type { NodeType, WorkflowEdge, WorkflowNode } from './nodes';
 
 export type EdgeStyle = 'default' | 'smoothstep' | 'straight';
 
@@ -13,6 +13,42 @@ export interface WorkflowFile {
   groups?: NodeGroup[];
   createdAt: string;
   updatedAt: string;
+}
+
+/**
+ * Template node with loose typing for data - used in template definitions
+ * where we don't need strict type checking on node data
+ */
+export interface TemplateNode {
+  id: string;
+  type: NodeType;
+  position: { x: number; y: number };
+  data: Record<string, unknown>;
+}
+
+/**
+ * Template edge - same as WorkflowEdge but defined separately for clarity
+ */
+export interface TemplateEdge {
+  id: string;
+  source: string;
+  target: string;
+  sourceHandle?: string;
+  targetHandle?: string;
+}
+
+/**
+ * Workflow template definition - uses loose typing for node data
+ * to allow easy template creation without strict type constraints
+ */
+export interface WorkflowTemplate {
+  version: number;
+  name: string;
+  description: string;
+  nodes: TemplateNode[];
+  edges: TemplateEdge[];
+  edgeStyle?: EdgeStyle;
+  groups?: NodeGroup[];
 }
 
 export interface ValidationError {

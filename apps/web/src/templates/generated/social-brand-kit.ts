@@ -1,6 +1,6 @@
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowTemplate } from '@genfeedai/types';
 
-export const SOCIAL_BRAND_KIT_TEMPLATE: WorkflowFile = {
+export const SOCIAL_BRAND_KIT_TEMPLATE: WorkflowTemplate = {
   version: 1,
   name: 'Social Media Brand Kit',
   description:
