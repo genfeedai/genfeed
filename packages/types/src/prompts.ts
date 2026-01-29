@@ -41,6 +41,7 @@ export interface IPrompt {
   thumbnail?: string;
   useCount: number;
   isFeatured: boolean;
+  isSystem: boolean;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;

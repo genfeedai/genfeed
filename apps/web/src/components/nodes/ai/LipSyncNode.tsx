@@ -13,7 +13,6 @@ import { useWorkflowStore } from '@/store/workflowStore';
 const MODELS: { value: LipSyncModel; label: string }[] = [
   { value: 'sync/lipsync-2-pro', label: 'Sync Labs Pro' },
   { value: 'sync/lipsync-2', label: 'Sync Labs' },
-  { value: 'bytedance/latentsync', label: 'LatentSync (ByteDance)' },
   { value: 'pixverse/lipsync', label: 'Pixverse' },
 ];
 

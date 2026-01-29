@@ -37,6 +37,38 @@ function extractOutputValue(output: unknown): string | null {
 }
 
 /**
+ * Extract ALL output URLs from various formats
+ * Used for multi-image outputs (e.g., SeedDream 4.5)
+ */
+function extractAllOutputValues(output: unknown): string[] {
+  if (!output) return [];
+
+  // Direct string URL
+  if (typeof output === 'string') {
+    return [output];
+  }
+
+  // Array of URLs - return all
+  if (Array.isArray(output)) {
+    return output.filter((item): item is string => typeof item === 'string');
+  }
+
+  // Object with images array (backend normalizes multi-image outputs to this format)
+  if (typeof output === 'object' && output !== null) {
+    const obj = output as Record<string, unknown>;
+    if ('images' in obj && Array.isArray(obj.images)) {
+      return obj.images.filter((item): item is string => typeof item === 'string');
+    }
+    // Fallback to single image field
+    if ('image' in obj && typeof obj.image === 'string') {
+      return [obj.image];
+    }
+  }
+
+  return [];
+}
+
+/**
  * Map output to correct node data field based on node type
  */
 export function getOutputUpdate(
@@ -50,9 +82,13 @@ export function getOutputUpdate(
   const nodeType = node.type;
   const outputValue = extractOutputValue(output);
 
-  // Image output nodes
+  // Image output nodes - handle multiple images
   if (['imageGen'].includes(nodeType)) {
-    return { outputImage: outputValue };
+    const allImages = extractAllOutputValues(output);
+    return {
+      outputImage: allImages[0] ?? null,
+      outputImages: allImages,
+    };
   }
 
   // Unified nodes - output type matches input type

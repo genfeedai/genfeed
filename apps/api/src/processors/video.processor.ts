@@ -186,13 +186,20 @@ export class VideoProcessor extends BaseProcessor<VideoQueueJobData> {
             } else {
               localOutput = { ...result.output, video: saved.url, localPath: saved.path };
             }
-            this.logger.log(`Auto-saved video output to ${saved.path}`);
+            this.logger.log(`Saved video output to ${saved.path}`);
           } catch (saveError) {
-            this.logger.warn(`Failed to auto-save output: ${(saveError as Error).message}`);
+            // Log as ERROR - this is a real problem that causes videos to expire
+            const errorMsg = (saveError as Error).message;
+            this.logger.error(
+              `CRITICAL: Failed to save output locally after retries: ${errorMsg}. ` +
+                `Using Replicate URL which WILL EXPIRE. URL: ${videoUrl.substring(0, 100)}...`
+            );
             // Continue with remote URL if save fails
             // Normalize output format even on save failure
             if (typeof result.output === 'string' || Array.isArray(result.output)) {
-              localOutput = { video: videoUrl };
+              localOutput = { video: videoUrl, saveError: errorMsg };
+            } else {
+              localOutput = { ...result.output, saveError: errorMsg };
             }
           }
         }

@@ -61,9 +61,9 @@ export class ImageProcessor extends BaseProcessor<ImageJobData> {
         // Create new prediction
         const model = nodeData.model ?? 'nano-banana';
 
-        // Convert local file URLs to base64 for Replicate
+        // Convert all URLs (local and remote) to base64 for Replicate
         const inputImages = nodeData.inputImages
-          ? this.filesService.urlsToBase64(nodeData.inputImages)
+          ? await this.filesService.urlsToBase64Async(nodeData.inputImages)
           : [];
 
         // Get prompt from inputPrompt (from connection) or prompt (legacy/direct)
@@ -124,23 +124,110 @@ export class ImageProcessor extends BaseProcessor<ImageJobData> {
 
       // Update execution node result
       if (result.success) {
+        // Log output format for debugging
+        this.logger.log(
+          `Output format for node ${nodeId}: type=${typeof result.output}, ` +
+            `isArray=${Array.isArray(result.output)}, ` +
+            `sample=${JSON.stringify(result.output).substring(0, 150)}`
+        );
+
         // Auto-save output to local storage
-        let localOutput = result.output;
+        let localOutput: Record<string, unknown>;
 
-        // Get the image URL - handle all formats:
+        // Handle all output formats:
         // 1. output is a string (URL directly)
-        // 2. output is an array (most common from Replicate)
+        // 2. output is an array (most common from Replicate - may have multiple images)
         // 3. output.image is a string (some models return { image: "url" })
-        let imageUrl: string | undefined;
-        if (typeof result.output === 'string') {
-          imageUrl = result.output;
-        } else if (Array.isArray(result.output) && result.output.length > 0) {
-          imageUrl = result.output[0] as string;
-        } else if (result.output?.image) {
-          imageUrl = result.output.image as string;
-        }
+        if (Array.isArray(result.output) && result.output.length > 0) {
+          const imageUrls = result.output as string[];
 
-        if (imageUrl) {
+          if (imageUrls.length === 1) {
+            // Single image - existing logic for backward compat
+            try {
+              const saved = await this.filesService.downloadAndSaveOutput(
+                job.data.workflowId,
+                nodeId,
+                imageUrls[0],
+                predictionId
+              );
+              localOutput = {
+                image: saved.url,
+                localPath: saved.path,
+                images: [saved.url],
+                localPaths: [saved.path],
+              };
+              this.logger.log(`Saved image output to ${saved.path}`);
+            } catch (saveError) {
+              const errorMsg = (saveError as Error).message;
+              this.logger.error(
+                `CRITICAL: Failed to save output locally: ${errorMsg}. URL: ${imageUrls[0].substring(0, 100)}...`
+              );
+              localOutput = {
+                image: imageUrls[0],
+                images: imageUrls,
+                saveError: errorMsg,
+              };
+            }
+          } else {
+            // Multiple images - batch save all
+            try {
+              const savedFiles = await this.filesService.downloadAndSaveMultipleOutputs(
+                job.data.workflowId,
+                nodeId,
+                imageUrls,
+                predictionId
+              );
+              localOutput = {
+                image: savedFiles[0].url, // Backward compat - first image
+                localPath: savedFiles[0].path,
+                images: savedFiles.map((f) => f.url),
+                localPaths: savedFiles.map((f) => f.path),
+                imageCount: savedFiles.length,
+              };
+              this.logger.log(`Saved ${savedFiles.length} images for node ${nodeId}`);
+            } catch (saveError) {
+              const errorMsg = (saveError as Error).message;
+              this.logger.error(
+                `CRITICAL: Failed to save ${imageUrls.length} outputs locally: ${errorMsg}`
+              );
+              localOutput = {
+                image: imageUrls[0],
+                images: imageUrls,
+                imageCount: imageUrls.length,
+                saveError: errorMsg,
+              };
+            }
+          }
+        } else if (typeof result.output === 'string') {
+          // String URL - wrap in arrays for consistency
+          try {
+            const saved = await this.filesService.downloadAndSaveOutput(
+              job.data.workflowId,
+              nodeId,
+              result.output,
+              predictionId
+            );
+            localOutput = {
+              image: saved.url,
+              localPath: saved.path,
+              images: [saved.url],
+              localPaths: [saved.path],
+            };
+            this.logger.log(`Saved image output to ${saved.path}`);
+          } catch (saveError) {
+            const errorMsg = (saveError as Error).message;
+            this.logger.error(
+              `CRITICAL: Failed to save output locally: ${errorMsg}. URL: ${result.output.substring(0, 100)}...`
+            );
+            localOutput = {
+              image: result.output,
+              images: [result.output],
+              saveError: errorMsg,
+            };
+          }
+        } else if (result.output?.image) {
+          // Object with image field
+          const imageUrl = result.output.image as string;
           try {
             const saved = await this.filesService.downloadAndSaveOutput(
               job.data.workflowId,
@@ -148,20 +235,57 @@ export class ImageProcessor extends BaseProcessor<ImageJobData> {
               imageUrl,
               predictionId
             );
-            // Normalize output to always have { image: "url" } format
-            if (typeof result.output === 'string' || Array.isArray(result.output)) {
-              localOutput = { image: saved.url, localPath: saved.path };
-            } else {
-              localOutput = { ...result.output, image: saved.url, localPath: saved.path };
-            }
-            this.logger.log(`Auto-saved image output to ${saved.path}`);
+            localOutput = {
+              ...result.output,
+              image: saved.url,
+              localPath: saved.path,
+              images: [saved.url],
+              localPaths: [saved.path],
+            };
+            this.logger.log(`Saved image output to ${saved.path}`);
           } catch (saveError) {
-            this.logger.warn(`Failed to auto-save output: ${(saveError as Error).message}`);
-            // Continue with remote URL if save fails
-            // Normalize output format even on save failure
-            if (typeof result.output === 'string' || Array.isArray(result.output)) {
-              localOutput = { image: imageUrl };
+            const errorMsg = (saveError as Error).message;
+            this.logger.error(`CRITICAL: Failed to save output locally: ${errorMsg}`);
+            localOutput = {
+              ...result.output,
+              images: [imageUrl],
+              saveError: errorMsg,
+            };
+          }
+        } else {
+          // Unknown format - try to extract any URL string
+          const outputStr = JSON.stringify(result.output);
+          const urlMatch = outputStr.match(/https?:\/\/[^\s"']+\.(jpg|jpeg|png|webp|gif)/i);
+
+          if (urlMatch) {
+            const extractedUrl = urlMatch[0];
+            this.logger.log(`Extracted URL from unknown format: ${extractedUrl.substring(0, 80)}`);
+            try {
+              const saved = await this.filesService.downloadAndSaveOutput(
+                job.data.workflowId,
+                nodeId,
+                extractedUrl,
+                predictionId
+              );
+              localOutput = {
+                image: saved.url,
+                localPath: saved.path,
+                images: [saved.url],
+                localPaths: [saved.path],
+              };
+            } catch (saveError) {
+              this.logger.error(
+                `CRITICAL: Failed to save extracted URL: ${(saveError as Error).message}`
+              );
+              localOutput = {
+                image: extractedUrl,
+                images: [extractedUrl],
+                saveError: (saveError as Error).message,
+              };
             }
+          } else {
+            // No URL found - pass through as-is
+            localOutput = result.output as Record<string, unknown>;
           }
         }
 

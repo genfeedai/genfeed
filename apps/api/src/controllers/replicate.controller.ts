@@ -1,13 +1,29 @@
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  Param,
+  Post,
+  Query,
+} from '@nestjs/common';
 import type { GenerateImageDto } from '@/dto/generate-image.dto';
 import type { GenerateTextDto } from '@/dto/generate-text.dto';
 import type { GenerateVideoDto } from '@/dto/generate-video.dto';
 import type { ProcessDto } from '@/dto/process.dto';
+import { FilesService } from '@/services/files.service';
 import { ReplicateService } from '@/services/replicate.service';
 
 @Controller('replicate')
 export class ReplicateController {
-  constructor(private readonly replicateService: ReplicateService) {}
+  private readonly logger = new Logger(ReplicateController.name);
+
+  constructor(
+    private readonly replicateService: ReplicateService,
+    private readonly filesService: FilesService
+  ) {}
 
   @Post('image')
   async generateImage(@Body() dto: GenerateImageDto) {
@@ -136,8 +152,69 @@ export class ReplicateController {
   }
 
   @Get('predictions/:id')
-  async getPredictionStatus(@Param('id') predictionId: string) {
+  async getPredictionStatus(
+    @Param('id') predictionId: string,
+    @Query('workflowId') workflowId?: string,
+    @Query('nodeId') nodeId?: string
+  ) {
     const prediction = await this.replicateService.getPredictionStatus(predictionId);
+
+    // If prediction succeeded and we have workflowId/nodeId, save the output locally
+    if (prediction.status === 'succeeded' && workflowId && nodeId && prediction.output) {
+      try {
+        const output = prediction.output;
+        let savedOutput: unknown = output;
+
+        // Handle array output (most common from Replicate)
+        if (Array.isArray(output) && output.length > 0) {
+          const urls = output as string[];
+          if (urls.length === 1) {
+            const saved = await this.filesService.downloadAndSaveOutput(
+              workflowId,
+              nodeId,
+              urls[0],
+              predictionId
+            );
+            savedOutput = { image: saved.url, images: [saved.url], localPath: saved.path };
+            this.logger.log(`Saved output to ${saved.path}`);
+          } else {
+            const savedFiles = await this.filesService.downloadAndSaveMultipleOutputs(
+              workflowId,
+              nodeId,
+              urls,
+              predictionId
+            );
+            savedOutput = {
+              image: savedFiles[0].url,
+              images: savedFiles.map((f) => f.url),
+              localPaths: savedFiles.map((f) => f.path),
+            };
+            this.logger.log(`Saved ${savedFiles.length} outputs for node ${nodeId}`);
+          }
+        } else if (typeof output === 'string') {
+          // Single URL string
+          const saved = await this.filesService.downloadAndSaveOutput(
+            workflowId,
+            nodeId,
+            output,
+            predictionId
+          );
+          savedOutput = { image: saved.url, images: [saved.url], localPath: saved.path };
+          this.logger.log(`Saved output to ${saved.path}`);
+        }
+
+        return {
+          id: prediction.id,
+          status: prediction.status,
+          output: savedOutput,
+          error: prediction.error,
+        };
+      } catch (saveError) {
+        this.logger.error(`Failed to save output: ${(saveError as Error).message}`);
+        // Fall through to return original output
+      }
+    }
+
     return {
       id: prediction.id,
       status: prediction.status,

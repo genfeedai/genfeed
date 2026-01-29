@@ -15,7 +15,6 @@ export const MODELS = {
   // Lip-sync models
   lipsync2: 'sync/lipsync-2',
   lipsync2Pro: 'sync/lipsync-2-pro',
-  latentSync: 'bytedance/latentsync',
   pixverseLipsync: 'pixverse/lipsync',
 } as const;
 
@@ -39,7 +38,6 @@ export const PRICING = {
   // Lip-sync pricing (per second of output)
   'sync/lipsync-2': 0.05,
   'sync/lipsync-2-pro': 0.08325,
-  'bytedance/latentsync': 0.03,
   'pixverse/lipsync': 0.04,
 } as const;
 
@@ -74,11 +72,7 @@ export interface LLMInput {
   top_p?: number;
 }
 
-export type LipSyncModel =
-  | 'sync/lipsync-2-pro'
-  | 'sync/lipsync-2'
-  | 'bytedance/latentsync'
-  | 'pixverse/lipsync';
+export type LipSyncModel = 'sync/lipsync-2-pro' | 'sync/lipsync-2' | 'pixverse/lipsync';
 
 export type LipSyncMode = 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
 
@@ -198,7 +192,6 @@ export async function generateLipSync(
   const modelMap: Record<LipSyncModel, string> = {
     'sync/lipsync-2': MODELS.lipsync2,
     'sync/lipsync-2-pro': MODELS.lipsync2Pro,
-    'bytedance/latentsync': MODELS.latentSync,
     'pixverse/lipsync': MODELS.pixverseLipsync,
   };
 
@@ -206,7 +199,7 @@ export async function generateLipSync(
 
   // Build input based on model requirements
   // sync/lipsync models use video + audio
-  // bytedance/latentsync and pixverse use image + audio
+  // pixverse uses image + audio
   const modelInput: Record<string, unknown> = {
     audio: input.audio,
   };

@@ -1,16 +1,47 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, type OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import type { Model } from 'mongoose';
 import type { CreatePromptDto } from '@/dto/create-prompt.dto';
 import type { QueryPromptsDto } from '@/dto/query-prompts.dto';
 import { Prompt, type PromptDocument } from '@/schemas/prompt.schema';
+import { SYSTEM_PROMPTS } from '@/templates/prompts.seed';
 
 @Injectable()
-export class PromptsService {
+export class PromptsService implements OnModuleInit {
+  private readonly logger = new Logger(PromptsService.name);
+
   constructor(
     @InjectModel(Prompt.name)
     private readonly promptModel: Model<PromptDocument>
   ) {}
+
+  async onModuleInit() {
+    await this.seedSystemPrompts();
+  }
+
+  async seedSystemPrompts(): Promise<void> {
+    let created = 0;
+    let updated = 0;
+
+    for (const prompt of SYSTEM_PROMPTS) {
+      const existing = await this.promptModel.findOne({ name: prompt.name, isSystem: true }).exec();
+
+      if (existing) {
+        await this.promptModel.updateOne({ _id: existing._id }, { $set: prompt }).exec();
+        updated++;
+      } else {
+        await this.promptModel.create({ ...prompt, isSystem: true });
+        created++;
+      }
+    }
+
+    if (created > 0) {
+      this.logger.log(`Seeded ${created} new prompt(s)`);
+    }
+    if (updated > 0) {
+      this.logger.debug(`Updated ${updated} existing prompt(s)`);
+    }
+  }
 
   async create(dto: CreatePromptDto): Promise<PromptDocument> {
     const prompt = new this.promptModel({

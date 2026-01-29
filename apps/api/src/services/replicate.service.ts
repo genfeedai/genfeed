@@ -28,8 +28,9 @@ export const MODELS = {
   // Lip sync
   lipSync2: 'sync/lipsync-2',
   lipSync2Pro: 'sync/lipsync-2-pro',
-  latentSync: 'bytedance/latentsync',
   pixverseLipSync: 'pixverse/lipsync',
+  // Flux Kontext
+  fluxKontextDev: 'black-forest-labs/flux-kontext-dev',
 } as const;
 
 export interface SelectedModel {
@@ -140,7 +141,7 @@ export interface LipSyncInput {
   image?: string;
   video?: string;
   audio: string;
-  model: 'sync/lipsync-2' | 'sync/lipsync-2-pro' | 'bytedance/latentsync' | 'pixverse/lipsync';
+  model: 'sync/lipsync-2' | 'sync/lipsync-2-pro' | 'pixverse/lipsync';
   syncMode?: 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
   temperature?: number;
   activeSpeaker?: boolean;
@@ -209,6 +210,7 @@ export class ReplicateService {
     // Keys that typically contain image/video URLs
     const urlKeys = [
       'image',
+      'input_image',
       'image_input',
       'start_image',
       'end_image',
@@ -249,7 +251,6 @@ export class ReplicateService {
   private static readonly LIP_SYNC_MODEL_MAP: Record<string, string> = {
     'sync/lipsync-2': MODELS.lipSync2,
     'sync/lipsync-2-pro': MODELS.lipSync2Pro,
-    'bytedance/latentsync': MODELS.latentSync,
     'pixverse/lipsync': MODELS.pixverseLipSync,
   };
 

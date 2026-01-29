@@ -43,6 +43,7 @@ function PromptNodeComponent(props: NodeProps) {
       tags: [],
       useCount: 0,
       isFeatured: false,
+      isSystem: false,
       isDeleted: false,
       createdAt: '',
       updatedAt: '',

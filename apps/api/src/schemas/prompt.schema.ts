@@ -65,6 +65,10 @@ export class Prompt extends Document {
   @Prop({ default: false })
   isFeatured: boolean;
 
+  // System prompt flag (for seeded prompts)
+  @Prop({ default: false })
+  isSystem: boolean;
+
   // Soft delete
   @Prop({ default: false })
   isDeleted: boolean;

@@ -1,3 +1,4 @@
+import { TemplateCategory } from '@genfeedai/types';
 import { IsArray, IsBoolean, IsEnum, IsOptional, IsString } from 'class-validator';
 
 export class CreateTemplateDto {
@@ -8,8 +9,8 @@ export class CreateTemplateDto {
   @IsString()
   description?: string;
 
-  @IsEnum(['images', 'video', 'full-pipeline'])
-  category: string;
+  @IsEnum(TemplateCategory)
+  category: TemplateCategory;
 
   @IsOptional()
   @IsString()

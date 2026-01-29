@@ -270,7 +270,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:47.465Z"
+    "fetchedAt": "2026-01-29T02:24:12.857Z"
   },
   {
     "modelId": "google/nano-banana-pro",
@@ -583,7 +583,7 @@
         "description": "An enumeration."
       }
     },
-    "fetchedAt": "2026-01-29T00:00:47.660Z"
+    "fetchedAt": "2026-01-29T02:24:13.040Z"
   },
   {
     "modelId": "prunaai/z-image-turbo",
@@ -877,7 +877,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:47.839Z"
+    "fetchedAt": "2026-01-29T02:24:13.208Z"
   },
   {
     "modelId": "black-forest-labs/flux-schnell",
@@ -1209,7 +1209,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:48.088Z"
+    "fetchedAt": "2026-01-29T02:24:13.382Z"
   },
   {
     "modelId": "black-forest-labs/flux-dev",
@@ -1566,7 +1566,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:48.287Z"
+    "fetchedAt": "2026-01-29T02:24:13.553Z"
   },
   {
     "modelId": "black-forest-labs/flux-1.1-pro",
@@ -1874,7 +1874,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:48.463Z"
+    "fetchedAt": "2026-01-29T02:24:13.732Z"
   },
   {
     "modelId": "stability-ai/sdxl",
@@ -2523,7 +2523,7 @@
         "description": "An enumeration."
       }
     },
-    "fetchedAt": "2026-01-29T00:00:48.634Z"
+    "fetchedAt": "2026-01-29T02:24:13.905Z"
   },
   {
     "modelId": "bytedance/sdxl-lightning-4step",
@@ -2806,7 +2806,319 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:48.831Z"
+    "fetchedAt": "2026-01-29T02:24:14.071Z"
+  },
+  {
+    "modelId": "black-forest-labs/flux-kontext-dev",
+    "name": "FluxKontextDev",
+    "category": "image",
+    "description": "Open-weight version of FLUX.1 Kontext",
+    "coverImageUrl": "https://tjzk.replicate.delivery/models_models_featured_image/0bbd6c48-2660-403b-86de-6ab9a87ffd64/v8tvckcb6hrm80cqnk798w47g0.webp",
+    "inputSchema": {
+      "type": "object",
+      "title": "Input",
+      "required": [
+        "prompt",
+        "input_image"
+      ],
+      "properties": {
+        "seed": {
+          "type": "integer",
+          "title": "Seed",
+          "x-order": 5,
+          "description": "Random seed for reproducible generation. Leave blank for random."
+        },
+        "prompt": {
+          "type": "string",
+          "title": "Prompt",
+          "x-order": 0,
+          "description": "Text description of what you want to generate, or the instruction on how to edit the given image."
+        },
+        "guidance": {
+          "type": "number",
+          "title": "Guidance",
+          "default": 2.5,
+          "maximum": 10,
+          "minimum": 0,
+          "x-order": 4,
+          "description": "Guidance scale for generation"
+        },
+        "input_image": {
+          "type": "string",
+          "title": "Input Image",
+          "format": "uri",
+          "x-order": 1,
+          "description": "Image to use as reference. Must be jpeg, png, gif, or webp."
+        },
+        "aspect_ratio": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/aspect_ratio"
+            }
+          ],
+          "default": "match_input_image",
+          "x-order": 2,
+          "description": "Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image."
+        },
+        "output_format": {
+          "allOf": [
+            {
+              "$ref": "#/components/schemas/output_format"
+            }
+          ],
+          "default": "webp",
+          "x-order": 6,
+          "description": "Output image format"
+        },
+        "output_quality": {
+          "type": "integer",
+          "title": "Output Quality",
+          "default": 80,
+          "maximum": 100,
+          "minimum": 0,
+          "x-order": 7,
+          "description": "Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs"
+        },
+        "num_inference_steps": {
+          "type": "integer",
+          "title": "Num Inference Steps",
+          "default": 30,
+          "maximum": 50,
+          "minimum": 4,
+          "x-order": 3,
+          "description": "Number of inference steps"
+        },
+        "disable_safety_checker": {
+          "type": "boolean",
+          "title": "Disable Safety Checker",
+          "default": false,
+          "x-order": 8,
+          "description": "Disable NSFW safety checker"
+        }
+      }
+    },
+    "outputSchema": {
+      "type": "string",
+      "title": "Output",
+      "format": "uri"
+    },
+    "componentSchemas": {
+      "Status": {
+        "enum": [
+          "starting",
+          "processing",
+          "succeeded",
+          "canceled",
+          "failed"
+        ],
+        "type": "string",
+        "title": "Status",
+        "description": "An enumeration."
+      },
+      "WebhookEvent": {
+        "enum": [
+          "start",
+          "output",
+          "logs",
+          "completed"
+        ],
+        "type": "string",
+        "title": "WebhookEvent",
+        "description": "An enumeration."
+      },
+      "aspect_ratio": {
+        "enum": [
+          "1:1",
+          "16:9",
+          "21:9",
+          "3:2",
+          "2:3",
+          "4:5",
+          "5:4",
+          "3:4",
+          "4:3",
+          "9:16",
+          "9:21",
+          "match_input_image"
+        ],
+        "type": "string",
+        "title": "aspect_ratio",
+        "description": "An enumeration."
+      },
+      "output_format": {
+        "enum": [
+          "webp",
+          "jpg",
+          "png"
+        ],
+        "type": "string",
+        "title": "output_format",
+        "description": "An enumeration."
+      },
+      "ValidationError": {
+        "type": "object",
+        "title": "ValidationError",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "properties": {
+          "loc": {
+            "type": "array",
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        }
+      },
+      "PredictionRequest": {
+        "type": "object",
+        "title": "PredictionRequest",
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "nullable": true
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "context": {
+            "type": "object",
+            "title": "Context",
+            "nullable": true,
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "webhook": {
+            "type": "string",
+            "title": "Webhook",
+            "format": "uri",
+            "nullable": true,
+            "maxLength": 65536,
+            "minLength": 1
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At",
+            "format": "date-time",
+            "nullable": true
+          },
+          "output_file_prefix": {
+            "type": "string",
+            "title": "Output File Prefix",
+            "nullable": true
+          },
+          "webhook_events_filter": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WebhookEvent"
+            },
+            "default": [
+              "start",
+              "output",
+              "logs",
+              "completed"
+            ],
+            "nullable": true
+          }
+        }
+      },
+      "PredictionResponse": {
+        "type": "object",
+        "title": "PredictionResponse",
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "nullable": true
+          },
+          "logs": {
+            "type": "string",
+            "title": "Logs",
+            "default": ""
+          },
+          "error": {
+            "type": "string",
+            "title": "Error",
+            "nullable": true
+          },
+          "input": {
+            "$ref": "#/components/schemas/Input",
+            "nullable": true
+          },
+          "output": {
+            "$ref": "#/components/schemas/Output"
+          },
+          "status": {
+            "$ref": "#/components/schemas/Status",
+            "nullable": true
+          },
+          "metrics": {
+            "type": "object",
+            "title": "Metrics",
+            "nullable": true,
+            "additionalProperties": true
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "nullable": true
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At",
+            "format": "date-time",
+            "nullable": true
+          },
+          "started_at": {
+            "type": "string",
+            "title": "Started At",
+            "format": "date-time",
+            "nullable": true
+          },
+          "completed_at": {
+            "type": "string",
+            "title": "Completed At",
+            "format": "date-time",
+            "nullable": true
+          }
+        }
+      },
+      "HTTPValidationError": {
+        "type": "object",
+        "title": "HTTPValidationError",
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail"
+          }
+        }
+      }
+    },
+    "fetchedAt": "2026-01-29T02:24:14.258Z"
   },
   {
     "modelId": "google/veo-3.1-fast",
@@ -3116,7 +3428,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:49.010Z"
+    "fetchedAt": "2026-01-29T02:24:14.433Z"
   },
   {
     "modelId": "google/veo-3.1",
@@ -3437,7 +3749,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:49.202Z"
+    "fetchedAt": "2026-01-29T02:24:14.605Z"
   },
   {
     "modelId": "kwaivgi/kling-v2.5-turbo-pro",
@@ -3721,7 +4033,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:49.393Z"
+    "fetchedAt": "2026-01-29T02:24:14.770Z"
   },
   {
     "modelId": "kwaivgi/kling-v2.6-motion-control",
@@ -3997,7 +4309,7 @@
         "description": "An enumeration."
       }
     },
-    "fetchedAt": "2026-01-29T00:00:49.661Z"
+    "fetchedAt": "2026-01-29T02:24:14.954Z"
   },
   {
     "modelId": "minimax/video-01",
@@ -4229,7 +4541,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:49.841Z"
+    "fetchedAt": "2026-01-29T02:24:15.123Z"
   },
   {
     "modelId": "luma/ray",
@@ -4507,7 +4819,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:50.019Z"
+    "fetchedAt": "2026-01-29T02:24:15.294Z"
   },
   {
     "modelId": "meta/meta-llama-3.1-405b-instruct",
@@ -4794,7 +5106,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:50.196Z"
+    "fetchedAt": "2026-01-29T02:24:15.478Z"
   },
   {
     "modelId": "luma/reframe-image",
@@ -5090,7 +5402,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:50.370Z"
+    "fetchedAt": "2026-01-29T02:24:15.681Z"
   },
   {
     "modelId": "luma/reframe-video",
@@ -5367,7 +5679,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:50.563Z"
+    "fetchedAt": "2026-01-29T02:24:15.857Z"
   },
   {
     "modelId": "sync/lipsync-2",
@@ -5625,7 +5937,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:50.767Z"
+    "fetchedAt": "2026-01-29T02:24:16.023Z"
   },
   {
     "modelId": "sync/lipsync-2-pro",
@@ -5883,7 +6195,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:50.951Z"
+    "fetchedAt": "2026-01-29T02:24:16.225Z"
   },
   {
     "modelId": "bytedance/latentsync",
@@ -6095,7 +6407,7 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:51.140Z"
+    "fetchedAt": "2026-01-29T02:24:16.405Z"
   },
   {
     "modelId": "pixverse/lipsync",
@@ -6319,6 +6631,6 @@
         }
       }
     },
-    "fetchedAt": "2026-01-29T00:00:51.418Z"
+    "fetchedAt": "2026-01-29T02:24:16.581Z"
   }
 ]

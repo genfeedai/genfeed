@@ -17,18 +17,21 @@ export async function pollPrediction(
 ): Promise<void> {
   const maxAttempts = 120; // 10 minutes max
   const pollInterval = 5000; // 5 seconds
+  const workflowId = workflowStore.workflowId;
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     // Check if aborted before making request
     if (signal?.aborted) return;
 
+    // Pass workflowId and nodeId so backend can save output to local storage
+    const queryParams = workflowId ? `?workflowId=${workflowId}&nodeId=${nodeId}` : '';
     const data = await apiClient.get<{
       id: string;
       status: string;
       output: unknown;
       error?: string;
       progress?: number;
-    }>(`/replicate/predictions/${predictionId}`);
+    }>(`/replicate/predictions/${predictionId}${queryParams}`);
 
     executionStore.updateJob(predictionId, {
       status: data.status as Job['status'],

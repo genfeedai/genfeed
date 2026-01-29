@@ -189,10 +189,16 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
                 outputUrl
               );
               localOutput = { ...result.output, [outputType]: saved.url, localPath: saved.path };
-              this.logger.log(`Auto-saved ${outputType} output to ${saved.path}`);
+              this.logger.log(`Saved ${outputType} output to ${saved.path}`);
             } catch (saveError) {
-              this.logger.warn(`Failed to auto-save output: ${(saveError as Error).message}`);
-              // Continue with remote URL if save fails
+              // Log as ERROR - this is a real problem that causes files to expire
+              const errorMsg = (saveError as Error).message;
+              this.logger.error(
+                `CRITICAL: Failed to save output locally after retries: ${errorMsg}. ` +
+                  `Using Replicate URL which WILL EXPIRE. URL: ${outputUrl.substring(0, 100)}...`
+              );
+              // Continue with remote URL if save fails, but track the error
+              localOutput = { ...result.output, saveError: errorMsg };
             }
           }
 

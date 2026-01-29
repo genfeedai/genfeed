@@ -27,7 +27,6 @@ describe('Replicate Client', () => {
     it('should have lip-sync model identifiers', () => {
       expect(MODELS.lipsync2).toBe('sync/lipsync-2');
       expect(MODELS.lipsync2Pro).toBe('sync/lipsync-2-pro');
-      expect(MODELS.latentSync).toBe('bytedance/latentsync');
       expect(MODELS.pixverseLipsync).toBe('pixverse/lipsync');
     });
   });
@@ -60,7 +59,6 @@ describe('Replicate Client', () => {
     it('should have correct lip-sync pricing', () => {
       expect(PRICING['sync/lipsync-2']).toBe(0.05);
       expect(PRICING['sync/lipsync-2-pro']).toBe(0.08325);
-      expect(PRICING['bytedance/latentsync']).toBe(0.03);
       expect(PRICING['pixverse/lipsync']).toBe(0.04);
     });
   });

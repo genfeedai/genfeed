@@ -12,6 +12,7 @@ import { NODE_DEFINITIONS } from '@genfeedai/types';
 import type { StateCreator } from 'zustand';
 import { type WorkflowData, workflowsApi } from '@/lib/api';
 import { calculateWorkflowCost } from '@/lib/replicate/client';
+import { hydrateWorkflowNodes } from '@/lib/utils/nodeHydration';
 import { useExecutionStore } from '@/store/executionStore';
 import type { WorkflowStore } from '../types';
 
@@ -53,8 +54,10 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
   get
 ) => ({
   loadWorkflow: (workflow) => {
+    const hydratedNodes = hydrateWorkflowNodes(workflow.nodes);
+
     set({
-      nodes: workflow.nodes,
+      nodes: hydratedNodes,
       edges: normalizeEdgeTypes(workflow.edges),
       edgeStyle: workflow.edgeStyle,
       workflowName: workflow.name,
@@ -64,7 +67,7 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
       selectedNodeIds: [],
     });
 
-    const estimatedCost = calculateWorkflowCost(workflow.nodes);
+    const estimatedCost = calculateWorkflowCost(hydratedNodes);
     useExecutionStore.getState().setEstimatedCost(estimatedCost);
   },
 
@@ -360,7 +363,7 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
 
     try {
       const workflow = await workflowsApi.getById(id, signal);
-      const nodes = workflow.nodes as WorkflowNode[];
+      const nodes = hydrateWorkflowNodes(workflow.nodes as WorkflowNode[]);
 
       set({
         nodes,

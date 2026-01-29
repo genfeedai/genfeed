@@ -2,7 +2,15 @@
 
 import type { ImageGenNodeData, ImageModel } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, Expand, ImageIcon, Loader2, RefreshCw, Sparkles } from 'lucide-react';
+import {
+  AlertCircle,
+  Download,
+  Expand,
+  ImageIcon,
+  Loader2,
+  RefreshCw,
+  Sparkles,
+} from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
@@ -35,6 +43,31 @@ function ImageGenNodeComponent(props: NodeProps) {
   const { hasRequiredInputs } = useRequiredInputs(id, type as 'imageGen');
 
   const [isModelBrowserOpen, setIsModelBrowserOpen] = useState(false);
+  const [selectedPreview, setSelectedPreview] = useState<number | null>(null);
+
+  // Download handlers for multi-image gallery
+  const handleDownload = useCallback(
+    (index: number) => {
+      const images = nodeData.outputImages ?? [];
+      const image = images[index];
+      if (!image) return;
+
+      const link = document.createElement('a');
+      link.href = image;
+      link.download = `generated_${index + 1}.jpg`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    },
+    [nodeData.outputImages]
+  );
+
+  const handleDownloadAll = useCallback(() => {
+    const images = nodeData.outputImages ?? [];
+    images.forEach((_, index) => {
+      setTimeout(() => handleDownload(index), index * 100);
+    });
+  }, [nodeData.outputImages, handleDownload]);
 
   // Use shared hook for model selection
   const { handleModelSelect } = useModelSelection<ImageModel, ImageGenNodeData>({
@@ -168,8 +201,83 @@ function ImageGenNodeComponent(props: NodeProps) {
           </div>
         )}
 
-        {/* Output Preview */}
-        {nodeData.outputImage ? (
+        {/* Output Preview - Multi-image gallery or single image */}
+        {(nodeData.outputImages?.length ?? 0) > 1 ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">
+                Generated ({nodeData.outputImages.length} images)
+              </span>
+              <button
+                onClick={handleDownloadAll}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                <Download className="w-3 h-3" />
+                Download All
+              </button>
+            </div>
+            <div className="grid grid-cols-2 gap-1">
+              {nodeData.outputImages.map((img, i) => (
+                <div
+                  key={i}
+                  className="relative group aspect-square rounded overflow-hidden border border-border cursor-pointer"
+                  onClick={() => setSelectedPreview(selectedPreview === i ? null : i)}
+                >
+                  <Image
+                    src={img}
+                    alt={`Generated ${i + 1}`}
+                    fill
+                    sizes="150px"
+                    className="object-cover"
+                    unoptimized
+                  />
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(i);
+                      }}
+                      className="p-1 bg-white/20 rounded hover:bg-white/30"
+                    >
+                      <Download className="w-3 h-3 text-white" />
+                    </button>
+                  </div>
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/50 text-white text-[8px] text-center py-0.5">
+                    {i + 1}
+                  </div>
+                </div>
+              ))}
+            </div>
+            {/* Enlarged preview */}
+            {selectedPreview !== null && nodeData.outputImages[selectedPreview] && (
+              <div className="relative aspect-[4/3] rounded overflow-hidden">
+                <Image
+                  src={nodeData.outputImages[selectedPreview]}
+                  alt={`Preview ${selectedPreview + 1}`}
+                  fill
+                  sizes="300px"
+                  className="object-contain"
+                  unoptimized
+                />
+                <button
+                  onClick={() => setSelectedPreview(null)}
+                  className="absolute top-1 right-1 p-1 bg-black/50 rounded text-white text-xs"
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            {/* Processing overlay */}
+            {nodeData.status === 'processing' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-md">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="text-xs text-white/80">Generating...</span>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : nodeData.outputImage ? (
           <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-black/20">
             <Image
               src={nodeData.outputImage}
@@ -204,17 +312,19 @@ function ImageGenNodeComponent(props: NodeProps) {
         )}
 
         {/* Generate Button (when no output) */}
-        {!nodeData.outputImage && nodeData.status !== 'processing' && (
-          <button
-            onClick={handleGenerate}
-            disabled={!hasRequiredInputs}
-            className="w-full py-2 rounded-md text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-            style={{ backgroundColor: 'var(--node-color)', color: 'var(--background)' }}
-          >
-            <Sparkles className="h-4 w-4" />
-            Generate Image
-          </button>
-        )}
+        {!nodeData.outputImage &&
+          !(nodeData.outputImages?.length > 0) &&
+          nodeData.status !== 'processing' && (
+            <button
+              onClick={handleGenerate}
+              disabled={!hasRequiredInputs}
+              className="w-full py-2 rounded-md text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              style={{ backgroundColor: 'var(--node-color)', color: 'var(--background)' }}
+            >
+              <Sparkles className="h-4 w-4" />
+              Generate Image
+            </button>
+          )}
 
         {/* Help text for required inputs */}
         {!hasRequiredInputs && nodeData.status !== 'processing' && (

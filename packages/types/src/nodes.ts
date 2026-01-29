@@ -213,8 +213,11 @@ export interface ImageGenNodeData extends BaseNodeData {
   inputImages: string[];
   inputPrompt: string | null;
 
-  // Output
+  // Output (single image for backward compat)
   outputImage: string | null;
+
+  // Output (multiple images - for models like SeedDream 4.5)
+  outputImages: string[];
 
   // Model config
   model: ImageModel;
@@ -279,11 +282,7 @@ export interface LLMNodeData extends BaseNodeData {
   jobId: string | null;
 }
 
-export type LipSyncModel =
-  | 'sync/lipsync-2-pro'
-  | 'sync/lipsync-2'
-  | 'bytedance/latentsync'
-  | 'pixverse/lipsync';
+export type LipSyncModel = 'sync/lipsync-2-pro' | 'sync/lipsync-2' | 'pixverse/lipsync';
 
 export type LipSyncMode = 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
 
@@ -975,6 +974,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       inputImages: [],
       inputPrompt: null,
       outputImage: null,
+      outputImages: [],
       model: 'nano-banana-pro',
       aspectRatio: '1:1',
       resolution: '2K',

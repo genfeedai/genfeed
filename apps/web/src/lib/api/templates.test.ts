@@ -1,3 +1,4 @@
+import { TemplateCategory } from '@genfeedai/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TemplateData } from './templates';
 import { templatesApi } from './templates';
@@ -17,7 +18,7 @@ describe('templatesApi', () => {
     _id: 'template-1',
     name: 'Test Template',
     description: 'A test template',
-    category: 'images',
+    category: TemplateCategory.IMAGE,
     version: 1,
     nodes: [],
     edges: [],
@@ -61,18 +62,18 @@ describe('templatesApi', () => {
       const { apiClient } = await import('./client');
       vi.mocked(apiClient.get).mockResolvedValueOnce([mockTemplate]);
 
-      const result = await templatesApi.getByCategory('images');
+      const result = await templatesApi.getByCategory(TemplateCategory.IMAGE);
 
-      expect(apiClient.get).toHaveBeenCalledWith('/templates?category=images', {
+      expect(apiClient.get).toHaveBeenCalledWith('/templates?category=image', {
         signal: undefined,
       });
       expect(result).toHaveLength(1);
-      expect(result[0].category).toBe('images');
+      expect(result[0].category).toBe(TemplateCategory.IMAGE);
     });
 
     it('should filter video templates', async () => {
       const { apiClient } = await import('./client');
-      const videoTemplate = { ...mockTemplate, category: 'video' as const };
+      const videoTemplate = { ...mockTemplate, category: TemplateCategory.VIDEO };
       vi.mocked(apiClient.get).mockResolvedValueOnce([videoTemplate]);
 
       const result = await templatesApi.getByCategory('video');
@@ -100,7 +101,7 @@ describe('templatesApi', () => {
 
       const createData = {
         name: 'New Template',
-        category: 'images' as const,
+        category: TemplateCategory.IMAGE,
         nodes: [],
         edges: [],
       };
@@ -118,7 +119,7 @@ describe('templatesApi', () => {
 
       const createData = {
         name: 'Complex Template',
-        category: 'full-pipeline' as const,
+        category: TemplateCategory.FULL_PIPELINE,
         nodes: [],
         edges: [],
         edgeStyle: 'smoothstep',

@@ -274,6 +274,7 @@ function BaseNodeComponent({
               type="target"
               position={Position.Left}
               id={input.id}
+              isConnectableEnd={!isDisabled}
               className={clsx('!w-3 !h-3', isDisabled && 'opacity-30')}
               style={{
                 top: `${((index + 1) / (sortedInputs.length + 1)) * 100}%`,

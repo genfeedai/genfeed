@@ -192,7 +192,7 @@ export interface LipSyncJobData extends NodeJobData {
     image?: string;
     video?: string;
     audio: string;
-    model: 'sync/lipsync-2' | 'sync/lipsync-2-pro' | 'bytedance/latentsync' | 'pixverse/lipsync';
+    model: 'sync/lipsync-2' | 'sync/lipsync-2-pro' | 'pixverse/lipsync';
     syncMode?: 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
     temperature?: number;
     activeSpeaker?: boolean;
@@ -297,7 +297,7 @@ export type ProcessingJobData =
  */
 export interface JobResult {
   success: boolean;
-  output?: Record<string, unknown>;
+  output?: string | string[] | Record<string, unknown>;
   error?: string;
   cost?: number;
   predictTime?: number;

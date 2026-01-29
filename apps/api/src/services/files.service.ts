@@ -128,23 +128,79 @@ export class FilesService {
    * Download file from URL and save as workflow output
    * Used to persist generated files from Replicate
    * @param predictionId - Optional Replicate prediction ID to use as filename (for tracking against dashboard)
+   * @param retries - Number of retry attempts (default: 3)
    */
   async downloadAndSaveOutput(
     workflowId: string,
     nodeId: string,
     remoteUrl: string,
-    predictionId?: string
+    predictionId?: string,
+    retries = 3
   ): Promise<FileUploadResult> {
-    // Fetch the file from remote URL
-    const response = await fetch(remoteUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download file: ${response.statusText}`);
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        // Fetch the file from remote URL with User-Agent header
+        const response = await fetch(remoteUrl, {
+          headers: {
+            'User-Agent': 'Genfeed/1.0',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const buffer = Buffer.from(await response.arrayBuffer());
+
+        if (buffer.length === 0) {
+          throw new Error('Downloaded file is empty');
+        }
+
+        const contentType = response.headers.get('content-type') || 'application/octet-stream';
+
+        return this.saveWorkflowOutput(workflowId, nodeId, buffer, contentType, predictionId);
+      } catch (error) {
+        lastError = error as Error;
+        this.logger.warn(
+          `Download attempt ${attempt}/${retries} failed for ${remoteUrl.substring(0, 80)}...: ${lastError.message}`
+        );
+
+        if (attempt < retries) {
+          // Exponential backoff: 1s, 2s, 3s
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+        }
+      }
     }
 
-    const buffer = Buffer.from(await response.arrayBuffer());
-    const contentType = response.headers.get('content-type') || 'application/octet-stream';
+    throw lastError ?? new Error('Download failed after retries');
+  }
 
-    return this.saveWorkflowOutput(workflowId, nodeId, buffer, contentType, predictionId);
+  /**
+   * Download and save multiple output files from remote URLs
+   * Used when models like SeedDream 4.5 return multiple images
+   * @param workflowId - Workflow ID for storage path
+   * @param nodeId - Node ID for filename generation
+   * @param remoteUrls - Array of remote URLs to download
+   * @param predictionId - Optional base prediction ID (files will be indexed: {predictionId}-0, {predictionId}-1, etc.)
+   * @returns Array of FileUploadResult for each saved file
+   */
+  async downloadAndSaveMultipleOutputs(
+    workflowId: string,
+    nodeId: string,
+    remoteUrls: string[],
+    predictionId?: string
+  ): Promise<FileUploadResult[]> {
+    const results: FileUploadResult[] = [];
+
+    for (let i = 0; i < remoteUrls.length; i++) {
+      const indexedId = predictionId ? `${predictionId}-${i}` : `${nodeId}-${Date.now()}-${i}`;
+      const result = await this.downloadAndSaveOutput(workflowId, nodeId, remoteUrls[i], indexedId);
+      results.push(result);
+    }
+
+    return results;
   }
 
   /**
@@ -179,8 +235,9 @@ export class FilesService {
   }
 
   /**
-   * Convert a local file URL to a base64 data URI
+   * Convert a local file URL to a base64 data URI (sync version)
    * Returns the original URL if it's not a local file or doesn't exist
+   * For remote URLs, use urlToBase64Async instead
    */
   urlToBase64(url: string): string {
     // Already base64? Return as-is
@@ -194,18 +251,23 @@ export class FilesService {
       return url;
     }
 
-    // Extract workflowId and filename from URL
-    // Format: http://localhost:3001/api/files/workflows/{workflowId}/input/{filename}
-    const match = url.match(/\/api\/files\/workflows\/([^/]+)\/input\/([^/?#]+)/);
+    // Extract workflowId, type (input/output), and filename from URL
+    // Format: http://localhost:3001/api/files/workflows/{workflowId}/{input|output}/{filename}
+    const match = url.match(/\/api\/files\/workflows\/([^/]+)\/(input|output)\/([^/?#]+)/);
     if (!match) {
       this.logger.warn(`Could not parse local file URL: ${url}`);
       return url;
     }
 
-    const [, workflowId, filename] = match;
-    const filePath = this.getInputFilePath(workflowId, filename);
+    const [, workflowId, fileType, filename] = match;
+    const filePath =
+      fileType === 'input'
+        ? this.getInputFilePath(workflowId, filename)
+        : this.getOutputFilePath(workflowId, filename);
 
-    this.logger.debug(`Converting to base64: workflowId=${workflowId}, filename=${filename}`);
+    this.logger.debug(
+      `Converting to base64: workflowId=${workflowId}, type=${fileType}, filename=${filename}`
+    );
 
     if (!this.fileExists(filePath)) {
       this.logger.warn(`Local file not found: ${filePath}`);
@@ -220,6 +282,58 @@ export class FilesService {
     this.logger.log(`Converted ${filename} to base64 (${Math.round(base64.length / 1024)}KB)`);
 
     return `data:${mimeType};base64,${base64}`;
+  }
+
+  /**
+   * Convert any URL (local or remote) to a base64 data URI
+   * Handles local files synchronously and fetches remote URLs
+   */
+  async urlToBase64Async(url: string): Promise<string> {
+    // Already base64? Return as-is
+    if (url.startsWith('data:')) {
+      return url;
+    }
+
+    // Try local conversion first (fast path)
+    if (url.includes('/api/files/workflows/')) {
+      const localResult = this.urlToBase64(url);
+      if (localResult.startsWith('data:')) {
+        return localResult;
+      }
+    }
+
+    // Remote URL - fetch and convert
+    try {
+      this.logger.debug(`Fetching remote URL for base64 conversion: ${url.substring(0, 100)}...`);
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'Genfeed/1.0' },
+      });
+
+      if (!response.ok) {
+        this.logger.warn(`Failed to fetch remote URL: HTTP ${response.status}`);
+        return url;
+      }
+
+      const buffer = Buffer.from(await response.arrayBuffer());
+      const contentType = response.headers.get('content-type') || 'image/jpeg';
+      const base64 = buffer.toString('base64');
+
+      this.logger.log(
+        `Converted remote URL to base64 (${Math.round(base64.length / 1024)}KB): ${url.substring(0, 60)}...`
+      );
+
+      return `data:${contentType};base64,${base64}`;
+    } catch (error) {
+      this.logger.warn(`Failed to convert remote URL to base64: ${(error as Error).message}`);
+      return url;
+    }
+  }
+
+  /**
+   * Convert multiple URLs to base64 (async version for remote URLs)
+   */
+  async urlsToBase64Async(urls: string[]): Promise<string[]> {
+    return Promise.all(urls.map((url) => this.urlToBase64Async(url)));
   }
 
   /**

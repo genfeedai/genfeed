@@ -40,6 +40,7 @@ const TYPES_OUTPUT_FILE = `${OUTPUT_DIR}/models.ts`;
 const INDEX_FILE = `${OUTPUT_DIR}/index.ts`;
 
 // Models to sync - matches the MODELS constant in replicate client
+// NOTE: Only official Replicate models are supported (community models require version hash)
 const MODELS_TO_SYNC = [
   // Image generation
   { id: 'google/nano-banana', name: 'NanoBanana', category: 'image' },
@@ -48,8 +49,7 @@ const MODELS_TO_SYNC = [
   { id: 'black-forest-labs/flux-schnell', name: 'FluxSchnell', category: 'image' },
   { id: 'black-forest-labs/flux-dev', name: 'FluxDev', category: 'image' },
   { id: 'black-forest-labs/flux-1.1-pro', name: 'Flux11Pro', category: 'image' },
-  { id: 'stability-ai/sdxl', name: 'SDXL', category: 'image' },
-  { id: 'bytedance/sdxl-lightning-4step', name: 'SDXLLightning', category: 'image' },
+  { id: 'black-forest-labs/flux-kontext-dev', name: 'FluxKontextDev', category: 'image' },
 
   // Video generation
   { id: 'google/veo-3.1-fast', name: 'Veo31Fast', category: 'video' },
@@ -69,7 +69,6 @@ const MODELS_TO_SYNC = [
   // Lip-sync models
   { id: 'sync/lipsync-2', name: 'Lipsync2', category: 'lipsync' },
   { id: 'sync/lipsync-2-pro', name: 'Lipsync2Pro', category: 'lipsync' },
-  { id: 'bytedance/latentsync', name: 'LatentSync', category: 'lipsync' },
   { id: 'pixverse/lipsync', name: 'PixverseLipsync', category: 'lipsync' },
 ] as const;
 

@@ -56,15 +56,10 @@ const MODEL_METADATA: Record<
     pricing: '$0.04/image',
     displayName: 'FLUX 1.1 Pro',
   },
-  'stability-ai/sdxl': {
+  'black-forest-labs/flux-kontext-dev': {
     capabilities: ['text-to-image', 'image-to-image'],
-    pricing: '$0.0023/image',
-    displayName: 'Stable Diffusion XL',
-  },
-  'bytedance/sdxl-lightning-4step': {
-    capabilities: ['text-to-image'],
-    pricing: '$0.0015/image',
-    displayName: 'SDXL Lightning',
+    pricing: '$0.025/image',
+    displayName: 'FLUX Kontext [dev]',
   },
   // Video models
   'google/veo-3.1-fast': {

@@ -72,7 +72,14 @@ const IMAGE_FIELD_MAPPINGS: FieldMapping[] = [
   // Input images
   {
     canonical: 'inputImages',
-    alternatives: ['image_input', 'images', 'source_images', 'reference_images', 'init_image'],
+    alternatives: [
+      'input_image',
+      'image_input',
+      'images',
+      'source_images',
+      'reference_images',
+      'init_image',
+    ],
   },
   // Aspect ratio
   { canonical: 'aspectRatio', alternatives: ['aspect_ratio', 'ratio'] },
@@ -254,6 +261,8 @@ export class SchemaMapperService {
     schemaParams?: Record<string, unknown>
   ): Record<string, unknown> {
     const fieldMap = this.buildFieldMap(inputSchema, IMAGE_FIELD_MAPPINGS);
+    const schemaProps =
+      (inputSchema as { properties?: Record<string, { type?: string }> })?.properties ?? {};
     const result: Record<string, unknown> = {};
 
     // Start with schemaParams if provided
@@ -268,7 +277,10 @@ export class SchemaMapperService {
     if (input.inputImages?.length) {
       const fieldName = fieldMap.get('inputImages');
       if (fieldName) {
-        result[fieldName] = input.inputImages;
+        // Check if schema expects array or single value (e.g., flux-kontext-dev uses single input_image)
+        const fieldSchema = schemaProps[fieldName];
+        const expectsArray = fieldSchema?.type === 'array';
+        result[fieldName] = expectsArray ? input.inputImages : input.inputImages[0];
       }
     }
 

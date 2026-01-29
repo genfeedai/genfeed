@@ -1,7 +1,7 @@
 /**
  * Auto-generated Replicate model types
  * DO NOT EDIT - Run `bun run sync:replicate` to regenerate
- * Generated at: 2026-01-29T00:00:51.420Z
+ * Generated at: 2026-01-29T02:24:16.582Z
  */
 
 // This file is auto-generated. Do not edit manually.
@@ -495,6 +495,60 @@ export interface SDXLLightningInput {
 
 /** Output type for bytedance/sdxl-lightning-4step */
 export type SDXLLightningOutput = string[];
+
+/**
+ * Input parameters for black-forest-labs/flux-kontext-dev
+ */
+export interface FluxKontextDevInput {
+  /**
+   * Text description of what you want to generate, or the instruction on how to edit the given image.
+   */
+  prompt: string;
+  /**
+   * Image to use as reference. Must be jpeg, png, gif, or webp.
+   */
+  input_image: string;
+  /**
+   * Aspect ratio of the generated image. Use 'match_input_image' to match the aspect ratio of the input image.
+   * @default "match_input_image"
+   */
+  aspect_ratio?: unknown;
+  /**
+   * Number of inference steps
+   * @default 30
+   * @range min: 4, max: 50
+   */
+  num_inference_steps?: number;
+  /**
+   * Guidance scale for generation
+   * @default 2.5
+   * @range min: 0, max: 10
+   */
+  guidance?: number;
+  /**
+   * Random seed for reproducible generation. Leave blank for random.
+   */
+  seed?: number;
+  /**
+   * Output image format
+   * @default "webp"
+   */
+  output_format?: unknown;
+  /**
+   * Quality when saving the output images, from 0 to 100. 100 is best quality, 0 is lowest quality. Not relevant for .png outputs
+   * @default 80
+   * @range min: 0, max: 100
+   */
+  output_quality?: number;
+  /**
+   * Disable NSFW safety checker
+   * @default false
+   */
+  disable_safety_checker?: boolean;
+}
+
+/** Output type for black-forest-labs/flux-kontext-dev */
+export type FluxKontextDevOutput = string;
 
 // =============================================================================
 // VIDEO MODELS
@@ -1059,6 +1113,7 @@ export type ReplicateModelId =
   | 'black-forest-labs/flux-1.1-pro'
   | 'stability-ai/sdxl'
   | 'bytedance/sdxl-lightning-4step'
+  | 'black-forest-labs/flux-kontext-dev'
   | 'google/veo-3.1-fast'
   | 'google/veo-3.1'
   | 'kwaivgi/kling-v2.5-turbo-pro'
@@ -1083,6 +1138,7 @@ export interface ReplicateModelInputMap {
   'black-forest-labs/flux-1.1-pro': Flux11ProInput;
   'stability-ai/sdxl': SDXLInput;
   'bytedance/sdxl-lightning-4step': SDXLLightningInput;
+  'black-forest-labs/flux-kontext-dev': FluxKontextDevInput;
   'google/veo-3.1-fast': Veo31FastInput;
   'google/veo-3.1': Veo31Input;
   'kwaivgi/kling-v2.5-turbo-pro': KlingV25TurboProInput;
@@ -1108,6 +1164,7 @@ export interface ReplicateModelOutputMap {
   'black-forest-labs/flux-1.1-pro': Flux11ProOutput;
   'stability-ai/sdxl': SDXLOutput;
   'bytedance/sdxl-lightning-4step': SDXLLightningOutput;
+  'black-forest-labs/flux-kontext-dev': FluxKontextDevOutput;
   'google/veo-3.1-fast': Veo31FastOutput;
   'google/veo-3.1': Veo31Output;
   'kwaivgi/kling-v2.5-turbo-pro': KlingV25TurboProOutput;
