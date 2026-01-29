@@ -6,6 +6,14 @@ import { AlertCircle, Expand, RefreshCw, Wand2 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { EASING_PRESETS } from '@/lib/easing/presets';
 import { useExecutionStore } from '@/store/executionStore';
@@ -44,8 +52,8 @@ function AnimationNodeComponent(props: NodeProps) {
   );
 
   const handlePresetChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const preset = e.target.value as EasingPreset;
+    (value: string) => {
+      const preset = value as EasingPreset;
       updateNodeData<AnimationNodeData>(id, {
         preset,
         customCurve: EASING_PRESETS[preset],
@@ -55,9 +63,9 @@ function AnimationNodeComponent(props: NodeProps) {
   );
 
   const handleSpeedChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    ([value]: number[]) => {
       updateNodeData<AnimationNodeData>(id, {
-        speedMultiplier: parseFloat(e.target.value),
+        speedMultiplier: value,
       });
     },
     [id, updateNodeData]
@@ -122,17 +130,18 @@ function AnimationNodeComponent(props: NodeProps) {
         {nodeData.curveType === 'preset' && (
           <div>
             <label className="text-xs text-[var(--muted-foreground)]">Easing Preset</label>
-            <select
-              value={nodeData.preset}
-              onChange={handlePresetChange}
-              className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-            >
-              {PRESET_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+            <Select value={nodeData.preset} onValueChange={handlePresetChange}>
+              <SelectTrigger className="nodrag h-8 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {PRESET_OPTIONS.map((opt) => (
+                  <SelectItem key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
@@ -162,14 +171,13 @@ function AnimationNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)]">
             Speed: {nodeData.speedMultiplier.toFixed(1)}x
           </label>
-          <input
-            type="range"
-            min="0.25"
-            max="4"
-            step="0.25"
-            value={nodeData.speedMultiplier}
-            onChange={handleSpeedChange}
-            className="nodrag w-full h-2 bg-[var(--border)] rounded-lg appearance-none cursor-pointer"
+          <Slider
+            value={[nodeData.speedMultiplier]}
+            min={0.25}
+            max={4}
+            step={0.25}
+            onValueChange={handleSpeedChange}
+            className="nodrag w-full"
           />
           <div className="flex justify-between text-xs text-[var(--muted-foreground)]">
             <span>0.25x</span>

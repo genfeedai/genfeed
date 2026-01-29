@@ -6,6 +6,8 @@ import { AudioLines, Expand, RefreshCw, Video } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Slider } from '@/components/ui/slider';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -18,15 +20,17 @@ function VoiceChangeNodeComponent(props: NodeProps) {
   const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
 
   const handlePreserveOriginalChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<VoiceChangeNodeData>(id, { preserveOriginalAudio: e.target.checked });
+    (checked: boolean | 'indeterminate') => {
+      if (typeof checked === 'boolean') {
+        updateNodeData<VoiceChangeNodeData>(id, { preserveOriginalAudio: checked });
+      }
     },
     [id, updateNodeData]
   );
 
   const handleMixLevelChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<VoiceChangeNodeData>(id, { audioMixLevel: parseFloat(e.target.value) });
+    ([value]: number[]) => {
+      updateNodeData<VoiceChangeNodeData>(id, { audioMixLevel: value });
     },
     [id, updateNodeData]
   );
@@ -61,15 +65,16 @@ function VoiceChangeNodeComponent(props: NodeProps) {
     <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* Preserve Original Audio Toggle */}
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
+        <div className="flex items-center gap-2 nodrag">
+          <Checkbox
             id={`preserve-${id}`}
             checked={nodeData.preserveOriginalAudio}
-            onChange={handlePreserveOriginalChange}
-            className="w-4 h-4 rounded border-[var(--border)]"
+            onCheckedChange={handlePreserveOriginalChange}
           />
-          <label htmlFor={`preserve-${id}`} className="text-xs text-[var(--muted-foreground)]">
+          <label
+            htmlFor={`preserve-${id}`}
+            className="text-xs text-[var(--muted-foreground)] cursor-pointer"
+          >
             Mix with original audio
           </label>
         </div>
@@ -80,14 +85,13 @@ function VoiceChangeNodeComponent(props: NodeProps) {
             <label className="text-xs text-[var(--muted-foreground)]">
               Mix Level: {Math.round(nodeData.audioMixLevel * 100)}%
             </label>
-            <input
-              type="range"
-              min="0"
-              max="1"
-              step="0.05"
-              value={nodeData.audioMixLevel}
-              onChange={handleMixLevelChange}
-              className="nodrag w-full h-2 bg-[var(--secondary)] rounded-lg appearance-none cursor-pointer"
+            <Slider
+              value={[nodeData.audioMixLevel]}
+              min={0}
+              max={1}
+              step={0.05}
+              onValueChange={handleMixLevelChange}
+              className="nodrag w-full"
             />
             <div className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
               <span>Original</span>

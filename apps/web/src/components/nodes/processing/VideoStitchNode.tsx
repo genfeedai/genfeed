@@ -5,6 +5,15 @@ import type { NodeProps } from '@xyflow/react';
 import { Layers, RefreshCw, Zap } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -28,43 +37,53 @@ function VideoStitchNodeComponent(props: NodeProps) {
   const executeNode = useExecutionStore((state) => state.executeNode);
 
   const handleTransitionChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<VideoStitchNodeData>(id, {
-        transitionType: e.target.value as TransitionType,
+        transitionType: value as TransitionType,
       });
     },
     [id, updateNodeData]
   );
 
   const handleDurationChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    ([value]: number[]) => {
       updateNodeData<VideoStitchNodeData>(id, {
-        transitionDuration: parseFloat(e.target.value),
+        transitionDuration: value,
       });
     },
     [id, updateNodeData]
   );
 
-  const handleLoopToggle = useCallback(() => {
-    updateNodeData<VideoStitchNodeData>(id, {
-      seamlessLoop: !nodeData.seamlessLoop,
-    });
-  }, [id, nodeData.seamlessLoop, updateNodeData]);
+  const handleLoopToggle = useCallback(
+    (checked: boolean | 'indeterminate') => {
+      if (typeof checked === 'boolean') {
+        updateNodeData<VideoStitchNodeData>(id, {
+          seamlessLoop: checked,
+        });
+      }
+    },
+    [id, updateNodeData]
+  );
 
   const handleAudioCodecChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<VideoStitchNodeData>(id, {
-        audioCodec: e.target.value as AudioCodec,
+        audioCodec: value as AudioCodec,
       });
     },
     [id, updateNodeData]
   );
 
-  const handleQualityToggle = useCallback(() => {
-    updateNodeData<VideoStitchNodeData>(id, {
-      outputQuality: nodeData.outputQuality === 'draft' ? 'full' : 'draft',
-    });
-  }, [id, nodeData.outputQuality, updateNodeData]);
+  const handleQualityToggle = useCallback(
+    (checked: boolean | 'indeterminate') => {
+      if (typeof checked === 'boolean') {
+        updateNodeData<VideoStitchNodeData>(id, {
+          outputQuality: checked ? 'draft' : 'full',
+        });
+      }
+    },
+    [id, updateNodeData]
+  );
 
   const handleProcess = useCallback(() => {
     executeNode(id);
@@ -95,17 +114,18 @@ function VideoStitchNodeComponent(props: NodeProps) {
         {/* Transition Type */}
         <div>
           <label className="text-xs text-[var(--muted-foreground)]">Transition</label>
-          <select
-            value={nodeData.transitionType}
-            onChange={handleTransitionChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          >
-            {TRANSITIONS.map((t) => (
-              <option key={t.value} value={t.value}>
-                {t.label}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.transitionType} onValueChange={handleTransitionChange}>
+            <SelectTrigger className="nodrag h-8 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TRANSITIONS.map((t) => (
+                <SelectItem key={t.value} value={t.value}>
+                  {t.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Transition Duration */}
@@ -114,61 +134,67 @@ function VideoStitchNodeComponent(props: NodeProps) {
             <label className="text-xs text-[var(--muted-foreground)]">
               Duration: {nodeData.transitionDuration.toFixed(1)}s
             </label>
-            <input
-              type="range"
-              min="0.1"
-              max="2"
-              step="0.1"
-              value={nodeData.transitionDuration}
-              onChange={handleDurationChange}
-              className="nodrag w-full h-2 bg-[var(--border)] rounded-lg appearance-none cursor-pointer"
+            <Slider
+              value={[nodeData.transitionDuration]}
+              min={0.1}
+              max={2}
+              step={0.1}
+              onValueChange={handleDurationChange}
+              className="nodrag w-full"
             />
           </div>
         )}
 
         {/* Seamless Loop Toggle */}
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
+        <div className="flex items-center gap-2 nodrag">
+          <Checkbox
+            id={`seamless-loop-${id}`}
             checked={nodeData.seamlessLoop}
-            onChange={handleLoopToggle}
-            className="w-4 h-4 rounded border-[var(--border)] bg-[var(--background)] text-[var(--primary)] focus:ring-[var(--primary)]"
+            onCheckedChange={handleLoopToggle}
           />
-          <span className="text-sm text-[var(--foreground)]">Seamless Loop</span>
-        </label>
+          <label
+            htmlFor={`seamless-loop-${id}`}
+            className="text-sm text-[var(--foreground)] cursor-pointer"
+          >
+            Seamless Loop
+          </label>
+        </div>
 
         {/* Audio Codec */}
         <div>
           <label className="text-xs text-[var(--muted-foreground)]">Audio Codec</label>
-          <select
-            value={nodeData.audioCodec}
-            onChange={handleAudioCodecChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          >
-            {AUDIO_CODECS.map((codec) => (
-              <option key={codec.value} value={codec.value}>
-                {codec.label} - {codec.hint}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.audioCodec} onValueChange={handleAudioCodecChange}>
+            <SelectTrigger className="nodrag h-8 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {AUDIO_CODECS.map((codec) => (
+                <SelectItem key={codec.value} value={codec.value}>
+                  {codec.label} - {codec.hint}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Draft Quality Toggle */}
-        <label className="flex items-center gap-2 cursor-pointer">
-          <input
-            type="checkbox"
+        <div className="flex items-center gap-2 nodrag">
+          <Checkbox
+            id={`draft-quality-${id}`}
             checked={nodeData.outputQuality === 'draft'}
-            onChange={handleQualityToggle}
-            className="w-4 h-4 rounded border-[var(--border)] bg-[var(--background)] text-[var(--primary)] focus:ring-[var(--primary)]"
+            onCheckedChange={handleQualityToggle}
           />
-          <span className="text-sm text-[var(--foreground)] flex items-center gap-1">
+          <label
+            htmlFor={`draft-quality-${id}`}
+            className="text-sm text-[var(--foreground)] cursor-pointer flex items-center gap-1"
+          >
             <Zap className="w-3 h-3" />
             Draft Quality
-          </span>
+          </label>
           {nodeData.outputQuality === 'draft' && (
             <span className="text-xs text-[var(--muted-foreground)]">(720p, faster)</span>
           )}
-        </label>
+        </div>
 
         {/* Output Preview */}
         {nodeData.outputVideo && (

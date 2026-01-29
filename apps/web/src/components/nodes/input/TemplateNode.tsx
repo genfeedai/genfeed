@@ -4,6 +4,13 @@ import type { TemplateNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 // Template presets
@@ -46,8 +53,9 @@ function TemplateNodeComponent(props: NodeProps) {
   const selectedTemplate = TEMPLATES.find((t) => t.id === nodeData.templateId);
 
   const handleTemplateSelect = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const template = TEMPLATES.find((t) => t.id === e.target.value);
+    (value: string) => {
+      if (value === 'none') return;
+      const template = TEMPLATES.find((t) => t.id === value);
       if (template) {
         updateNodeData<TemplateNodeData>(id, {
           templateId: template.id,
@@ -80,18 +88,19 @@ function TemplateNodeComponent(props: NodeProps) {
   return (
     <BaseNode {...props}>
       <div className="space-y-2">
-        <select
-          value={nodeData.templateId || ''}
-          onChange={handleTemplateSelect}
-          className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-        >
-          <option value="">Select template...</option>
-          {TEMPLATES.map((template) => (
-            <option key={template.id} value={template.id}>
-              {template.name}
-            </option>
-          ))}
-        </select>
+        <Select value={nodeData.templateId || 'none'} onValueChange={handleTemplateSelect}>
+          <SelectTrigger className="nodrag h-8 w-full">
+            <SelectValue placeholder="Select template..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">Select template...</SelectItem>
+            {TEMPLATES.map((template) => (
+              <SelectItem key={template.id} value={template.id}>
+                {template.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         {selectedTemplate && (
           <div className="space-y-2">

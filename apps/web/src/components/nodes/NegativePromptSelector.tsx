@@ -3,6 +3,8 @@
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 
+import { Checkbox } from '@/components/ui/checkbox';
+
 /**
  * Common negative prompt terms organized for quick selection
  * These are the most commonly used negative prompts for image/video generation
@@ -149,19 +151,26 @@ function NegativePromptSelectorComponent({ value, onChange }: NegativePromptSele
           <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
             {NEGATIVE_PROMPT_OPTIONS.map((option) => {
               const isChecked = checkedTerms.has(option.value.toLowerCase());
+              const checkboxId = `negative-prompt-${option.value}`;
               return (
-                <label
-                  key={option.value}
-                  className="flex items-center gap-1.5 cursor-pointer text-sm"
-                >
-                  <input
-                    type="checkbox"
+                <div key={option.value} className="flex items-center gap-1.5 nodrag">
+                  <Checkbox
+                    id={checkboxId}
                     checked={isChecked}
-                    onChange={(e) => handleCheckboxChange(option.value, e.target.checked)}
-                    className="w-3.5 h-3.5 rounded border-input bg-background text-primary focus:ring-primary focus:ring-offset-0"
+                    onCheckedChange={(checked) => {
+                      if (typeof checked === 'boolean') {
+                        handleCheckboxChange(option.value, checked);
+                      }
+                    }}
+                    className="w-3.5 h-3.5"
                   />
-                  <span className="text-foreground truncate">{option.label}</span>
-                </label>
+                  <label
+                    htmlFor={checkboxId}
+                    className="text-sm text-foreground truncate cursor-pointer"
+                  >
+                    {option.label}
+                  </label>
+                </div>
               );
             })}
           </div>

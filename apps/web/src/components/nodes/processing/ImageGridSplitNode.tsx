@@ -5,6 +5,14 @@ import type { NodeProps } from '@xyflow/react';
 import { Download, Grid3X3, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -38,27 +46,27 @@ function ImageGridSplitNodeComponent(props: NodeProps) {
   );
 
   const handleInsetChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    ([value]: number[]) => {
       updateNodeData<ImageGridSplitNodeData>(id, {
-        borderInset: Number.parseInt(e.target.value, 10) || 0,
+        borderInset: value,
       });
     },
     [id, updateNodeData]
   );
 
   const handleFormatChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<ImageGridSplitNodeData>(id, {
-        outputFormat: e.target.value as GridOutputFormat,
+        outputFormat: value as GridOutputFormat,
       });
     },
     [id, updateNodeData]
   );
 
   const handleQualityChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    ([value]: number[]) => {
       updateNodeData<ImageGridSplitNodeData>(id, {
-        quality: Number.parseInt(e.target.value, 10) || 95,
+        quality: value,
       });
     },
     [id, updateNodeData]
@@ -149,13 +157,12 @@ function ImageGridSplitNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)]">
             Border Inset: {nodeData.borderInset}px
           </label>
-          <input
-            type="range"
-            min="0"
-            max="50"
-            value={nodeData.borderInset}
-            onChange={handleInsetChange}
-            className="nodrag w-full h-2 bg-[var(--border)] rounded-lg appearance-none cursor-pointer"
+          <Slider
+            value={[nodeData.borderInset]}
+            min={0}
+            max={50}
+            onValueChange={handleInsetChange}
+            className="nodrag w-full"
           />
         </div>
 
@@ -163,29 +170,29 @@ function ImageGridSplitNodeComponent(props: NodeProps) {
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="text-xs text-[var(--muted-foreground)]">Format</label>
-            <select
-              value={nodeData.outputFormat}
-              onChange={handleFormatChange}
-              className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-            >
-              {OUTPUT_FORMATS.map((f) => (
-                <option key={f.value} value={f.value}>
-                  {f.label}
-                </option>
-              ))}
-            </select>
+            <Select value={nodeData.outputFormat} onValueChange={handleFormatChange}>
+              <SelectTrigger className="nodrag h-8 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {OUTPUT_FORMATS.map((f) => (
+                  <SelectItem key={f.value} value={f.value}>
+                    {f.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="text-xs text-[var(--muted-foreground)]">
               Quality: {nodeData.quality}%
             </label>
-            <input
-              type="range"
-              min="1"
-              max="100"
-              value={nodeData.quality}
-              onChange={handleQualityChange}
-              className="nodrag w-full h-2 bg-[var(--border)] rounded-lg appearance-none cursor-pointer"
+            <Slider
+              value={[nodeData.quality]}
+              min={1}
+              max={100}
+              onValueChange={handleQualityChange}
+              className="nodrag w-full"
             />
           </div>
         </div>

@@ -2,6 +2,15 @@
 
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -10,10 +19,12 @@ import type { NodeProps } from '@xyflow/react';
 import { Expand, Mic, RefreshCw, Video } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 
-const MODELS: { value: LipSyncModel; label: string }[] = [
-  { value: 'sync/lipsync-2-pro', label: 'Sync Labs Pro' },
-  { value: 'sync/lipsync-2', label: 'Sync Labs' },
-  { value: 'pixverse/lipsync', label: 'Pixverse' },
+const MODELS: { value: LipSyncModel; label: string; supportsImage: boolean }[] = [
+  { value: 'bytedance/omni-human', label: 'OmniHuman (Image)', supportsImage: true },
+  { value: 'veed/fabric-1.0', label: 'VEED Fabric (Image)', supportsImage: true },
+  { value: 'sync/lipsync-2-pro', label: 'Sync Labs Pro (Video)', supportsImage: false },
+  { value: 'sync/lipsync-2', label: 'Sync Labs (Video)', supportsImage: false },
+  { value: 'pixverse/lipsync', label: 'Pixverse', supportsImage: true },
 ];
 
 const SYNC_MODES: { value: LipSyncMode; label: string }[] = [
@@ -32,29 +43,31 @@ function LipSyncNodeComponent(props: NodeProps) {
   const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
 
   const handleModelChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData<LipSyncNodeData>(id, { model: e.target.value as LipSyncModel });
+    (value: string) => {
+      updateNodeData<LipSyncNodeData>(id, { model: value as LipSyncModel });
     },
     [id, updateNodeData]
   );
 
   const handleSyncModeChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData<LipSyncNodeData>(id, { syncMode: e.target.value as LipSyncMode });
+    (value: string) => {
+      updateNodeData<LipSyncNodeData>(id, { syncMode: value as LipSyncMode });
     },
     [id, updateNodeData]
   );
 
   const handleTemperatureChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<LipSyncNodeData>(id, { temperature: parseFloat(e.target.value) });
+    ([value]: number[]) => {
+      updateNodeData<LipSyncNodeData>(id, { temperature: value });
     },
     [id, updateNodeData]
   );
 
   const handleActiveSpeakerChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<LipSyncNodeData>(id, { activeSpeaker: e.target.checked });
+    (checked: boolean | 'indeterminate') => {
+      if (typeof checked === 'boolean') {
+        updateNodeData<LipSyncNodeData>(id, { activeSpeaker: checked });
+      }
     },
     [id, updateNodeData]
   );
@@ -67,8 +80,12 @@ function LipSyncNodeComponent(props: NodeProps) {
     openNodeDetailModal(id, 'preview');
   }, [id, openNodeDetailModal]);
 
-  const hasRequiredInputs = nodeData.inputAudio && (nodeData.inputImage || nodeData.inputVideo);
+  const currentModel = MODELS.find((m) => m.value === nodeData.model);
   const isSyncModel = nodeData.model.startsWith('sync/');
+  const supportsImage = currentModel?.supportsImage ?? false;
+
+  // Image-native models need audio + image; video models need audio + video (or image which gets converted)
+  const hasRequiredInputs = nodeData.inputAudio && (nodeData.inputImage || nodeData.inputVideo);
 
   const headerActions = useMemo(
     () =>
@@ -92,34 +109,36 @@ function LipSyncNodeComponent(props: NodeProps) {
         {/* Model Selection */}
         <div>
           <label className="text-xs text-[var(--muted-foreground)]">Model</label>
-          <select
-            value={nodeData.model}
-            onChange={handleModelChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          >
-            {MODELS.map((model) => (
-              <option key={model.value} value={model.value}>
-                {model.label}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.model} onValueChange={handleModelChange}>
+            <SelectTrigger className="nodrag h-8 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MODELS.map((model) => (
+                <SelectItem key={model.value} value={model.value}>
+                  {model.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Sync Mode (only for Sync Labs models) */}
         {isSyncModel && (
           <div>
             <label className="text-xs text-[var(--muted-foreground)]">Sync Mode</label>
-            <select
-              value={nodeData.syncMode}
-              onChange={handleSyncModeChange}
-              className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-            >
-              {SYNC_MODES.map((mode) => (
-                <option key={mode.value} value={mode.value}>
-                  {mode.label}
-                </option>
-              ))}
-            </select>
+            <Select value={nodeData.syncMode} onValueChange={handleSyncModeChange}>
+              <SelectTrigger className="nodrag h-8 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {SYNC_MODES.map((mode) => (
+                  <SelectItem key={mode.value} value={mode.value}>
+                    {mode.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
@@ -128,31 +147,27 @@ function LipSyncNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)]">
             Temperature: {nodeData.temperature.toFixed(2)}
           </label>
-
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={nodeData.temperature}
-            onChange={handleTemperatureChange}
-            className="nodrag w-full h-2 bg-[var(--secondary)] rounded-lg appearance-none cursor-pointer"
+          <Slider
+            value={[nodeData.temperature]}
+            min={0}
+            max={1}
+            step={0.05}
+            onValueChange={handleTemperatureChange}
+            className="nodrag w-full"
           />
         </div>
 
         {/* Active Speaker Toggle (only for Sync Labs models) */}
         {isSyncModel && (
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
+          <div className="flex items-center gap-2 nodrag">
+            <Checkbox
               id={`active-speaker-${id}`}
               checked={nodeData.activeSpeaker}
-              onChange={handleActiveSpeakerChange}
-              className="w-4 h-4 rounded border-[var(--border)]"
+              onCheckedChange={handleActiveSpeakerChange}
             />
             <label
               htmlFor={`active-speaker-${id}`}
-              className="text-xs text-[var(--muted-foreground)]"
+              className="text-xs text-[var(--muted-foreground)] cursor-pointer"
             >
               Active speaker detection
             </label>
@@ -193,7 +208,9 @@ function LipSyncNodeComponent(props: NodeProps) {
         {!hasRequiredInputs && nodeData.status !== 'processing' && (
           <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
             <Mic className="w-3 h-3" />
-            Connect audio + image/video to generate
+            {supportsImage
+              ? 'Connect audio + image to generate'
+              : 'Connect audio + video to generate'}
           </div>
         )}
       </div>

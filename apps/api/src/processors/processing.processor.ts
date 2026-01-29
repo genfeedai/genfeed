@@ -179,12 +179,35 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
           // Auto-save output to local storage for Replicate-based operations
           let localOutput: Record<string, unknown> | undefined;
 
-          // Check if output is an object with image/video fields
-          const isOutputObject =
-            result.output && typeof result.output === 'object' && !Array.isArray(result.output);
-          const output = isOutputObject ? (result.output as Record<string, unknown>) : undefined;
-          const outputUrl = output?.image || output?.video;
-          const outputType = output?.image ? 'image' : 'video';
+          // Handle all output formats (matching video.processor.ts pattern):
+          // 1. output is a string (URL directly)
+          // 2. output is an array (first element)
+          // 3. output.video is a string
+          // 4. output.image is a string
+          // 5. output.output is a string
+
+          let outputUrl: string | undefined;
+          let outputType: 'image' | 'video' = 'video'; // Default to video for lipSync
+
+          // Determine output type based on node type
+          if (nodeType === 'reframe' || nodeType === 'upscale') {
+            outputType = nodeData.inputType === 'video' ? 'video' : 'image';
+          }
+
+          // Extract URL from all possible formats
+          if (typeof result.output === 'string') {
+            outputUrl = result.output;
+          } else if (Array.isArray(result.output) && result.output.length > 0) {
+            outputUrl = result.output[0] as string;
+          } else if (result.output && typeof result.output === 'object') {
+            const outputObj = result.output as Record<string, unknown>;
+            outputUrl = (outputObj.video || outputObj.image || outputObj.output) as
+              | string
+              | undefined;
+            // Override outputType if explicitly present in the response
+            if (outputObj.image) outputType = 'image';
+            if (outputObj.video) outputType = 'video';
+          }
 
           if (outputUrl && typeof outputUrl === 'string') {
             try {
@@ -193,23 +216,24 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
                 nodeId,
                 outputUrl
               );
-              localOutput = { ...output, [outputType]: saved.url, localPath: saved.path };
+              localOutput = { [outputType]: saved.url, localPath: saved.path };
               this.logger.log(`Saved ${outputType} output to ${saved.path}`);
             } catch (saveError) {
               // Log as ERROR - this is a real problem that causes files to expire
               const errorMsg = (saveError as Error).message;
               this.logger.error(
-                `CRITICAL: Failed to save output locally after retries: ${errorMsg}. ` +
-                  `Using Replicate URL which WILL EXPIRE. URL: ${outputUrl.substring(0, 100)}...`
+                `CRITICAL: Failed to save output locally: ${errorMsg}. ` +
+                  `URL: ${outputUrl.substring(0, 100)}...`
               );
               // Continue with remote URL if save fails, but track the error
-              localOutput = { ...output, saveError: errorMsg };
+              localOutput = { [outputType]: outputUrl, saveError: errorMsg };
             }
-          } else if (isOutputObject) {
-            localOutput = output;
           } else if (result.output) {
-            // Handle string or array output by wrapping in object
-            localOutput = { output: result.output };
+            // Fallback for unrecognized formats
+            localOutput =
+              typeof result.output === 'object'
+                ? (result.output as Record<string, unknown>)
+                : { output: result.output };
           }
 
           await this.executionsService.updateNodeResult(
@@ -323,10 +347,37 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
 
     const { executionId, nodeId, nodeData } = job.data;
 
+    // Inputs come from inputX (connected upstream) or X (direct input)
+    const audio = nodeData.inputAudio ?? nodeData.audio;
+    const image = nodeData.inputImage ?? nodeData.image;
+    let video = nodeData.inputVideo ?? nodeData.video;
+
+    if (!audio) {
+      throw new Error('No audio input provided for lip sync');
+    }
+    if (!image && !video) {
+      throw new Error('No image or video input provided for lip sync');
+    }
+
+    // Sync Labs models require video input - convert image to static video if needed
+    const isSyncLabsModel = nodeData.model.startsWith('sync/');
+    if (isSyncLabsModel && image && !video) {
+      this.logger.log(`Converting image to video for Sync Labs lip sync (node ${nodeId})`);
+      await job.updateProgress({ percent: 15, message: 'Converting image to video' });
+      await this.queueManager.addJobLog(
+        job.id as string,
+        'Converting image to video for Sync Labs'
+      );
+
+      // Create a 5-second static video from the image (lip sync will adjust to audio length)
+      const result = await this.ffmpegService.imageToVideo({ image, duration: 5 });
+      video = result.videoUrl;
+    }
+
     const prediction = await this.replicateService.generateLipSync(executionId, nodeId, {
-      image: nodeData.image,
-      video: nodeData.video,
-      audio: nodeData.audio,
+      image: isSyncLabsModel ? undefined : image, // Only pass image to non-Sync Labs models
+      video,
+      audio,
       model: nodeData.model,
       syncMode: nodeData.syncMode,
       temperature: nodeData.temperature,
@@ -357,8 +408,14 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
   private async handleTextToSpeech(job: Job<TextToSpeechJobData>): Promise<JobResult> {
     const { executionId, nodeId, nodeData } = job.data;
 
+    // Text comes from inputText (connected upstream node) or text (direct input)
+    const text = nodeData.inputText ?? nodeData.text;
+    if (!text) {
+      throw new Error('No text input provided for text-to-speech');
+    }
+
     const ttsResult = await this.ttsService.generateSpeech(executionId, nodeId, {
-      text: nodeData.text,
+      text,
       voice: nodeData.voice,
       provider: nodeData.provider,
       stability: nodeData.stability,

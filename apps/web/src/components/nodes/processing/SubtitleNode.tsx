@@ -5,6 +5,14 @@ import type { NodeProps } from '@xyflow/react';
 import { RefreshCw, Subtitles } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -28,27 +36,22 @@ function SubtitleNodeComponent(props: NodeProps) {
   const executeNode = useExecutionStore((state) => state.executeNode);
 
   const handleStyleChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const value = e.target.value as SubtitleStyle;
-      updateNodeData<SubtitleNodeData>(id, { style: value });
+    (value: string) => {
+      updateNodeData<SubtitleNodeData>(id, { style: value as SubtitleStyle });
     },
     [id, updateNodeData]
   );
 
   const handlePositionChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const value = e.target.value as SubtitlePosition;
-      updateNodeData<SubtitleNodeData>(id, { position: value });
+    (value: string) => {
+      updateNodeData<SubtitleNodeData>(id, { position: value as SubtitlePosition });
     },
     [id, updateNodeData]
   );
 
   const handleFontSizeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = Number.parseInt(e.target.value, 10);
-      if (!Number.isNaN(value) && value > 0 && value <= 72) {
-        updateNodeData<SubtitleNodeData>(id, { fontSize: value });
-      }
+    ([value]: number[]) => {
+      updateNodeData<SubtitleNodeData>(id, { fontSize: value });
     },
     [id, updateNodeData]
   );
@@ -77,33 +80,35 @@ function SubtitleNodeComponent(props: NodeProps) {
         {/* Style Selection */}
         <div>
           <label className="text-xs text-[var(--muted-foreground)] block mb-1">Style</label>
-          <select
-            value={nodeData.style}
-            onChange={handleStyleChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          >
-            {STYLE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.style} onValueChange={handleStyleChange}>
+            <SelectTrigger className="nodrag h-8 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {STYLE_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Position Selection */}
         <div>
           <label className="text-xs text-[var(--muted-foreground)] block mb-1">Position</label>
-          <select
-            value={nodeData.position}
-            onChange={handlePositionChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          >
-            {POSITION_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.position} onValueChange={handlePositionChange}>
+            <SelectTrigger className="nodrag h-8 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {POSITION_OPTIONS.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Font Size */}
@@ -111,12 +116,11 @@ function SubtitleNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)] block mb-1">
             Font Size: {nodeData.fontSize}px
           </label>
-          <input
-            type="range"
-            min="12"
-            max="72"
-            value={nodeData.fontSize}
-            onChange={handleFontSizeChange}
+          <Slider
+            value={[nodeData.fontSize]}
+            min={12}
+            max={72}
+            onValueChange={handleFontSizeChange}
             className="nodrag w-full"
           />
         </div>

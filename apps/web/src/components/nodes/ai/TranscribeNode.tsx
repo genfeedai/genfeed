@@ -6,6 +6,14 @@ import { AlertCircle, Expand, FileText, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
@@ -35,15 +43,17 @@ function TranscribeNodeComponent(props: NodeProps) {
   const hasInput = connectionStatus.get('video') || connectionStatus.get('audio');
 
   const handleLanguageChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData<TranscribeNodeData>(id, { language: e.target.value as TranscribeLanguage });
+    (value: string) => {
+      updateNodeData<TranscribeNodeData>(id, { language: value as TranscribeLanguage });
     },
     [id, updateNodeData]
   );
 
   const handleTimestampsChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<TranscribeNodeData>(id, { timestamps: e.target.checked });
+    (checked: boolean | 'indeterminate') => {
+      if (typeof checked === 'boolean') {
+        updateNodeData<TranscribeNodeData>(id, { timestamps: checked });
+      }
     },
     [id, updateNodeData]
   );
@@ -81,29 +91,31 @@ function TranscribeNodeComponent(props: NodeProps) {
         {/* Language Selection */}
         <div>
           <label className="text-xs text-[var(--muted-foreground)]">Language</label>
-          <select
-            value={nodeData.language}
-            onChange={handleLanguageChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          >
-            {LANGUAGES.map((lang) => (
-              <option key={lang.value} value={lang.value}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.language} onValueChange={handleLanguageChange}>
+            <SelectTrigger className="nodrag h-8 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LANGUAGES.map((lang) => (
+                <SelectItem key={lang.value} value={lang.value}>
+                  {lang.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Timestamps Toggle */}
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
+        <div className="flex items-center gap-2 nodrag">
+          <Checkbox
             id={`timestamps-${id}`}
             checked={nodeData.timestamps}
-            onChange={handleTimestampsChange}
-            className="w-4 h-4 rounded border-[var(--border)]"
+            onCheckedChange={handleTimestampsChange}
           />
-          <label htmlFor={`timestamps-${id}`} className="text-xs text-[var(--muted-foreground)]">
+          <label
+            htmlFor={`timestamps-${id}`}
+            className="text-xs text-[var(--muted-foreground)] cursor-pointer"
+          >
             Include timestamps
           </label>
         </div>

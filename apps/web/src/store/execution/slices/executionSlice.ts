@@ -5,8 +5,6 @@ import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
-import { getOutputUpdate } from '../helpers/outputHelpers';
-import { pollPrediction } from '../helpers/pollPrediction';
 import { createExecutionSubscription } from '../helpers/sseSubscription';
 import type { DebugPayload, ExecutionData, ExecutionStore } from '../types';
 
@@ -117,130 +115,11 @@ export const createExecutionSlice: StateCreator<ExecutionStore, [], [], Executio
 
   executeNode: async (nodeId: string) => {
     const workflowStore = useWorkflowStore.getState();
-    const node = workflowStore.getNodeById(nodeId);
-    if (!node) return;
 
-    const debugMode = useSettingsStore.getState().debugMode;
-
-    set({ isRunning: true, currentNodeId: nodeId });
-    workflowStore.updateNodeData(nodeId, { status: NODE_STATUS.processing });
-
-    // Open debug panel if debug mode is active
-    if (debugMode) {
-      useUIStore.getState().setShowDebugPanel(true);
-    }
-
-    try {
-      const inputs = workflowStore.getConnectedInputs(nodeId);
-      const inputsObj = Object.fromEntries(inputs);
-
-      // Map handle IDs to DTO field names
-      // e.g., 'images' handle -> 'inputImages' DTO field
-      const handleToFieldMap: Record<string, string> = {
-        images: 'inputImages',
-        image: 'image',
-        video: 'video',
-        prompt: 'prompt',
-        audio: 'audio',
-      };
-
-      // Fields that should always be arrays
-      const arrayFields = new Set(['inputImages', 'images']);
-
-      const mappedInputs: Record<string, unknown> = {};
-      for (const [handleId, value] of Object.entries(inputsObj)) {
-        const fieldName = handleToFieldMap[handleId] ?? handleId;
-        // Ensure array fields are always arrays
-        if (arrayFields.has(fieldName) && !Array.isArray(value)) {
-          mappedInputs[fieldName] = [value];
-        } else {
-          mappedInputs[fieldName] = value;
-        }
-      }
-
-      const nodeType = node.type;
-      let result: {
-        predictionId?: string;
-        output?: unknown;
-        status?: string;
-        debugPayload?: { model: string; input: Record<string, unknown>; timestamp: string };
-      };
-
-      if (['imageGen', 'videoGen', 'llm'].includes(nodeType)) {
-        const endpoint =
-          nodeType === 'imageGen' ? 'image' : nodeType === 'videoGen' ? 'video' : 'llm';
-        result = await apiClient.post(`/replicate/${endpoint}`, {
-          nodeId,
-          ...node.data,
-          ...mappedInputs,
-          debugMode,
-        });
-      } else if (
-        ['reframe', 'upscale', 'lipSync', 'voiceChange', 'textToSpeech'].includes(nodeType)
-      ) {
-        result = await apiClient.post('/replicate/processing', {
-          nodeId,
-          nodeType,
-          ...node.data,
-          ...mappedInputs,
-        });
-      } else {
-        workflowStore.updateNodeData(nodeId, { status: NODE_STATUS.complete });
-        workflowStore.propagateOutputsDownstream(nodeId);
-        set({ isRunning: false, currentNodeId: null });
-        return;
-      }
-
-      // Handle debug payload
-      if (result.debugPayload) {
-        const debugPayload: DebugPayload = {
-          nodeId,
-          nodeName: String(node.data.label || node.data.name || nodeId),
-          nodeType: nodeType || 'unknown',
-          model: result.debugPayload.model,
-          input: result.debugPayload.input,
-          timestamp: result.debugPayload.timestamp,
-        };
-        get().addDebugPayload(debugPayload);
-
-        // In debug mode, immediately complete with mock output
-        if (result.output) {
-          const outputUpdate = getOutputUpdate(
-            nodeId,
-            result.output as Record<string, unknown>,
-            workflowStore
-          );
-          workflowStore.updateNodeData(nodeId, { status: NODE_STATUS.complete, ...outputUpdate });
-          workflowStore.propagateOutputsDownstream(nodeId);
-        } else {
-          workflowStore.updateNodeData(nodeId, { status: NODE_STATUS.complete });
-        }
-        set({ isRunning: false, currentNodeId: null });
-        return;
-      }
-
-      if (result.predictionId) {
-        get().addJob(nodeId, result.predictionId);
-        await pollPrediction(result.predictionId, nodeId, workflowStore, get());
-      } else if (result.output) {
-        const outputUpdate = getOutputUpdate(
-          nodeId,
-          result.output as Record<string, unknown>,
-          workflowStore
-        );
-        workflowStore.updateNodeData(nodeId, { status: NODE_STATUS.complete, ...outputUpdate });
-        workflowStore.propagateOutputsDownstream(nodeId);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      workflowStore.updateNodeData(nodeId, {
-        status: NODE_STATUS.error,
-        error: errorMessage,
-      });
-      logger.error(`Error executing node ${nodeId}`, error, { context: 'ExecutionStore' });
-    } finally {
-      set({ isRunning: false, currentNodeId: null });
-    }
+    // Delegate to executeSelectedNodes - uses the BullMQ queue path
+    // which provides rate limiting (concurrency=1) and retry with backoff
+    workflowStore.setSelectedNodeIds([nodeId]);
+    await get().executeSelectedNodes();
   },
 
   executeSelectedNodes: async () => {

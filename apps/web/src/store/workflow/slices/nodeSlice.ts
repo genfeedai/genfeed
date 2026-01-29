@@ -18,8 +18,9 @@ function getNodeOutput(node: WorkflowNode): string | null {
     data.outputAudio ??
     data.prompt ?? // Prompt node outputs its prompt value
     data.extractedTweet ?? // TweetParser outputs extracted tweet
-    data.image ?? // Image node outputs its image
-    data.audio ?? // Audio node outputs its audio
+    data.image ?? // Image/ImageInput node outputs its image
+    data.video ?? // Video/VideoInput node outputs its video
+    data.audio ?? // Audio/AudioInput node outputs its audio
     null;
   if (output === null) return null;
   if (typeof output === 'string') return output;
@@ -35,17 +36,20 @@ function getOutputType(sourceType: string): 'text' | 'image' | 'video' | 'audio'
   if (['prompt', 'llm', 'tweetParser', 'template', 'transcribe'].includes(sourceType)) {
     return 'text';
   }
-  // Image output nodes
+  // Image output nodes (including imageInput for templates)
   if (
-    ['imageGen', 'image', 'upscale', 'resize', 'reframe', 'imageGridSplit'].includes(sourceType)
+    ['imageGen', 'image', 'imageInput', 'upscale', 'resize', 'reframe', 'imageGridSplit'].includes(
+      sourceType
+    )
   ) {
     return 'image';
   }
-  // Video output nodes
+  // Video output nodes (including videoInput for templates)
   if (
     [
       'videoGen',
       'video',
+      'videoInput',
       'animation',
       'videoStitch',
       'lipSync',
@@ -58,8 +62,8 @@ function getOutputType(sourceType: string): 'text' | 'image' | 'video' | 'audio'
   ) {
     return 'video';
   }
-  // Audio output nodes
-  if (['textToSpeech', 'audio'].includes(sourceType)) {
+  // Audio output nodes (including audioInput for templates)
+  if (['textToSpeech', 'audio', 'audioInput'].includes(sourceType)) {
     return 'audio';
   }
   return null;
@@ -156,7 +160,7 @@ export interface NodeSlice {
   updateNodeData: <T extends WorkflowNodeData>(nodeId: string, data: Partial<T>) => void;
   removeNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => string | null;
-  propagateOutputsDownstream: (sourceNodeId: string) => void;
+  propagateOutputsDownstream: (sourceNodeId: string, outputValue?: string) => void;
 }
 
 export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (set, get) => ({
@@ -174,6 +178,8 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
         label: nodeDef.label,
         status: 'idle',
       } as WorkflowNodeData,
+      // Set default dimensions for output nodes (larger preview area)
+      ...(type === 'output' && { width: 280, height: 320 }),
     };
 
     set((state) => ({
@@ -193,11 +199,42 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
       isDirty: true,
     }));
 
-    // Propagate outputs when input nodes update their data
-    // This ensures downstream nodes receive updated values (e.g., Prompt → TextToSpeech)
-    const inputNodeTypes = ['prompt', 'image', 'video', 'audio', 'template', 'tweetParser'];
-    if (node && inputNodeTypes.includes(node.type as string)) {
-      propagateOutputsDownstream(nodeId);
+    // Propagate outputs when:
+    // 1. Input nodes update (their value IS the output)
+    // 2. Any node receives an output field (outputImage, outputVideo, outputAudio, outputText)
+    const inputNodeTypes = [
+      'prompt',
+      'image',
+      'imageInput',
+      'video',
+      'videoInput',
+      'audio',
+      'audioInput',
+      'template',
+      'tweetParser',
+    ];
+    const hasOutputUpdate =
+      'outputImage' in data ||
+      'outputVideo' in data ||
+      'outputAudio' in data ||
+      'outputText' in data;
+
+    if (node && (inputNodeTypes.includes(node.type as string) || hasOutputUpdate)) {
+      // For output updates, pass the value directly to avoid stale state reads
+      // This fixes timing issues where get() reads state before set() commits
+      if (hasOutputUpdate) {
+        const dataRecord = data as Record<string, unknown>;
+        const outputValue =
+          dataRecord.outputImage ??
+          dataRecord.outputVideo ??
+          dataRecord.outputAudio ??
+          dataRecord.outputText;
+        if (typeof outputValue === 'string') {
+          propagateOutputsDownstream(nodeId, outputValue);
+        }
+      } else {
+        propagateOutputsDownstream(nodeId);
+      }
     }
   },
 
@@ -237,13 +274,14 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
     return newId;
   },
 
-  propagateOutputsDownstream: (sourceNodeId) => {
+  propagateOutputsDownstream: (sourceNodeId, outputValue?) => {
     const { nodes, edges, updateNodeData } = get();
     const sourceNode = nodes.find((n) => n.id === sourceNodeId);
     if (!sourceNode) return;
 
-    const outputValue = getNodeOutput(sourceNode);
-    if (!outputValue) return;
+    // Use passed value (for output updates) or read from node (for edge connections)
+    const output = outputValue ?? getNodeOutput(sourceNode);
+    if (!output) return;
 
     const downstreamEdges = edges.filter((e) => e.source === sourceNodeId);
 
@@ -251,7 +289,7 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
       const targetNode = nodes.find((n) => n.id === edge.target);
       if (!targetNode) continue;
 
-      const inputUpdate = mapOutputToInput(outputValue, sourceNode.type, targetNode.type);
+      const inputUpdate = mapOutputToInput(output, sourceNode.type, targetNode.type);
       if (inputUpdate) {
         updateNodeData(edge.target, inputUpdate);
       }

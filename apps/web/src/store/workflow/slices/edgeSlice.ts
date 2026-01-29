@@ -59,15 +59,11 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
       isDirty: true,
     }));
 
-    // Propagate outputs immediately for input-type nodes (they don't "execute")
-    // This ensures Prompt → TextToSpeech connections work without running the workflow
+    // Propagate outputs when a connection is made
+    // This handles both input nodes (prompt, image, etc.) and generation nodes
+    // that already have output (e.g., TTS with generated audio → LipSync)
     if (connection.source) {
-      const { nodes } = get();
-      const sourceNode = nodes.find((n) => n.id === connection.source);
-      const inputNodeTypes = ['prompt', 'image', 'video', 'audio', 'template', 'tweetParser'];
-      if (sourceNode && inputNodeTypes.includes(sourceNode.type as string)) {
-        propagateOutputsDownstream(connection.source);
-      }
+      propagateOutputsDownstream(connection.source);
     }
   },
 

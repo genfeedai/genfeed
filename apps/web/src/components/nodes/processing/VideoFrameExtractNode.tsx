@@ -6,6 +6,13 @@ import { Film, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -27,9 +34,8 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
   const executeNode = useExecutionStore((state) => state.executeNode);
 
   const handleModeChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const value = e.target.value as FrameSelectionMode;
-      updateNodeData<VideoFrameExtractNodeData>(id, { selectionMode: value });
+    (value: string) => {
+      updateNodeData<VideoFrameExtractNodeData>(id, { selectionMode: value as FrameSelectionMode });
     },
     [id, updateNodeData]
   );
@@ -53,17 +59,18 @@ function VideoFrameExtractNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)] block mb-1">
             Frame Selection
           </label>
-          <select
-            value={nodeData.selectionMode}
-            onChange={handleModeChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          >
-            {SELECTION_MODES.map((mode) => (
-              <option key={mode.value} value={mode.value}>
-                {mode.label}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.selectionMode} onValueChange={handleModeChange}>
+            <SelectTrigger className="nodrag h-8 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {SELECTION_MODES.map((mode) => (
+                <SelectItem key={mode.value} value={mode.value}>
+                  {mode.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Output Preview */}

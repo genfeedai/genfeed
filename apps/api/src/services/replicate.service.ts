@@ -29,6 +29,8 @@ export const MODELS = {
   lipSync2: 'sync/lipsync-2',
   lipSync2Pro: 'sync/lipsync-2-pro',
   pixverseLipSync: 'pixverse/lipsync',
+  omniHuman: 'bytedance/omni-human',
+  veedFabric: 'veed/fabric-1.0',
   // Flux Kontext
   fluxKontextDev: 'black-forest-labs/flux-kontext-dev',
 } as const;
@@ -257,7 +259,16 @@ export class ReplicateService {
     'sync/lipsync-2': MODELS.lipSync2,
     'sync/lipsync-2-pro': MODELS.lipSync2Pro,
     'pixverse/lipsync': MODELS.pixverseLipSync,
+    'bytedance/omni-human': MODELS.omniHuman,
+    'veed/fabric-1.0': MODELS.veedFabric,
   };
+
+  /** Models that natively support image input (no video required) */
+  private static readonly IMAGE_NATIVE_LIP_SYNC_MODELS = [
+    'bytedance/omni-human',
+    'veed/fabric-1.0',
+    'pixverse/lipsync',
+  ];
 
   constructor(
     private readonly configService: ConfigService,
@@ -726,6 +737,7 @@ export class ReplicateService {
     input: LipSyncInput
   ): Promise<PredictionResult> {
     const modelId = ReplicateService.LIP_SYNC_MODEL_MAP[input.model] ?? MODELS.lipSync2;
+    const isImageNativeModel = ReplicateService.IMAGE_NATIVE_LIP_SYNC_MODELS.includes(input.model);
 
     // Convert local URLs to base64 (Replicate can't access localhost)
     const audio = this.convertLocalUrlToBase64(input.audio);
@@ -737,15 +749,18 @@ export class ReplicateService {
       audio,
     };
 
-    // Add image or video based on what's provided
-    if (image) {
+    // Image-native models (OmniHuman, VEED Fabric, Pixverse) use image directly
+    // Video-required models (Sync Labs) need video input
+    if (isImageNativeModel && image) {
+      modelInput.image = image;
+    } else if (video) {
+      modelInput.video = video;
+    } else if (image) {
+      // Fallback for models that might accept either
       modelInput.image = image;
     }
-    if (video) {
-      modelInput.video = video;
-    }
 
-    // Add model-specific options for sync labs models
+    // Add model-specific options for Sync Labs models
     if (input.model.startsWith('sync/')) {
       if (input.syncMode) {
         modelInput.sync_mode = input.syncMode;
@@ -755,10 +770,15 @@ export class ReplicateService {
       }
     }
 
-    // Add temperature for models that support it
-    if (input.temperature !== undefined) {
+    // Add temperature for models that support it (not for image-native models like OmniHuman/VEED)
+    if (input.temperature !== undefined && !isImageNativeModel) {
       modelInput.temperature = input.temperature;
     }
+
+    this.logger.log(
+      `Creating lip sync prediction with model ${modelId}, ` +
+        `image: ${!!image}, video: ${!!video}, isImageNative: ${isImageNativeModel}`
+    );
 
     const prediction = await this.replicate.predictions.create({
       model: modelId,

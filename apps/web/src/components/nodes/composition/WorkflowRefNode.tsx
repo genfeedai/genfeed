@@ -6,6 +6,13 @@ import { clsx } from 'clsx';
 import { AlertCircle, CheckCircle2, GitBranch, Loader2, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { apiClient } from '@/lib/api/client';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -60,10 +67,8 @@ function WorkflowRefNodeComponent(props: NodeProps) {
   }, [currentWorkflowId]);
 
   const handleWorkflowChange = useCallback(
-    async (e: React.ChangeEvent<HTMLSelectElement>) => {
-      const selectedId = e.target.value;
-
-      if (!selectedId) {
+    async (selectedId: string) => {
+      if (!selectedId || selectedId === 'none') {
         updateNodeData<WorkflowRefNodeData>(id, {
           referencedWorkflowId: null,
           referencedWorkflowName: null,
@@ -227,19 +232,23 @@ function WorkflowRefNodeComponent(props: NodeProps) {
         {/* Workflow Selector */}
         <div className="space-y-1.5">
           <Label className="text-xs">Referenced Workflow</Label>
-          <select
-            value={nodeData.referencedWorkflowId || ''}
-            onChange={handleWorkflowChange}
+          <Select
+            value={nodeData.referencedWorkflowId || 'none'}
+            onValueChange={handleWorkflowChange}
             disabled={isLoading}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50"
           >
-            <option value="">Select a workflow...</option>
-            {workflows.map((workflow) => (
-              <option key={workflow._id} value={workflow._id}>
-                {workflow.name}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="nodrag h-9 w-full">
+              <SelectValue placeholder="Select a workflow..." />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">Select a workflow...</SelectItem>
+              {workflows.map((workflow) => (
+                <SelectItem key={workflow._id} value={workflow._id}>
+                  {workflow.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Loading/Error State */}

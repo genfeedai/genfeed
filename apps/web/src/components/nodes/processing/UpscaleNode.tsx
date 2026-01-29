@@ -13,8 +13,17 @@ import Image from 'next/image';
 import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ComparisonSlider } from '@/components/ui/comparison-slider';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -69,72 +78,74 @@ function UpscaleNodeComponent(props: NodeProps) {
   const hasOutput = inputType === 'image' ? !!nodeData.outputImage : !!nodeData.outputVideo;
 
   const handleModelChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<UpscaleNodeData>(id, {
-        model: e.target.value as UpscaleModel,
+        model: value as UpscaleModel,
       });
     },
     [id, updateNodeData]
   );
 
   const handleFactorChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<UpscaleNodeData>(id, {
-        upscaleFactor: e.target.value as TopazUpscaleFactor,
+        upscaleFactor: value as TopazUpscaleFactor,
       });
     },
     [id, updateNodeData]
   );
 
   const handleFormatChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<UpscaleNodeData>(id, {
-        outputFormat: e.target.value as 'jpg' | 'png',
+        outputFormat: value as 'jpg' | 'png',
       });
     },
     [id, updateNodeData]
   );
 
   const handleFaceEnhancementToggle = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<UpscaleNodeData>(id, {
-        faceEnhancement: e.target.checked,
-      });
+    (checked: boolean | 'indeterminate') => {
+      if (typeof checked === 'boolean') {
+        updateNodeData<UpscaleNodeData>(id, {
+          faceEnhancement: checked,
+        });
+      }
     },
     [id, updateNodeData]
   );
 
   const handleStrengthChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    ([value]: number[]) => {
       updateNodeData<UpscaleNodeData>(id, {
-        faceEnhancementStrength: parseInt(e.target.value, 10),
+        faceEnhancementStrength: value,
       });
     },
     [id, updateNodeData]
   );
 
   const handleCreativityChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
+    ([value]: number[]) => {
       updateNodeData<UpscaleNodeData>(id, {
-        faceEnhancementCreativity: parseInt(e.target.value, 10),
+        faceEnhancementCreativity: value,
       });
     },
     [id, updateNodeData]
   );
 
   const handleResolutionChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<UpscaleNodeData>(id, {
-        targetResolution: e.target.value as TopazVideoResolution,
+        targetResolution: value as TopazVideoResolution,
       });
     },
     [id, updateNodeData]
   );
 
   const handleFpsChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<UpscaleNodeData>(id, {
-        targetFps: parseInt(e.target.value, 10) as TopazVideoFPS,
+        targetFps: Number.parseInt(value, 10) as TopazVideoFPS,
       });
     },
     [id, updateNodeData]
@@ -229,17 +240,18 @@ function UpscaleNodeComponent(props: NodeProps) {
         {/* Model Selection */}
         <div className="space-y-1.5">
           <Label className="text-xs">Model</Label>
-          <select
-            value={nodeData.model}
-            onChange={handleModelChange}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            {models.map((model) => (
-              <option key={model.value} value={model.value}>
-                {model.label}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.model} onValueChange={handleModelChange}>
+            <SelectTrigger className="nodrag h-9 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {models.map((model) => (
+                <SelectItem key={model.value} value={model.value}>
+                  {model.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Image-specific controls */}
@@ -248,41 +260,41 @@ function UpscaleNodeComponent(props: NodeProps) {
             {/* Upscale Factor */}
             <div className="space-y-1.5">
               <Label className="text-xs">Upscale Factor</Label>
-              <select
-                value={nodeData.upscaleFactor}
-                onChange={handleFactorChange}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {UPSCALE_FACTORS.map((factor) => (
-                  <option key={factor.value} value={factor.value}>
-                    {factor.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={nodeData.upscaleFactor} onValueChange={handleFactorChange}>
+                <SelectTrigger className="nodrag h-9 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {UPSCALE_FACTORS.map((factor) => (
+                    <SelectItem key={factor.value} value={factor.value}>
+                      {factor.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Output Format */}
             <div className="space-y-1.5">
               <Label className="text-xs">Output Format</Label>
-              <select
-                value={nodeData.outputFormat}
-                onChange={handleFormatChange}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                <option value="png">PNG</option>
-                <option value="jpg">JPG</option>
-              </select>
+              <Select value={nodeData.outputFormat} onValueChange={handleFormatChange}>
+                <SelectTrigger className="nodrag h-9 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="png">PNG</SelectItem>
+                  <SelectItem value="jpg">JPG</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Face Enhancement */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
+              <div className="flex items-center gap-2 nodrag">
+                <Checkbox
                   id={`${id}-face-enhance`}
                   checked={nodeData.faceEnhancement}
-                  onChange={handleFaceEnhancementToggle}
-                  className="rounded border-input"
+                  onCheckedChange={handleFaceEnhancementToggle}
                 />
                 <Label htmlFor={`${id}-face-enhance`} className="text-xs cursor-pointer">
                   Face Enhancement
@@ -298,13 +310,12 @@ function UpscaleNodeComponent(props: NodeProps) {
                         {nodeData.faceEnhancementStrength}%
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={nodeData.faceEnhancementStrength}
-                      onChange={handleStrengthChange}
-                      className="nodrag w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer"
+                    <Slider
+                      value={[nodeData.faceEnhancementStrength]}
+                      min={0}
+                      max={100}
+                      onValueChange={handleStrengthChange}
+                      className="nodrag w-full"
                     />
                   </div>
                   <div className="space-y-1">
@@ -314,13 +325,12 @@ function UpscaleNodeComponent(props: NodeProps) {
                         {nodeData.faceEnhancementCreativity}%
                       </span>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={nodeData.faceEnhancementCreativity}
-                      onChange={handleCreativityChange}
-                      className="nodrag w-full h-1.5 bg-secondary rounded-lg appearance-none cursor-pointer"
+                    <Slider
+                      value={[nodeData.faceEnhancementCreativity]}
+                      min={0}
+                      max={100}
+                      onValueChange={handleCreativityChange}
+                      className="nodrag w-full"
                     />
                   </div>
                 </div>
@@ -335,33 +345,35 @@ function UpscaleNodeComponent(props: NodeProps) {
             {/* Target Resolution */}
             <div className="space-y-1.5">
               <Label className="text-xs">Target Resolution</Label>
-              <select
-                value={nodeData.targetResolution}
-                onChange={handleResolutionChange}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {RESOLUTIONS.map((res) => (
-                  <option key={res.value} value={res.value}>
-                    {res.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={nodeData.targetResolution} onValueChange={handleResolutionChange}>
+                <SelectTrigger className="nodrag h-9 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {RESOLUTIONS.map((res) => (
+                    <SelectItem key={res.value} value={res.value}>
+                      {res.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Target FPS */}
             <div className="space-y-1.5">
               <Label className="text-xs">Target Frame Rate</Label>
-              <select
-                value={nodeData.targetFps}
-                onChange={handleFpsChange}
-                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-              >
-                {FPS_OPTIONS.map((fps) => (
-                  <option key={fps.value} value={fps.value}>
-                    {fps.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={String(nodeData.targetFps)} onValueChange={handleFpsChange}>
+                <SelectTrigger className="nodrag h-9 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {FPS_OPTIONS.map((fps) => (
+                    <SelectItem key={fps.value} value={String(fps.value)}>
+                      {fps.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Pricing Notice */}

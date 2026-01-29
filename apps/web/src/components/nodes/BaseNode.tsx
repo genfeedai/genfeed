@@ -19,6 +19,7 @@ import {
   Brain,
   CheckCircle,
   CheckCircle2,
+  Copy,
   Crop,
   Download,
   Eye,
@@ -172,6 +173,16 @@ function BaseNodeComponent({
     [id, isRunning, executeNode, updateNodeData]
   );
 
+  const handleCopyError = useCallback(
+    async (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (nodeData.error) {
+        await navigator.clipboard.writeText(nodeData.error);
+      }
+    },
+    [nodeData.error]
+  );
+
   // Hover handlers for preview tooltip
   const handleMouseEnter = useCallback(() => {
     // Start delay timer
@@ -230,8 +241,8 @@ function BaseNodeComponent({
       {/* Resizer - only shown when selected and not locked */}
       <NodeResizer
         isVisible={isSelected && !isLocked}
-        minWidth={220}
-        minHeight={100}
+        minWidth={type === 'output' ? 200 : 220}
+        minHeight={type === 'output' ? 280 : 100}
         maxWidth={500}
         lineClassName="!border-transparent"
         handleClassName="!w-2.5 !h-2.5 !border-0 !rounded-sm"
@@ -242,7 +253,9 @@ function BaseNodeComponent({
         className={clsx(
           'relative flex flex-col rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-lg transition-all duration-200',
           // Only apply min/max width if node hasn't been manually resized
-          !isResized && 'min-w-[220px] max-w-[320px]',
+          // Output nodes get larger minimums for better preview visibility
+          !isResized && type === 'output' && 'min-w-[200px] min-h-[280px]',
+          !isResized && type !== 'output' && 'min-w-[220px] max-w-[320px]',
           isSelected && 'ring-1',
           isLocked && 'opacity-60',
           isProcessing && 'node-processing',
@@ -326,7 +339,16 @@ function BaseNodeComponent({
             {/* Error message - rendered BEFORE children so it appears at top */}
             {nodeData.error && (
               <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 p-2">
-                <p className="text-xs text-destructive">{nodeData.error}</p>
+                <div className="flex items-start gap-1.5">
+                  <p className="flex-1 text-xs text-destructive break-all">{nodeData.error}</p>
+                  <button
+                    onClick={handleCopyError}
+                    className="flex-shrink-0 rounded p-1 text-destructive/70 hover:bg-destructive/20 hover:text-destructive transition-colors"
+                    title="Copy error"
+                  >
+                    <Copy className="h-3 w-3" />
+                  </button>
+                </div>
                 <button
                   onClick={handleRetry}
                   disabled={isRunning}

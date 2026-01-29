@@ -13,6 +13,13 @@ import { memo, useCallback, useRef, useState } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { GridPositionSelector } from '@/components/ui/grid-position-selector';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -46,18 +53,18 @@ function ReframeNodeComponent(props: NodeProps) {
   const hasOutput = inputType === 'image' ? !!nodeData.outputImage : !!nodeData.outputVideo;
 
   const handleModelChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<ReframeNodeData>(id, {
-        model: e.target.value as LumaReframeModel,
+        model: value as LumaReframeModel,
       });
     },
     [id, updateNodeData]
   );
 
   const handleAspectRatioChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<ReframeNodeData>(id, {
-        aspectRatio: e.target.value as LumaAspectRatio,
+        aspectRatio: value as LumaAspectRatio,
       });
     },
     [id, updateNodeData]
@@ -111,34 +118,36 @@ function ReframeNodeComponent(props: NodeProps) {
         {inputType === 'image' && (
           <div className="space-y-1.5">
             <Label className="text-xs">Model</Label>
-            <select
-              value={nodeData.model}
-              onChange={handleModelChange}
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-            >
-              {MODELS.map((model) => (
-                <option key={model.value} value={model.value}>
-                  {model.label} - {model.price}
-                </option>
-              ))}
-            </select>
+            <Select value={nodeData.model} onValueChange={handleModelChange}>
+              <SelectTrigger className="nodrag h-9 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MODELS.map((model) => (
+                  <SelectItem key={model.value} value={model.value}>
+                    {model.label} - {model.price}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
 
         {/* Aspect Ratio */}
         <div className="space-y-1.5">
           <Label className="text-xs">Target Aspect Ratio</Label>
-          <select
-            value={nodeData.aspectRatio}
-            onChange={handleAspectRatioChange}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            {ASPECT_RATIOS.map((ratio) => (
-              <option key={ratio.value} value={ratio.value}>
-                {ratio.label}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.aspectRatio} onValueChange={handleAspectRatioChange}>
+            <SelectTrigger className="nodrag h-9 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ASPECT_RATIOS.map((ratio) => (
+                <SelectItem key={ratio.value} value={ratio.value}>
+                  {ratio.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Grid Position */}

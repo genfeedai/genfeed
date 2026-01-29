@@ -198,7 +198,10 @@ export interface LipSyncJobData extends NodeJobData {
   nodeData: {
     image?: string;
     video?: string;
-    audio: string;
+    audio?: string;
+    inputImage?: string; // From upstream connection
+    inputVideo?: string; // From upstream connection
+    inputAudio?: string; // From upstream connection (TextToSpeech, etc.)
     model: 'sync/lipsync-2' | 'sync/lipsync-2-pro' | 'pixverse/lipsync';
     syncMode?: 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
     temperature?: number;
@@ -225,7 +228,8 @@ export interface VoiceChangeJobData extends NodeJobData {
 export interface TextToSpeechJobData extends NodeJobData {
   nodeType: 'textToSpeech';
   nodeData: {
-    text: string;
+    text?: string;
+    inputText?: string; // From upstream connection (Prompt, LLM, etc.)
     provider: 'elevenlabs' | 'openai';
     voice: string;
     stability?: number;

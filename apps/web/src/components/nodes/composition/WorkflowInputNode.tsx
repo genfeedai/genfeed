@@ -4,7 +4,15 @@ import type { HandleType, WorkflowInputNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { memo, useCallback } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const INPUT_TYPES: { value: HandleType; label: string }[] = [
@@ -31,19 +39,21 @@ function WorkflowInputNodeComponent(props: NodeProps) {
   );
 
   const handleTypeChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<WorkflowInputNodeData>(id, {
-        inputType: e.target.value as HandleType,
+        inputType: value as HandleType,
       });
     },
     [id, updateNodeData]
   );
 
   const handleRequiredChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<WorkflowInputNodeData>(id, {
-        required: e.target.checked,
-      });
+    (checked: boolean | 'indeterminate') => {
+      if (typeof checked === 'boolean') {
+        updateNodeData<WorkflowInputNodeData>(id, {
+          required: checked,
+        });
+      }
     },
     [id, updateNodeData]
   );
@@ -79,27 +89,26 @@ function WorkflowInputNodeComponent(props: NodeProps) {
         {/* Input Type */}
         <div className="space-y-1.5">
           <Label className="text-xs">Data Type</Label>
-          <select
-            value={nodeData.inputType || 'image'}
-            onChange={handleTypeChange}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            {INPUT_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.inputType || 'image'} onValueChange={handleTypeChange}>
+            <SelectTrigger className="nodrag h-9 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {INPUT_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Required Checkbox */}
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
+        <div className="flex items-center gap-2 nodrag">
+          <Checkbox
             id={`required-${id}`}
             checked={nodeData.required ?? true}
-            onChange={handleRequiredChange}
-            className="h-4 w-4 rounded border-input"
+            onCheckedChange={handleRequiredChange}
           />
           <Label htmlFor={`required-${id}`} className="text-xs cursor-pointer">
             Required input

@@ -59,6 +59,15 @@ export interface StitchVideosResult {
   videoUrl: string;
 }
 
+export interface ImageToVideoInput {
+  image: string;
+  duration: number; // seconds
+}
+
+export interface ImageToVideoResult {
+  videoUrl: string;
+}
+
 @Injectable()
 export class FFmpegService {
   private readonly logger = new Logger(FFmpegService.name);
@@ -477,5 +486,54 @@ export class FFmpegService {
       default:
         return 'fade';
     }
+  }
+
+  /**
+   * Convert a static image to a video of specified duration.
+   * Used for APIs that require video input (e.g., Sync Labs lip sync).
+   */
+  async imageToVideo(input: ImageToVideoInput): Promise<ImageToVideoResult> {
+    this.logger.log(`Converting image to ${input.duration}s video`);
+
+    const timestamp = Date.now();
+    const imagePath = join(this.tempDir, `img-${timestamp}.jpg`);
+    const outputPath = join(this.tempDir, `img-video-${timestamp}.mp4`);
+
+    await mkdir(this.tempDir, { recursive: true });
+
+    return this.withTempFiles([imagePath, outputPath], async () => {
+      try {
+        // Write base64 image to temp file
+        const { writeFile } = await import('node:fs/promises');
+        const base64Match = input.image.match(/^data:image\/\w+;base64,(.+)$/);
+        if (!base64Match) {
+          throw new Error('Invalid image format - expected base64 data URL');
+        }
+        const imageBuffer = Buffer.from(base64Match[1], 'base64');
+        await writeFile(imagePath, imageBuffer);
+
+        // Create video from static image with silent audio
+        // -loop 1: loop the image
+        // -t: duration in seconds
+        // -f lavfi -i anullsrc: silent audio source
+        // -pix_fmt yuv420p: compatibility format
+        // -shortest: end when shortest input ends
+        const ffmpegCmd = `ffmpeg -y -loop 1 -i "${imagePath}" -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -c:v libx264 -t ${input.duration} -pix_fmt yuv420p -c:a aac -shortest "${outputPath}"`;
+
+        this.logger.debug(`Running FFmpeg: ${ffmpegCmd}`);
+        await execAsync(ffmpegCmd, { timeout: 60000 });
+
+        const videoBuffer = await readFile(outputPath);
+        const videoDataUrl = `data:video/mp4;base64,${videoBuffer.toString('base64')}`;
+
+        this.logger.log(`Image converted to video successfully`);
+
+        return { videoUrl: videoDataUrl };
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        this.logger.error(`Failed to convert image to video: ${errorMessage}`);
+        throw error;
+      }
+    });
   }
 }

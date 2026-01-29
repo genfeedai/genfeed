@@ -6,6 +6,13 @@ import Image from 'next/image';
 import { memo, useCallback, useRef, useState } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const OUTPUT_TYPES: { value: HandleType; label: string }[] = [
@@ -34,9 +41,9 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
   );
 
   const handleTypeChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<WorkflowOutputNodeData>(id, {
-        outputType: e.target.value as HandleType,
+        outputType: value as HandleType,
       });
     },
     [id, updateNodeData]
@@ -86,17 +93,18 @@ function WorkflowOutputNodeComponent(props: NodeProps) {
         {/* Output Type */}
         <div className="space-y-1.5">
           <Label className="text-xs">Data Type</Label>
-          <select
-            value={outputType}
-            onChange={handleTypeChange}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            {OUTPUT_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>
-                {type.label}
-              </option>
-            ))}
-          </select>
+          <Select value={outputType} onValueChange={handleTypeChange}>
+            <SelectTrigger className="nodrag h-9 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {OUTPUT_TYPES.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Description */}

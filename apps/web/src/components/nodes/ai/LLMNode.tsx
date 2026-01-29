@@ -6,6 +6,7 @@ import { AlertCircle, Expand, RefreshCw, Sparkles } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
@@ -27,8 +28,8 @@ function LLMNodeComponent(props: NodeProps) {
   );
 
   const handleTemperatureChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<LLMNodeData>(id, { temperature: parseFloat(e.target.value) });
+    ([value]: number[]) => {
+      updateNodeData<LLMNodeData>(id, { temperature: value });
     },
     [id, updateNodeData]
   );
@@ -84,14 +85,13 @@ function LLMNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)]">
             Temperature: {nodeData.temperature.toFixed(2)}
           </label>
-          <input
-            type="range"
-            min="0"
-            max="2"
-            step="0.1"
-            value={nodeData.temperature}
-            onChange={handleTemperatureChange}
-            className="nodrag w-full h-2 bg-[var(--border)] rounded-lg appearance-none cursor-pointer"
+          <Slider
+            value={[nodeData.temperature]}
+            min={0}
+            max={2}
+            step={0.1}
+            onValueChange={handleTemperatureChange}
+            className="nodrag w-full"
           />
           <div className="flex justify-between text-xs text-[var(--muted-foreground)]">
             <span>Precise</span>

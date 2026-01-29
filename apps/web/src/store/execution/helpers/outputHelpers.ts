@@ -25,12 +25,13 @@ function extractOutputValue(output: unknown): string | null {
     }
   }
 
-  // Object with url, image, or video field (backend normalizes to these formats)
+  // Object with url, image, video, or audio field (backend normalizes to these formats)
   if (typeof output === 'object' && output !== null) {
     const obj = output as Record<string, unknown>;
     if ('url' in obj) return String(obj.url);
     if ('image' in obj) return String(obj.image);
     if ('video' in obj) return String(obj.video);
+    if ('audio' in obj) return String(obj.audio);
   }
 
   return null;

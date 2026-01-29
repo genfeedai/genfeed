@@ -31,6 +31,8 @@ export class QueueManagerService {
     private readonly videoQueue: Queue,
     @InjectQueue(QUEUE_NAMES.LLM_GENERATION)
     private readonly llmQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.PROCESSING)
+    private readonly processingQueue: Queue,
     @InjectModel(QueueJob.name)
     private readonly queueJobModel: Model<QueueJobDocument>,
     @Inject(forwardRef(() => 'ExecutionsService'))
@@ -43,6 +45,7 @@ export class QueueManagerService {
       [QUEUE_NAMES.IMAGE_GENERATION, this.imageQueue],
       [QUEUE_NAMES.VIDEO_GENERATION, this.videoQueue],
       [QUEUE_NAMES.LLM_GENERATION, this.llmQueue],
+      [QUEUE_NAMES.PROCESSING, this.processingQueue],
     ]);
   }
 

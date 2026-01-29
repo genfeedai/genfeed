@@ -6,7 +6,7 @@ import { useSettingsStore } from '@/store/settingsStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 export function usePaneActions() {
-  const { addNode, nodes, edges } = useWorkflowStore();
+  const { addNode } = useWorkflowStore();
   const reactFlow = useReactFlow();
 
   const addNodeAtPosition = useCallback(
@@ -18,14 +18,13 @@ export function usePaneActions() {
   );
 
   const selectAll = useCallback(() => {
-    const nodeIds = nodes.map((node) => node.id);
     reactFlow.setNodes((nds) =>
       nds.map((node) => ({
         ...node,
-        selected: nodeIds.includes(node.id),
+        selected: true,
       }))
     );
-  }, [nodes, reactFlow]);
+  }, [reactFlow]);
 
   const fitView = useCallback(() => {
     reactFlow.fitView({ padding: 0.2 });
@@ -34,7 +33,10 @@ export function usePaneActions() {
   const autoLayout = useCallback(
     (direction: 'TB' | 'LR' = 'LR') => {
       const edgeStyle = useSettingsStore.getState().edgeStyle;
-      const layoutedNodes = getLayoutedNodes(nodes, edges, { direction });
+      // Use React Flow's internal nodes which have measured dimensions populated
+      const currentNodes = reactFlow.getNodes();
+      const currentEdges = reactFlow.getEdges();
+      const layoutedNodes = getLayoutedNodes(currentNodes, currentEdges, { direction });
       reactFlow.setNodes(layoutedNodes);
 
       // Normalize all edges to use consistent style
@@ -50,7 +52,7 @@ export function usePaneActions() {
         reactFlow.fitView({ padding: 0.2 });
       }, 50);
     },
-    [nodes, edges, reactFlow]
+    [reactFlow]
   );
 
   return {

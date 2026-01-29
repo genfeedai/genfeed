@@ -2,7 +2,7 @@
 
 import type { TextToSpeechNodeData, TTSProvider, TTSVoice } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertTriangle, AudioLines, Expand, RefreshCw, Volume2 } from 'lucide-react';
+import { AlertTriangle, AudioLines, RefreshCw, Volume2 } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
 import { useExecutionStore } from '@/store/executionStore';
-import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const TTS_ENABLED = process.env.NEXT_PUBLIC_TTS_ENABLED === 'true';
@@ -50,39 +49,38 @@ function TextToSpeechNodeComponent(props: NodeProps) {
   const nodeData = data as TextToSpeechNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
-  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
 
   const handleProviderChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData<TextToSpeechNodeData>(id, { provider: e.target.value as TTSProvider });
+    (value: string) => {
+      updateNodeData<TextToSpeechNodeData>(id, { provider: value as TTSProvider });
     },
     [id, updateNodeData]
   );
 
   const handleVoiceChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData<TextToSpeechNodeData>(id, { voice: e.target.value as TTSVoice });
+    (value: string) => {
+      updateNodeData<TextToSpeechNodeData>(id, { voice: value as TTSVoice });
     },
     [id, updateNodeData]
   );
 
   const handleStabilityChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<TextToSpeechNodeData>(id, { stability: parseFloat(e.target.value) });
+    ([value]: number[]) => {
+      updateNodeData<TextToSpeechNodeData>(id, { stability: value });
     },
     [id, updateNodeData]
   );
 
   const handleSimilarityChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<TextToSpeechNodeData>(id, { similarityBoost: parseFloat(e.target.value) });
+    ([value]: number[]) => {
+      updateNodeData<TextToSpeechNodeData>(id, { similarityBoost: value });
     },
     [id, updateNodeData]
   );
 
   const handleSpeedChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<TextToSpeechNodeData>(id, { speed: parseFloat(e.target.value) });
+    ([value]: number[]) => {
+      updateNodeData<TextToSpeechNodeData>(id, { speed: value });
     },
     [id, updateNodeData]
   );
@@ -90,10 +88,6 @@ function TextToSpeechNodeComponent(props: NodeProps) {
   const handleGenerate = useCallback(() => {
     executeNode(id);
   }, [id, executeNode]);
-
-  const handleExpand = useCallback(() => {
-    openNodeDetailModal(id, 'preview');
-  }, [id, openNodeDetailModal]);
 
   const hasInput = Boolean(nodeData.inputText);
 
@@ -103,14 +97,15 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         <Button
           variant="ghost"
           size="icon-sm"
-          onClick={handleExpand}
+          onClick={handleGenerate}
+          disabled={nodeData.status === 'processing' || !hasInput}
           className="h-5 w-5"
-          title="Expand preview"
+          title="Regenerate"
         >
-          <Expand className="h-3 w-3" />
+          <RefreshCw className="h-3 w-3" />
         </Button>
       ) : null,
-    [nodeData.outputAudio, handleExpand]
+    [nodeData.outputAudio, nodeData.status, hasInput, handleGenerate]
   );
 
   return (
@@ -135,33 +130,35 @@ function TextToSpeechNodeComponent(props: NodeProps) {
         {/* Provider Selection */}
         <div>
           <label className="text-xs text-[var(--muted-foreground)]">Provider</label>
-          <select
-            value={nodeData.provider}
-            onChange={handleProviderChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          >
-            {PROVIDERS.map((provider) => (
-              <option key={provider.value} value={provider.value}>
-                {provider.label}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.provider} onValueChange={handleProviderChange}>
+            <SelectTrigger className="nodrag h-8 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {PROVIDERS.map((provider) => (
+                <SelectItem key={provider.value} value={provider.value}>
+                  {provider.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Voice Selection */}
         <div>
           <label className="text-xs text-[var(--muted-foreground)]">Voice</label>
-          <select
-            value={nodeData.voice}
-            onChange={handleVoiceChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          >
-            {VOICES.map((voice) => (
-              <option key={voice.value} value={voice.value}>
-                {voice.label} - {voice.description}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.voice} onValueChange={handleVoiceChange}>
+            <SelectTrigger className="nodrag h-8 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {VOICES.map((voice) => (
+                <SelectItem key={voice.value} value={voice.value}>
+                  {voice.label} - {voice.description}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Stability Slider */}
@@ -169,14 +166,13 @@ function TextToSpeechNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)]">
             Stability: {Math.round(nodeData.stability * 100)}%
           </label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={nodeData.stability}
-            onChange={handleStabilityChange}
-            className="nodrag w-full h-2 bg-[var(--secondary)] rounded-lg appearance-none cursor-pointer"
+          <Slider
+            value={[nodeData.stability]}
+            min={0}
+            max={1}
+            step={0.05}
+            onValueChange={handleStabilityChange}
+            className="nodrag w-full"
           />
           <div className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
             <span>Variable</span>
@@ -189,14 +185,13 @@ function TextToSpeechNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)]">
             Clarity: {Math.round(nodeData.similarityBoost * 100)}%
           </label>
-          <input
-            type="range"
-            min="0"
-            max="1"
-            step="0.05"
-            value={nodeData.similarityBoost}
-            onChange={handleSimilarityChange}
-            className="nodrag w-full h-2 bg-[var(--secondary)] rounded-lg appearance-none cursor-pointer"
+          <Slider
+            value={[nodeData.similarityBoost]}
+            min={0}
+            max={1}
+            step={0.05}
+            onValueChange={handleSimilarityChange}
+            className="nodrag w-full"
           />
           <div className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
             <span>Low</span>
@@ -209,30 +204,18 @@ function TextToSpeechNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)]">
             Speed: {nodeData.speed.toFixed(1)}x
           </label>
-          <input
-            type="range"
-            min="0.5"
-            max="2"
-            step="0.1"
-            value={nodeData.speed}
-            onChange={handleSpeedChange}
-            className="nodrag w-full h-2 bg-[var(--secondary)] rounded-lg appearance-none cursor-pointer"
+          <Slider
+            value={[nodeData.speed]}
+            min={0.5}
+            max={2}
+            step={0.1}
+            onValueChange={handleSpeedChange}
+            className="nodrag w-full"
           />
         </div>
 
         {/* Output Audio Player */}
-        {nodeData.outputAudio && (
-          <div className="relative">
-            <audio src={nodeData.outputAudio} controls className="w-full" />
-            <button
-              onClick={handleGenerate}
-              disabled={nodeData.status === 'processing' || !hasInput}
-              className="absolute top-1 right-1 p-1 bg-black/50 rounded-full hover:bg-black/70 transition disabled:opacity-50"
-            >
-              <RefreshCw className="w-3 h-3" />
-            </button>
-          </div>
-        )}
+        {nodeData.outputAudio && <audio src={nodeData.outputAudio} controls className="w-full" />}
 
         {/* Generate Button */}
         {!nodeData.outputAudio && nodeData.status !== 'processing' && (

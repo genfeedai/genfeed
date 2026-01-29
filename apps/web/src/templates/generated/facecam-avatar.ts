@@ -65,7 +65,7 @@ export const FACECAM_AVATAR_TEMPLATE: WorkflowFile = {
         comment: 'Upload your own audio instead of TTS. Connect to Lip Sync audio input.',
       },
     },
-    // Lip Sync
+    // Lip Sync (OmniHuman for image input, Sync Labs for video input)
     {
       id: 'lipSync',
       type: 'lipSync',
@@ -77,7 +77,7 @@ export const FACECAM_AVATAR_TEMPLATE: WorkflowFile = {
         inputVideo: null,
         inputAudio: null,
         outputVideo: null,
-        model: 'sync/lipsync-2',
+        model: 'bytedance/omni-human',
         syncMode: 'loop',
         temperature: 0.5,
         activeSpeaker: false,

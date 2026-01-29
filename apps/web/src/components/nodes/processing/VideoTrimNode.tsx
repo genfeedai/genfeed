@@ -6,6 +6,7 @@ import { AlertCircle, Expand, RefreshCw, Scissors } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
+import { Slider } from '@/components/ui/slider';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
@@ -47,16 +48,14 @@ function VideoTrimNodeComponent(props: NodeProps) {
   );
 
   const handleStartSliderChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = parseFloat(e.target.value);
+    ([value]: number[]) => {
       updateNodeData<VideoTrimNodeData>(id, { startTime: value });
     },
     [id, updateNodeData]
   );
 
   const handleEndSliderChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const value = parseFloat(e.target.value);
+    ([value]: number[]) => {
       updateNodeData<VideoTrimNodeData>(id, { endTime: value });
     },
     [id, updateNodeData]
@@ -104,14 +103,13 @@ function VideoTrimNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)]">
             Start: {formatTime(nodeData.startTime)}
           </label>
-          <input
-            type="range"
-            min="0"
+          <Slider
+            value={[nodeData.startTime]}
+            min={0}
             max={maxDuration}
-            step="1"
-            value={nodeData.startTime}
-            onChange={handleStartSliderChange}
-            className="nodrag w-full h-2 bg-[var(--border)] rounded-lg appearance-none cursor-pointer"
+            step={1}
+            onValueChange={handleStartSliderChange}
+            className="nodrag w-full"
           />
           <input
             type="text"
@@ -127,14 +125,13 @@ function VideoTrimNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)]">
             End: {formatTime(nodeData.endTime)}
           </label>
-          <input
-            type="range"
-            min="0"
+          <Slider
+            value={[nodeData.endTime]}
+            min={0}
             max={maxDuration}
-            step="1"
-            value={nodeData.endTime}
-            onChange={handleEndSliderChange}
-            className="nodrag w-full h-2 bg-[var(--border)] rounded-lg appearance-none cursor-pointer"
+            step={1}
+            onValueChange={handleEndSliderChange}
+            className="nodrag w-full"
           />
           <input
             type="text"

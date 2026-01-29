@@ -145,16 +145,19 @@
     stroke-width: 2;
   }
 
-  &__edge.selected .react-flow__edge-path {
-    stroke: var(--primary);
-  }
-
   // Edge type colors (based on data type flowing through)
   &__edge.edge-image .react-flow__edge-path { stroke: var(--handle-image); }
   &__edge.edge-video .react-flow__edge-path { stroke: var(--handle-video); }
   &__edge.edge-text .react-flow__edge-path { stroke: var(--handle-text); }
   &__edge.edge-number .react-flow__edge-path { stroke: var(--handle-number); }
   &__edge.edge-audio .react-flow__edge-path { stroke: var(--handle-audio); }
+
+  // Selected edge - highlight with glow (preserves type color)
+  &__edge.selected .react-flow__edge-path {
+    stroke-width: 3px;
+    filter: drop-shadow(0 0 6px currentColor) brightness(1.3);
+    transition: stroke-width 0.15s ease, filter 0.15s ease;
+  }
 
   // Dimmed edges (not connected to selection)
   &__edge.dimmed .react-flow__edge-path {

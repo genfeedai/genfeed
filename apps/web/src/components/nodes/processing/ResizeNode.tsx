@@ -9,6 +9,13 @@ import { memo, useCallback } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { GridPositionSelector } from '@/components/ui/grid-position-selector';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { useExecutionStore } from '@/store/executionStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -29,18 +36,18 @@ function ResizeNodeComponent(props: NodeProps) {
   const currentModel = MODELS[mediaType];
 
   const handleTypeChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<ResizeNodeData>(id, {
-        inputType: e.target.value as MediaType,
+        inputType: value as MediaType,
       });
     },
     [id, updateNodeData]
   );
 
   const handleAspectRatioChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<ResizeNodeData>(id, {
-        targetAspectRatio: e.target.value as LumaAspectRatio,
+        targetAspectRatio: value as LumaAspectRatio,
       });
     },
     [id, updateNodeData]
@@ -70,14 +77,15 @@ function ResizeNodeComponent(props: NodeProps) {
         {/* Media Type Selection */}
         <div className="space-y-1.5">
           <Label className="text-xs">Media Type</Label>
-          <select
-            value={mediaType}
-            onChange={handleTypeChange}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            <option value="image">Image</option>
-            <option value="video">Video</option>
-          </select>
+          <Select value={mediaType} onValueChange={handleTypeChange}>
+            <SelectTrigger className="nodrag h-9 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="image">Image</SelectItem>
+              <SelectItem value="video">Video</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Model Display */}
@@ -94,17 +102,18 @@ function ResizeNodeComponent(props: NodeProps) {
         {/* Aspect Ratio */}
         <div className="space-y-1.5">
           <Label className="text-xs">Target Aspect Ratio</Label>
-          <select
-            value={nodeData.targetAspectRatio}
-            onChange={handleAspectRatioChange}
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-          >
-            {LUMA_ASPECT_RATIOS.map((ratio) => (
-              <option key={ratio} value={ratio}>
-                {ratio}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.targetAspectRatio} onValueChange={handleAspectRatioChange}>
+            <SelectTrigger className="nodrag h-9 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {LUMA_ASPECT_RATIOS.map((ratio) => (
+                <SelectItem key={ratio} value={ratio}>
+                  {ratio}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Grid Position */}

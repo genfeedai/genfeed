@@ -69,6 +69,24 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
 
     const estimatedCost = calculateWorkflowCost(hydratedNodes);
     useExecutionStore.getState().setEstimatedCost(estimatedCost);
+
+    // Propagate existing outputs to downstream nodes after load
+    // Includes both output fields from generation nodes and values from input nodes
+    const { propagateOutputsDownstream } = get();
+    for (const node of hydratedNodes) {
+      const data = node.data as Record<string, unknown>;
+      const hasOutput =
+        data.outputImage ||
+        data.outputVideo ||
+        data.outputAudio ||
+        data.outputText ||
+        data.prompt || // Prompt node
+        data.image || // Image node
+        data.audio; // Audio node
+      if (hasOutput) {
+        propagateOutputsDownstream(node.id);
+      }
+    }
   },
 
   clearWorkflow: () => {
@@ -119,8 +137,10 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
         outputImage?: string;
         outputVideo?: string;
         outputText?: string;
+        outputAudio?: string;
         prompt?: string;
         image?: string;
+        audio?: string;
       };
 
       let value: string | null = null;
@@ -131,6 +151,8 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
         value = sourceData.outputVideo ?? null;
       } else if (edge.sourceHandle === 'text') {
         value = sourceData.outputText ?? sourceData.prompt ?? null;
+      } else if (edge.sourceHandle === 'audio') {
+        value = sourceData.outputAudio ?? sourceData.audio ?? null;
       }
 
       if (value) {
@@ -155,6 +177,8 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
     const connected = new Set<string>(nodeIds);
     const visited = new Set<string>();
 
+    // Traverse UPSTREAM only - find all nodes that feed into the selected nodes
+    // This way selecting a node shows its dependencies, not what depends on it
     const queue = [...nodeIds];
     while (queue.length > 0) {
       const currentId = queue.shift()!;
@@ -166,14 +190,6 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
         if (!connected.has(edge.source)) {
           connected.add(edge.source);
           queue.push(edge.source);
-        }
-      }
-
-      const downstreamEdges = edges.filter((e) => e.source === currentId);
-      for (const edge of downstreamEdges) {
-        if (!connected.has(edge.target)) {
-          connected.add(edge.target);
-          queue.push(edge.target);
         }
       }
     }
@@ -378,6 +394,24 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
 
       const estimatedCost = calculateWorkflowCost(nodes);
       useExecutionStore.getState().setEstimatedCost(estimatedCost);
+
+      // Propagate existing outputs to downstream nodes after load
+      // Includes both output fields from generation nodes and values from input nodes
+      const { propagateOutputsDownstream } = get();
+      for (const node of nodes) {
+        const data = node.data as Record<string, unknown>;
+        const hasOutput =
+          data.outputImage ||
+          data.outputVideo ||
+          data.outputAudio ||
+          data.outputText ||
+          data.prompt || // Prompt node
+          data.image || // Image node
+          data.audio; // Audio node
+        if (hasOutput) {
+          propagateOutputsDownstream(node.id);
+        }
+      }
     } catch (error) {
       set({ isLoading: false });
       throw error;

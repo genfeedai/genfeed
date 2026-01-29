@@ -94,7 +94,7 @@ function OutputNodeComponent(props: NodeProps) {
           <>
             {/* Preview */}
             {activeType === 'video' ? (
-              <div className="relative aspect-video w-full overflow-hidden rounded-md bg-black/20">
+              <div className="relative aspect-video min-h-[120px] w-full overflow-hidden rounded-md bg-black/20">
                 <video
                   src={activeMedia}
                   className="absolute inset-0 w-full h-full object-contain cursor-pointer"
@@ -113,7 +113,7 @@ function OutputNodeComponent(props: NodeProps) {
                 )}
               </div>
             ) : activeType === 'image' ? (
-              <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-black/20">
+              <div className="relative aspect-[4/3] min-h-[120px] w-full overflow-hidden rounded-md bg-black/20">
                 <Image
                   src={activeMedia}
                   alt="Output"

@@ -282,7 +282,12 @@ export interface LLMNodeData extends BaseNodeData {
   jobId: string | null;
 }
 
-export type LipSyncModel = 'sync/lipsync-2-pro' | 'sync/lipsync-2' | 'pixverse/lipsync';
+export type LipSyncModel =
+  | 'sync/lipsync-2-pro'
+  | 'sync/lipsync-2'
+  | 'pixverse/lipsync'
+  | 'bytedance/omni-human'
+  | 'veed/fabric-1.0';
 
 export type LipSyncMode = 'loop' | 'bounce' | 'cut_off' | 'silence' | 'remap';
 

@@ -11,6 +11,15 @@ import { AlertCircle, Expand, Play, RefreshCw, Video } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Slider } from '@/components/ui/slider';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
@@ -57,55 +66,60 @@ function MotionControlNodeComponent(props: NodeProps) {
   const { hasRequiredInputs } = useRequiredInputs(id, type as 'motionControl');
 
   const handleModeChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
-      updateNodeData<MotionControlNodeData>(id, { mode: e.target.value as MotionControlMode });
+    (value: string) => {
+      updateNodeData<MotionControlNodeData>(id, { mode: value as MotionControlMode });
     },
     [id, updateNodeData]
   );
 
   const handleQualityModeChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<MotionControlNodeData>(id, {
-        qualityMode: e.target.value as KlingQualityMode,
+        qualityMode: value as KlingQualityMode,
       });
     },
     [id, updateNodeData]
   );
 
   const handleCharacterOrientationChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<MotionControlNodeData>(id, {
-        characterOrientation: e.target.value as CharacterOrientation,
+        characterOrientation: value as CharacterOrientation,
       });
     },
     [id, updateNodeData]
   );
 
   const handleAspectRatioChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<MotionControlNodeData>(id, {
-        aspectRatio: e.target.value as '16:9' | '9:16' | '1:1',
+        aspectRatio: value as '16:9' | '9:16' | '1:1',
       });
     },
     [id, updateNodeData]
   );
 
   const handleDurationChange = useCallback(
-    (e: React.ChangeEvent<HTMLSelectElement>) => {
+    (value: string) => {
       updateNodeData<MotionControlNodeData>(id, {
-        duration: parseInt(e.target.value, 10) as 5 | 10,
+        duration: Number.parseInt(value, 10) as 5 | 10,
       });
     },
     [id, updateNodeData]
   );
 
-  const handleKeepOriginalSoundToggle = useCallback(() => {
-    updateNodeData<MotionControlNodeData>(id, { keepOriginalSound: !nodeData.keepOriginalSound });
-  }, [id, nodeData.keepOriginalSound, updateNodeData]);
+  const handleKeepOriginalSoundToggle = useCallback(
+    (checked: boolean | 'indeterminate') => {
+      if (typeof checked === 'boolean') {
+        updateNodeData<MotionControlNodeData>(id, { keepOriginalSound: checked });
+      }
+    },
+    [id, updateNodeData]
+  );
 
   const handleMotionStrengthChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      updateNodeData<MotionControlNodeData>(id, { motionStrength: parseInt(e.target.value, 10) });
+    ([value]: number[]) => {
+      updateNodeData<MotionControlNodeData>(id, { motionStrength: value });
     },
     [id, updateNodeData]
   );
@@ -142,17 +156,18 @@ function MotionControlNodeComponent(props: NodeProps) {
         {/* Mode Selection */}
         <div>
           <label className="text-xs text-[var(--muted-foreground)]">Mode</label>
-          <select
-            value={nodeData.mode}
-            onChange={handleModeChange}
-            className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-          >
-            {MOTION_MODES.map((mode) => (
-              <option key={mode.value} value={mode.value}>
-                {mode.label}
-              </option>
-            ))}
-          </select>
+          <Select value={nodeData.mode} onValueChange={handleModeChange}>
+            <SelectTrigger className="nodrag h-8 w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {MOTION_MODES.map((mode) => (
+                <SelectItem key={mode.value} value={mode.value}>
+                  {mode.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
         {/* Video Transfer specific options */}
@@ -161,17 +176,18 @@ function MotionControlNodeComponent(props: NodeProps) {
             {/* Quality Mode */}
             <div>
               <label className="text-xs text-[var(--muted-foreground)]">Quality</label>
-              <select
-                value={nodeData.qualityMode}
-                onChange={handleQualityModeChange}
-                className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-              >
-                {QUALITY_MODES.map((mode) => (
-                  <option key={mode.value} value={mode.value}>
-                    {mode.label} - {mode.description}
-                  </option>
-                ))}
-              </select>
+              <Select value={nodeData.qualityMode} onValueChange={handleQualityModeChange}>
+                <SelectTrigger className="nodrag h-8 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {QUALITY_MODES.map((mode) => (
+                    <SelectItem key={mode.value} value={mode.value}>
+                      {mode.label} - {mode.description}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Character Orientation */}
@@ -179,29 +195,37 @@ function MotionControlNodeComponent(props: NodeProps) {
               <label className="text-xs text-[var(--muted-foreground)]">
                 Character Orientation
               </label>
-              <select
+              <Select
                 value={nodeData.characterOrientation}
-                onChange={handleCharacterOrientationChange}
-                className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+                onValueChange={handleCharacterOrientationChange}
               >
-                {CHARACTER_ORIENTATIONS.map((orientation) => (
-                  <option key={orientation.value} value={orientation.value}>
-                    {orientation.label}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="nodrag h-8 w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {CHARACTER_ORIENTATIONS.map((orientation) => (
+                    <SelectItem key={orientation.value} value={orientation.value}>
+                      {orientation.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Keep Original Sound */}
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
+            <div className="flex items-center gap-2 nodrag">
+              <Checkbox
+                id={`keep-sound-${id}`}
                 checked={nodeData.keepOriginalSound}
-                onChange={handleKeepOriginalSoundToggle}
-                className="w-4 h-4 rounded border-[var(--border)] bg-[var(--background)] text-[var(--primary)] focus:ring-[var(--primary)]"
+                onCheckedChange={handleKeepOriginalSoundToggle}
               />
-              <span className="text-sm text-[var(--foreground)]">Keep Original Sound</span>
-            </label>
+              <label
+                htmlFor={`keep-sound-${id}`}
+                className="text-sm text-[var(--foreground)] cursor-pointer"
+              >
+                Keep Original Sound
+              </label>
+            </div>
           </>
         )}
 
@@ -209,33 +233,35 @@ function MotionControlNodeComponent(props: NodeProps) {
           {/* Duration */}
           <div>
             <label className="text-xs text-[var(--muted-foreground)]">Duration</label>
-            <select
-              value={nodeData.duration}
-              onChange={handleDurationChange}
-              className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-            >
-              {DURATIONS.map((d) => (
-                <option key={d.value} value={d.value}>
-                  {d.label}
-                </option>
-              ))}
-            </select>
+            <Select value={String(nodeData.duration)} onValueChange={handleDurationChange}>
+              <SelectTrigger className="nodrag h-8 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DURATIONS.map((d) => (
+                  <SelectItem key={d.value} value={String(d.value)}>
+                    {d.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Aspect Ratio */}
           <div>
             <label className="text-xs text-[var(--muted-foreground)]">Aspect Ratio</label>
-            <select
-              value={nodeData.aspectRatio}
-              onChange={handleAspectRatioChange}
-              className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
-            >
-              {ASPECT_RATIOS.map((ratio) => (
-                <option key={ratio.value} value={ratio.value}>
-                  {ratio.label}
-                </option>
-              ))}
-            </select>
+            <Select value={nodeData.aspectRatio} onValueChange={handleAspectRatioChange}>
+              <SelectTrigger className="nodrag h-8 w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ASPECT_RATIOS.map((ratio) => (
+                  <SelectItem key={ratio.value} value={ratio.value}>
+                    {ratio.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -244,14 +270,13 @@ function MotionControlNodeComponent(props: NodeProps) {
           <label className="text-xs text-[var(--muted-foreground)]">
             Motion Strength: {nodeData.motionStrength}%
           </label>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            value={nodeData.motionStrength}
-            onChange={handleMotionStrengthChange}
-            className="nodrag w-full h-2 bg-[var(--secondary)] rounded-lg appearance-none cursor-pointer"
+          <Slider
+            value={[nodeData.motionStrength]}
+            min={0}
+            max={100}
+            step={5}
+            onValueChange={handleMotionStrengthChange}
+            className="nodrag w-full"
           />
           <div className="flex justify-between text-[10px] text-[var(--muted-foreground)]">
             <span>Subtle</span>
