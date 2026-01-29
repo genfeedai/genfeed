@@ -13,6 +13,7 @@ export default defineConfig({
     environment: 'node',
     root: './',
     include: ['src/**/*.spec.ts'],
+    exclude: ['src/test/e2e/**/*.spec.ts'],
     setupFiles: ['./src/test/setup.ts'],
     coverage: {
       provider: 'v8',

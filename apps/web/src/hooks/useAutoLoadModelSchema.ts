@@ -1,10 +1,5 @@
+import type { ProviderModel, SelectedModel } from '@genfeedai/types';
 import { useEffect, useRef } from 'react';
-
-interface SelectedModel {
-  id: string;
-  inputSchema?: unknown;
-  [key: string]: unknown;
-}
 
 interface UseAutoLoadModelSchemaOptions<TModel extends string> {
   /** Current model type from node data */
@@ -14,7 +9,7 @@ interface UseAutoLoadModelSchemaOptions<TModel extends string> {
   /** Map from internal model type to API model ID */
   modelIdMap: Record<TModel, string>;
   /** Callback when model is loaded from API */
-  onModelSelect: (model: SelectedModel) => void;
+  onModelSelect: (model: ProviderModel) => void;
 }
 
 /**

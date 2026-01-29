@@ -1,4 +1,4 @@
-import type { ProviderModel } from '@genfeedai/types';
+import type { ProviderModel, WorkflowNodeData } from '@genfeedai/types';
 import { useCallback } from 'react';
 import { getSchemaDefaults } from '@/lib/utils/schemaUtils';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -28,11 +28,10 @@ interface UseModelSelectionOptions<TModel extends string> {
  *
  * @returns handleModelSelect callback to pass to ModelBrowserModal
  */
-export function useModelSelection<TModel extends string, TNodeData extends { model?: TModel }>({
-  nodeId,
-  modelMap,
-  fallbackModel,
-}: UseModelSelectionOptions<TModel>) {
+export function useModelSelection<
+  TModel extends string,
+  TNodeData extends WorkflowNodeData & { model?: TModel },
+>({ nodeId, modelMap, fallbackModel }: UseModelSelectionOptions<TModel>) {
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
 
   const handleModelSelect = useCallback(

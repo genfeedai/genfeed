@@ -1,6 +1,6 @@
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowTemplate } from '@genfeedai/types';
 
-export const FACECAM_AVATAR_TEMPLATE: WorkflowFile = {
+export const FACECAM_AVATAR_TEMPLATE: WorkflowTemplate = {
   version: 1,
   name: 'Facecam Avatar',
   description: 'Generate talking head videos from text scripts using ElevenLabs TTS and lip sync',

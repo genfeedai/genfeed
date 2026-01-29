@@ -7,6 +7,7 @@ import {
   TOPAZ_NODE_TYPES,
   VIDEO_NODE_TYPES,
 } from '@genfeedai/core';
+import { ReframeNodeType, UpscaleNodeType } from '@genfeedai/types';
 import { Injectable } from '@nestjs/common';
 import type {
   CostBreakdownItem,
@@ -179,8 +180,21 @@ export class CostCalculatorService {
     videoDuration?: number,
     inputType?: string
   ): number {
+    // Specific video node type
+    if (nodeType === ReframeNodeType.LUMA_REFRAME_VIDEO) {
+      const duration = videoDuration ?? 5;
+      return duration * PRICING['luma-reframe-video'];
+    }
+
+    // Specific image node type
+    if (nodeType === ReframeNodeType.LUMA_REFRAME_IMAGE) {
+      const pricing = PRICING['luma-reframe-image'];
+      const modelKey = (model ?? 'photon-flash-1') as keyof typeof pricing;
+      return pricing[modelKey] ?? pricing['photon-flash-1'];
+    }
+
     // For unified 'reframe' node, check inputType
-    if (nodeType === 'reframe') {
+    if (nodeType === ReframeNodeType.REFRAME) {
       if (inputType === 'video') {
         const duration = videoDuration ?? 5;
         return duration * PRICING['luma-reframe-video'];
@@ -198,7 +212,24 @@ export class CostCalculatorService {
    * Calculate Topaz Upscale cost (unified node)
    */
   calculateTopazCost(nodeType: string, data: Record<string, unknown>): number {
-    if (nodeType === 'upscale') {
+    // Specific video node type
+    if (nodeType === UpscaleNodeType.TOPAZ_VIDEO_UPSCALE) {
+      const resolution = (data.targetResolution as string) ?? '1080p';
+      const fps = (data.targetFps as number) ?? 30;
+      const duration = (data.duration as number) ?? 10;
+      return this.calculateTopazVideoCost(resolution, fps, duration);
+    }
+
+    // Specific image node type
+    if (nodeType === UpscaleNodeType.TOPAZ_IMAGE_UPSCALE) {
+      const baseMP = 2;
+      const factor = this.getUpscaleMultiplier(data.upscaleFactor as string);
+      const outputMP = baseMP * factor;
+      return this.calculateTopazImageCost(outputMP);
+    }
+
+    // For unified 'upscale' node, check inputType
+    if (nodeType === UpscaleNodeType.UPSCALE) {
       const inputType = data.inputType as string;
       if (inputType === 'video') {
         const resolution = (data.targetResolution as string) ?? '1080p';

@@ -1,6 +1,6 @@
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowTemplate } from '@genfeedai/types';
 
-export const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowFile = {
+export const YOUTUBE_THUMBNAIL_SCRIPT_TEMPLATE: WorkflowTemplate = {
   version: 1,
   name: 'YouTube Thumbnail & Script Generator',
   description:

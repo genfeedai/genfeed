@@ -79,13 +79,14 @@ function ImageGenNodeComponent(props: NodeProps) {
   });
 
   // Get schema properties from selected model
+  // Type assertion needed because inputSchema comes from API with unknown types
   const schemaProperties = useMemo(() => {
     const schema = nodeData.selectedModel?.inputSchema as
       | {
           properties?: Record<string, unknown>;
         }
       | undefined;
-    return schema?.properties as Record<string, unknown> | undefined;
+    return schema?.properties as Parameters<typeof SchemaInputs>[0]['schema'];
   }, [nodeData.selectedModel?.inputSchema]);
 
   // Extract enum values from component schemas for SchemaInputs

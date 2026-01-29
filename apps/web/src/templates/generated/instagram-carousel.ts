@@ -1,6 +1,6 @@
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowTemplate } from '@genfeedai/types';
 
-export const INSTAGRAM_CAROUSEL_TEMPLATE: WorkflowFile = {
+export const INSTAGRAM_CAROUSEL_TEMPLATE: WorkflowTemplate = {
   version: 1,
   name: 'Instagram Carousel',
   description:

@@ -1,6 +1,6 @@
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowTemplate } from '@genfeedai/types';
 
-export const AI_INFLUENCER_AVATAR_TEMPLATE: WorkflowFile = {
+export const AI_INFLUENCER_AVATAR_TEMPLATE: WorkflowTemplate = {
   version: 1,
   name: 'AI Influencer Avatar',
   description:

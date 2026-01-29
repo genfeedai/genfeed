@@ -1,6 +1,6 @@
-import type { WorkflowFile } from '@genfeedai/types';
+import type { WorkflowTemplate } from '@genfeedai/types';
 
-export const FULL_PIPELINE_TEMPLATE: WorkflowFile = {
+export const FULL_PIPELINE_TEMPLATE: WorkflowTemplate = {
   version: 1,
   name: 'Full Content Pipeline',
   description: 'Complete workflow: concept → images → videos → animation → stitched output',
