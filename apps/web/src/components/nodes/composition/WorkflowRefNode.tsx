@@ -185,7 +185,7 @@ function WorkflowRefNodeComponent(props: NodeProps) {
       className={clsx(
         'relative min-w-[220px] rounded-lg border shadow-lg transition-all',
         'border-[var(--category-composition)] bg-card',
-        isSelected && 'ring-2',
+        isSelected && 'ring-1',
         isProcessing && 'node-processing'
       )}
       style={

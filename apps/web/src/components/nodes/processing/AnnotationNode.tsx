@@ -2,18 +2,20 @@
 
 import type { AnnotationNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Pencil, Shapes } from 'lucide-react';
+import { Expand, Pencil, Shapes } from 'lucide-react';
 import Image from 'next/image';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
 import { useAnnotationStore } from '@/store/annotationStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 function AnnotationNodeComponent(props: NodeProps) {
   const { id, data } = props;
   const nodeData = data as AnnotationNodeData;
   const openAnnotation = useAnnotationStore((state) => state.openAnnotation);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const getConnectedInputs = useWorkflowStore((state) => state.getConnectedInputs);
 
   // Get the input image from connections
@@ -37,8 +39,28 @@ function AnnotationNodeComponent(props: NodeProps) {
     openAnnotation(id, inputImage, shapes as Parameters<typeof openAnnotation>[2]);
   }, [id, inputImage, nodeData.annotations, openAnnotation]);
 
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
+  const headerActions = useMemo(
+    () =>
+      inputImage ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleExpand}
+          className="h-5 w-5"
+          title="Expand preview"
+        >
+          <Expand className="h-3 w-3" />
+        </Button>
+      ) : null,
+    [inputImage, handleExpand]
+  );
+
   return (
-    <BaseNode {...props}>
+    <BaseNode {...props} headerActions={headerActions}>
       <div className="flex flex-col gap-3">
         {/* Preview */}
         {inputImage ? (

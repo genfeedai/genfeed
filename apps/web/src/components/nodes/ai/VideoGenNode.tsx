@@ -2,7 +2,7 @@
 
 import type { VideoGenNodeData, VideoModel } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, ImageIcon, Loader2, Play, RefreshCw } from 'lucide-react';
+import { AlertCircle, Expand, ImageIcon, Loader2, Play, RefreshCw, Video } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
@@ -13,6 +13,7 @@ import { useModelSelection } from '@/hooks/useModelSelection';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { extractEnumValues, supportsImageInput } from '@/lib/utils/schemaUtils';
 import { useExecutionStore } from '@/store/executionStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const MODELS: { value: VideoModel; label: string; description: string }[] = [
@@ -30,6 +31,7 @@ function VideoGenNodeComponent(props: NodeProps) {
   const nodeData = data as VideoGenNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const { hasRequiredInputs } = useRequiredInputs(id, type as 'videoGen');
 
   const [isModelBrowserOpen, setIsModelBrowserOpen] = useState(false);
@@ -87,6 +89,10 @@ function VideoGenNodeComponent(props: NodeProps) {
     executeNode(id);
   }, [id, executeNode]);
 
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
   const modelDisplayName =
     nodeData.selectedModel?.displayName ||
     MODELS.find((m) => m.value === nodeData.model)?.label ||
@@ -104,20 +110,31 @@ function VideoGenNodeComponent(props: NodeProps) {
           Browse
         </Button>
         {nodeData.outputVideo && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={handleGenerate}
-            disabled={nodeData.status === 'processing'}
-            className="h-5 w-5"
-            title="Regenerate"
-          >
-            <RefreshCw className="h-3 w-3" />
-          </Button>
+          <>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleExpand}
+              className="h-5 w-5"
+              title="Expand preview"
+            >
+              <Expand className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleGenerate}
+              disabled={nodeData.status === 'processing'}
+              className="h-5 w-5"
+              title="Regenerate"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+          </>
         )}
       </>
     ),
-    [nodeData.outputVideo, nodeData.status, handleGenerate]
+    [nodeData.outputVideo, nodeData.status, handleGenerate, handleExpand]
   );
 
   // Determine which inputs to disable based on model support
@@ -188,8 +205,8 @@ function VideoGenNodeComponent(props: NodeProps) {
         )}
 
         {/* Output Preview */}
-        {nodeData.outputVideo && (
-          <div className="relative aspect-video w-full rounded overflow-hidden bg-black/20">
+        {nodeData.outputVideo ? (
+          <div className="relative aspect-video w-full rounded-md overflow-hidden bg-black/20">
             <video
               src={nodeData.outputVideo}
               className="absolute inset-0 w-full h-full object-contain cursor-pointer"
@@ -197,7 +214,19 @@ function VideoGenNodeComponent(props: NodeProps) {
             />
             {/* Processing overlay spinner */}
             {nodeData.status === 'processing' && (
-              <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded">
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-md">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="text-xs text-white/80">Generating...</span>
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="relative flex aspect-video w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20">
+            <Video className="h-6 w-6 text-muted-foreground/50" />
+            {nodeData.status === 'processing' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-md">
                 <div className="flex flex-col items-center gap-2">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
                   <span className="text-xs text-white/80">Generating...</span>

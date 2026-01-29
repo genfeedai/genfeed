@@ -2,11 +2,13 @@
 
 import type { VideoTrimNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, RefreshCw, Scissors } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { AlertCircle, Expand, RefreshCw, Scissors } from 'lucide-react';
+import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import { Button } from '@/components/ui/button';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { useExecutionStore } from '@/store/executionStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 function formatTime(seconds: number): string {
@@ -25,6 +27,7 @@ function VideoTrimNodeComponent(props: NodeProps) {
   const nodeData = data as VideoTrimNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const { hasRequiredInputs } = useRequiredInputs(id, type as 'videoTrim');
 
   const handleStartTimeChange = useCallback(
@@ -63,11 +66,31 @@ function VideoTrimNodeComponent(props: NodeProps) {
     executeNode(id);
   }, [id, executeNode]);
 
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
+  const headerActions = useMemo(
+    () =>
+      nodeData.outputVideo ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleExpand}
+          className="h-5 w-5"
+          title="Expand preview"
+        >
+          <Expand className="h-3 w-3" />
+        </Button>
+      ) : null,
+    [nodeData.outputVideo, handleExpand]
+  );
+
   const trimDuration = nodeData.endTime - nodeData.startTime;
   const maxDuration = nodeData.duration || 3600;
 
   return (
-    <BaseNode {...props}>
+    <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* Duration Info */}
         <div className="text-xs text-[var(--muted-foreground)]">

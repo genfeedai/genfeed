@@ -2,11 +2,12 @@
 
 import type { VideoInputNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Link, Loader2, Upload, Video, X } from 'lucide-react';
+import { Expand, Link, Loader2, Upload, Video, X } from 'lucide-react';
 import { memo, useCallback, useRef, useState } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
 import { apiClient } from '@/lib/api/client';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 interface FileUploadResult {
@@ -22,6 +23,7 @@ function VideoInputNodeComponent(props: NodeProps) {
   const nodeData = data as VideoInputNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const workflowId = useWorkflowStore((state) => state.workflowId);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlValue, setUrlValue] = useState(nodeData.url || '');
@@ -167,9 +169,24 @@ function VideoInputNodeComponent(props: NodeProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Header actions - Upload and Link buttons
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
+  // Header actions - Upload, Link, and Expand buttons
   const headerActions = (
     <div className="flex items-center gap-1">
+      {nodeData.video && (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleExpand}
+          title="Expand preview"
+          className="h-6 w-6"
+        >
+          <Expand className="h-3.5 w-3.5" />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon-sm"
@@ -250,7 +267,7 @@ function VideoInputNodeComponent(props: NodeProps) {
         <button
           onClick={() => fileInputRef.current?.click()}
           disabled={isUploading}
-          className="flex h-16 w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20 transition-colors hover:border-primary/50 hover:bg-secondary/40 disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex flex-1 min-h-16 w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20 transition-colors hover:border-primary/50 hover:bg-secondary/40 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isUploading ? (
             <>

@@ -50,5 +50,8 @@
   "workspaces": [
     "apps/*",
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "zundo": "2.3.0"
+  }
 }

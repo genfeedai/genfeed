@@ -2,10 +2,12 @@
 
 import type { TextToSpeechNodeData, TTSProvider, TTSVoice } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertTriangle, AudioLines, RefreshCw, Volume2 } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { AlertTriangle, AudioLines, Expand, RefreshCw, Volume2 } from 'lucide-react';
+import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import { Button } from '@/components/ui/button';
 import { useExecutionStore } from '@/store/executionStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const TTS_ENABLED = process.env.NEXT_PUBLIC_TTS_ENABLED === 'true';
@@ -40,6 +42,7 @@ function TextToSpeechNodeComponent(props: NodeProps) {
   const nodeData = data as TextToSpeechNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
 
   const handleProviderChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -80,10 +83,30 @@ function TextToSpeechNodeComponent(props: NodeProps) {
     executeNode(id);
   }, [id, executeNode]);
 
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
   const hasInput = Boolean(nodeData.inputText);
 
+  const headerActions = useMemo(
+    () =>
+      nodeData.outputAudio ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleExpand}
+          className="h-5 w-5"
+          title="Expand preview"
+        >
+          <Expand className="h-3 w-3" />
+        </Button>
+      ) : null,
+    [nodeData.outputAudio, handleExpand]
+  );
+
   return (
-    <BaseNode {...props}>
+    <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* API Key Warning */}
         {!TTS_ENABLED && (

@@ -2,12 +2,14 @@
 
 import type { AnimationNodeData, EasingPreset } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, RefreshCw, Wand2 } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { AlertCircle, Expand, RefreshCw, Wand2 } from 'lucide-react';
+import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import { Button } from '@/components/ui/button';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { EASING_PRESETS } from '@/lib/easing/presets';
 import { useExecutionStore } from '@/store/executionStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const PRESET_OPTIONS: { value: EasingPreset; label: string }[] = [
@@ -31,6 +33,7 @@ function AnimationNodeComponent(props: NodeProps) {
   const nodeData = data as AnimationNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const { hasRequiredInputs } = useRequiredInputs(id, type as 'animation');
 
   const handleCurveTypeChange = useCallback(
@@ -64,12 +67,32 @@ function AnimationNodeComponent(props: NodeProps) {
     executeNode(id);
   }, [id, executeNode]);
 
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
+  const headerActions = useMemo(
+    () =>
+      nodeData.outputVideo ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleExpand}
+          className="h-5 w-5"
+          title="Expand preview"
+        >
+          <Expand className="h-3 w-3" />
+        </Button>
+      ) : null,
+    [nodeData.outputVideo, handleExpand]
+  );
+
   // SVG curve preview - fallback to easeInOutCubic if customCurve is undefined
   const curve = nodeData.customCurve ?? [0.645, 0.045, 0.355, 1];
   const pathD = `M 0 100 C ${curve[0] * 100} ${100 - curve[1] * 100}, ${curve[2] * 100} ${100 - curve[3] * 100}, 100 0`;
 
   return (
-    <BaseNode {...props}>
+    <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* Curve Type Toggle */}
         <div className="flex gap-1 p-1 bg-[var(--background)] rounded">

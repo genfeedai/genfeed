@@ -2,7 +2,7 @@
 
 import type { ImageGenNodeData, ImageModel } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, Loader2, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertCircle, Expand, ImageIcon, Loader2, RefreshCw, Sparkles } from 'lucide-react';
 import Image from 'next/image';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
@@ -13,6 +13,7 @@ import { useModelSelection } from '@/hooks/useModelSelection';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { extractEnumValues, supportsImageInput } from '@/lib/utils/schemaUtils';
 import { useExecutionStore } from '@/store/executionStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const MODELS: { value: ImageModel; label: string }[] = [
@@ -30,6 +31,7 @@ function ImageGenNodeComponent(props: NodeProps) {
   const nodeData = data as ImageGenNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const { hasRequiredInputs } = useRequiredInputs(id, type as 'imageGen');
 
   const [isModelBrowserOpen, setIsModelBrowserOpen] = useState(false);
@@ -87,6 +89,10 @@ function ImageGenNodeComponent(props: NodeProps) {
     executeNode(id);
   }, [id, executeNode]);
 
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
   const modelDisplayName =
     nodeData.selectedModel?.displayName ||
     MODELS.find((m) => m.value === nodeData.model)?.label ||
@@ -104,20 +110,31 @@ function ImageGenNodeComponent(props: NodeProps) {
           Browse
         </Button>
         {nodeData.outputImage && (
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={handleGenerate}
-            disabled={nodeData.status === 'processing'}
-            className="h-5 w-5"
-            title="Regenerate"
-          >
-            <RefreshCw className="h-3 w-3" />
-          </Button>
+          <>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleExpand}
+              className="h-5 w-5"
+              title="Expand preview"
+            >
+              <Expand className="h-3 w-3" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={handleGenerate}
+              disabled={nodeData.status === 'processing'}
+              className="h-5 w-5"
+              title="Regenerate"
+            >
+              <RefreshCw className="h-3 w-3" />
+            </Button>
+          </>
         )}
       </>
     ),
-    [nodeData.outputImage, nodeData.status, handleGenerate]
+    [nodeData.outputImage, nodeData.status, handleGenerate, handleExpand]
   );
 
   return (
@@ -152,8 +169,8 @@ function ImageGenNodeComponent(props: NodeProps) {
         )}
 
         {/* Output Preview */}
-        {nodeData.outputImage && (
-          <div className="relative aspect-[4/3] w-full mt-1 overflow-hidden rounded-md bg-black/20">
+        {nodeData.outputImage ? (
+          <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-black/20">
             <Image
               src={nodeData.outputImage}
               alt="Generated image"
@@ -172,6 +189,18 @@ function ImageGenNodeComponent(props: NodeProps) {
               </div>
             )}
           </div>
+        ) : (
+          <div className="relative flex aspect-[4/3] w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20">
+            <ImageIcon className="h-6 w-6 text-muted-foreground/50" />
+            {nodeData.status === 'processing' && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-sm rounded-md">
+                <div className="flex flex-col items-center gap-2">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="text-xs text-white/80">Generating...</span>
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Generate Button (when no output) */}
@@ -179,7 +208,7 @@ function ImageGenNodeComponent(props: NodeProps) {
           <button
             onClick={handleGenerate}
             disabled={!hasRequiredInputs}
-            className="mt-1 w-full py-2 rounded-md text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+            className="w-full py-2 rounded-md text-sm font-medium transition-opacity hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
             style={{ backgroundColor: 'var(--node-color)', color: 'var(--background)' }}
           >
             <Sparkles className="h-4 w-4" />

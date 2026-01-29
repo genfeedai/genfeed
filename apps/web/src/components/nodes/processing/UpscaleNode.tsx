@@ -8,13 +8,15 @@ import type {
   UpscaleNodeData,
 } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { RefreshCw, SplitSquareHorizontal } from 'lucide-react';
+import { Expand, RefreshCw, SplitSquareHorizontal } from 'lucide-react';
 import Image from 'next/image';
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import { Button } from '@/components/ui/button';
 import { ComparisonSlider } from '@/components/ui/comparison-slider';
 import { Label } from '@/components/ui/label';
 import { useExecutionStore } from '@/store/executionStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 // Image upscale models
@@ -56,6 +58,7 @@ function UpscaleNodeComponent(props: NodeProps) {
   const nodeData = data as UpscaleNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -154,6 +157,10 @@ function UpscaleNodeComponent(props: NodeProps) {
     executeNode(id);
   }, [id, executeNode]);
 
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
   const togglePlayback = useCallback(() => {
     if (!videoRef.current) return;
     if (isPlaying) {
@@ -187,8 +194,24 @@ function UpscaleNodeComponent(props: NodeProps) {
 
   const models = inputType === 'video' ? VIDEO_MODELS : IMAGE_MODELS;
 
+  const headerActions = useMemo(
+    () =>
+      hasOutput ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleExpand}
+          className="h-5 w-5"
+          title="Expand preview"
+        >
+          <Expand className="h-3 w-3" />
+        </Button>
+      ) : null,
+    [hasOutput, handleExpand]
+  );
+
   return (
-    <BaseNode {...props}>
+    <BaseNode {...props} headerActions={headerActions}>
       <div className="flex flex-col gap-3">
         {/* Input Type Indicator */}
         {!hasInput && (

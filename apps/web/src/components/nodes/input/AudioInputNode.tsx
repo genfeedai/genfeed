@@ -2,16 +2,18 @@
 
 import type { AudioInputNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Link, Music, Upload, X } from 'lucide-react';
-import { memo, useCallback, useRef, useState } from 'react';
+import { Expand, Link, Music, Upload, X } from 'lucide-react';
+import { memo, useCallback, useMemo, useRef, useState } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 function AudioInputNodeComponent(props: NodeProps) {
   const { id, data } = props;
   const nodeData = data as AudioInputNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [urlValue, setUrlValue] = useState(nodeData.url || '');
@@ -98,28 +100,46 @@ function AudioInputNodeComponent(props: NodeProps) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Header actions - Upload and Link buttons
-  const headerActions = (
-    <div className="flex items-center gap-1">
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => fileInputRef.current?.click()}
-        title="Upload audio"
-        className="h-6 w-6"
-      >
-        <Upload className="h-3.5 w-3.5" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => setShowUrlInput(!showUrlInput)}
-        title="Paste URL"
-        className="h-6 w-6"
-      >
-        <Link className="h-3.5 w-3.5" />
-      </Button>
-    </div>
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
+  // Header actions - Upload, Link, and Expand buttons
+  const headerActions = useMemo(
+    () => (
+      <div className="flex items-center gap-1">
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => fileInputRef.current?.click()}
+          title="Upload audio"
+          className="h-6 w-6"
+        >
+          <Upload className="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setShowUrlInput(!showUrlInput)}
+          title="Paste URL"
+          className="h-6 w-6"
+        >
+          <Link className="h-3.5 w-3.5" />
+        </Button>
+        {nodeData.audio && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={handleExpand}
+            title="Expand preview"
+            className="h-6 w-6"
+          >
+            <Expand className="h-3.5 w-3.5" />
+          </Button>
+        )}
+      </div>
+    ),
+    [showUrlInput, nodeData.audio, handleExpand]
   );
 
   return (
@@ -178,7 +198,7 @@ function AudioInputNodeComponent(props: NodeProps) {
       ) : (
         <button
           onClick={() => fileInputRef.current?.click()}
-          className="flex h-16 w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20 transition-colors hover:border-primary/50 hover:bg-secondary/40"
+          className="flex flex-1 min-h-16 w-full flex-col items-center justify-center gap-1 rounded-md border border-dashed border-border/50 bg-secondary/20 transition-colors hover:border-primary/50 hover:bg-secondary/40"
         >
           <Music className="h-5 w-5 text-muted-foreground/50" />
           <span className="text-[10px] text-muted-foreground/70">Drop or click</span>

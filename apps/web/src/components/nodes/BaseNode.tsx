@@ -2,7 +2,13 @@
 
 import type { HandleDefinition, NodeStatus, NodeType, WorkflowNodeData } from '@genfeedai/types';
 import { NODE_DEFINITIONS, NODE_STATUS } from '@genfeedai/types';
-import { Handle, type NodeProps, NodeResizer, Position } from '@xyflow/react';
+import {
+  Handle,
+  type NodeProps,
+  NodeResizer,
+  Position,
+  useUpdateNodeInternals,
+} from '@xyflow/react';
 import { clsx } from 'clsx';
 import {
   AlertCircle,
@@ -128,6 +134,7 @@ function BaseNodeComponent({
   const { selectNode, selectedNodeId, highlightedNodeIds } = useUIStore();
   const { toggleNodeLock, isNodeLocked, updateNodeData } = useWorkflowStore();
   const { executeNode, isRunning } = useExecutionStore();
+  const updateNodeInternals = useUpdateNodeInternals();
   const nodeDef = NODE_DEFINITIONS[type as NodeType];
   const nodeData = data as WorkflowNodeData;
 
@@ -137,19 +144,28 @@ function BaseNodeComponent({
   const [showTooltip, setShowTooltip] = useState(false);
   const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
 
-  // Determine if this node should be highlighted (no selection = all highlighted)
-  const isHighlighted = highlightedNodeIds.length === 0 || highlightedNodeIds.includes(id);
-
   // Use static handle order from node definition
   // Auto-layout handles node positioning to minimize edge crossings
   const sortedInputs = nodeDef?.inputs ?? [];
+
+  // Force React Flow to recalculate handle positions when dimensions or handle count changes
+  // Use requestAnimationFrame to ensure DOM has settled before measuring
+  useEffect(() => {
+    const rafId = requestAnimationFrame(() => {
+      updateNodeInternals(id);
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [id, updateNodeInternals]);
+
+  // Determine if this node should be highlighted (no selection = all highlighted)
+  const isHighlighted = highlightedNodeIds.length === 0 || highlightedNodeIds.includes(id);
 
   const handleRetry = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
       if (!isRunning) {
         // Clear error and set to processing before retrying
-        updateNodeData(id, { error: null, status: NODE_STATUS.processing });
+        updateNodeData(id, { error: undefined, status: NODE_STATUS.processing });
         executeNode(id);
       }
     },
@@ -224,10 +240,10 @@ function BaseNodeComponent({
       <div
         ref={nodeRef}
         className={clsx(
-          'relative flex flex-col rounded-lg border border-border bg-card shadow-lg transition-all duration-200',
+          'relative flex flex-col rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-lg transition-all duration-200',
           // Only apply min/max width if node hasn't been manually resized
           !isResized && 'min-w-[220px] max-w-[320px]',
-          isSelected && 'ring-2 ring-primary',
+          isSelected && 'ring-1',
           isLocked && 'opacity-60',
           isProcessing && 'node-processing',
           !isHighlighted && !isSelected && 'opacity-40'
@@ -236,6 +252,8 @@ function BaseNodeComponent({
           {
             // Category color used for processing glow animation
             '--node-color': categoryColor,
+            // Selection ring matches category color
+            ...(isSelected && { '--tw-ring-color': categoryColor }),
             // When resized, use explicit dimensions
             ...(isResized && {
               width: width ? `${width}px` : undefined,
@@ -247,7 +265,7 @@ function BaseNodeComponent({
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        {/* Input Handles - sorted to minimize edge crossings */}
+        {/* Input Handles - positioned relative to outer wrapper (not flex) */}
         {sortedInputs.map((input: HandleDefinition, index: number) => {
           const isDisabled = disabledInputs?.includes(input.id);
           return (
@@ -265,75 +283,7 @@ function BaseNodeComponent({
           );
         })}
 
-        {/* Header */}
-        <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
-          <Icon className="h-4 w-4 text-foreground" />
-          {titleElement ?? (
-            <span className="flex-1 truncate text-sm font-medium text-left text-foreground">
-              {title ?? nodeData.label}
-            </span>
-          )}
-          {headerActions}
-          {/* Lock Toggle Button */}
-          <button
-            onClick={handleLockToggle}
-            className={clsx(
-              'rounded p-1 transition-colors hover:bg-secondary',
-              isLocked ? 'text-chart-3' : 'text-muted-foreground'
-            )}
-            title={isLocked ? 'Unlock node (L)' : 'Lock node (L)'}
-          >
-            {isLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
-          </button>
-          <StatusIndicator status={nodeData.status} />
-        </div>
-
-        {/* Lock Badge */}
-        {isLocked && (
-          <div className="absolute -right-2 -top-2 rounded bg-chart-3 px-1.5 py-0.5 text-[10px] font-bold text-background">
-            LOCKED
-          </div>
-        )}
-
-        {/* Content */}
-        <div className="flex-1 flex flex-col p-3 min-h-0">
-          {children}
-
-          {/* Progress bar */}
-          {nodeData.status === 'processing' && nodeData.progress !== undefined && (
-            <div className="mt-3">
-              <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
-                <div
-                  className="h-full bg-primary transition-all duration-300"
-                  style={{ width: `${nodeData.progress}%` }}
-                />
-              </div>
-              <span className="mt-1 text-xs text-muted-foreground">{nodeData.progress}%</span>
-            </div>
-          )}
-
-          {/* Error message */}
-          {nodeData.error && (
-            <div className="mt-3 rounded-md border border-destructive/30 bg-destructive/10 p-2">
-              <p className="text-xs text-destructive">{nodeData.error}</p>
-              <button
-                onClick={handleRetry}
-                disabled={isRunning}
-                className={clsx(
-                  'mt-2 flex w-full items-center justify-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors',
-                  isRunning
-                    ? 'cursor-not-allowed bg-muted text-muted-foreground'
-                    : 'bg-destructive/20 text-destructive hover:bg-destructive/30'
-                )}
-              >
-                <RotateCcw className="h-3 w-3" />
-                Retry
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Output Handles - always cyan */}
+        {/* Output Handles - positioned relative to outer wrapper (not flex) */}
         {nodeDef.outputs.map((output: HandleDefinition, index: number) => (
           <Handle
             key={output.id}
@@ -344,6 +294,77 @@ function BaseNodeComponent({
             style={{ top: `${((index + 1) / (nodeDef.outputs.length + 1)) * 100}%` }}
           />
         ))}
+
+        {/* Content wrapper - flex column, scrolls when resized */}
+        <div className={clsx('flex flex-col', isResized && 'flex-1 min-h-0 overflow-auto')}>
+          {/* Header */}
+          <div className="flex items-center gap-2 px-3 py-2.5 border-b border-border">
+            <Icon className="h-4 w-4 text-foreground" />
+            {titleElement ?? (
+              <span className="flex-1 truncate text-sm font-medium text-left text-foreground">
+                {title ?? nodeData.label}
+              </span>
+            )}
+            {headerActions}
+            {/* Lock Toggle Button */}
+            <button
+              onClick={handleLockToggle}
+              className={clsx(
+                'rounded p-1 transition-colors hover:bg-secondary',
+                isLocked ? 'text-chart-3' : 'text-muted-foreground'
+              )}
+              title={isLocked ? 'Unlock node (L)' : 'Lock node (L)'}
+            >
+              {isLocked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+            </button>
+            <StatusIndicator status={nodeData.status} />
+          </div>
+
+          {/* Content */}
+          <div className="flex-1 flex flex-col p-3 min-h-0">
+            {/* Error message - rendered BEFORE children so it appears at top */}
+            {nodeData.error && (
+              <div className="mb-3 rounded-md border border-destructive/30 bg-destructive/10 p-2">
+                <p className="text-xs text-destructive">{nodeData.error}</p>
+                <button
+                  onClick={handleRetry}
+                  disabled={isRunning}
+                  className={clsx(
+                    'mt-2 flex w-full items-center justify-center gap-1.5 rounded px-2 py-1 text-xs font-medium transition-colors',
+                    isRunning
+                      ? 'cursor-not-allowed bg-muted text-muted-foreground'
+                      : 'bg-destructive/20 text-destructive hover:bg-destructive/30'
+                  )}
+                >
+                  <RotateCcw className="h-3 w-3" />
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {children}
+
+            {/* Progress bar */}
+            {nodeData.status === 'processing' && nodeData.progress !== undefined && (
+              <div className="mt-3">
+                <div className="h-1.5 overflow-hidden rounded-full bg-secondary">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${nodeData.progress}%` }}
+                  />
+                </div>
+                <span className="mt-1 text-xs text-muted-foreground">{nodeData.progress}%</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Lock Badge */}
+        {isLocked && (
+          <div className="absolute -right-2 -top-2 rounded bg-chart-3 px-1.5 py-0.5 text-[10px] font-bold text-background">
+            LOCKED
+          </div>
+        )}
       </div>
 
       {/* Preview Tooltip - shows on hover after delay */}

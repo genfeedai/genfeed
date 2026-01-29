@@ -2,11 +2,13 @@
 
 import type { LLMNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, RefreshCw, Sparkles } from 'lucide-react';
+import { AlertCircle, Expand, RefreshCw, Sparkles } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import { Button } from '@/components/ui/button';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { useExecutionStore } from '@/store/executionStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 function LLMNodeComponent(props: NodeProps) {
@@ -14,6 +16,7 @@ function LLMNodeComponent(props: NodeProps) {
   const nodeData = data as LLMNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const { hasRequiredInputs } = useRequiredInputs(id, type as 'llm');
 
   const handleSystemPromptChange = useCallback(
@@ -41,8 +44,24 @@ function LLMNodeComponent(props: NodeProps) {
     executeNode(id);
   }, [id, executeNode]);
 
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
+  const headerActions = nodeData.outputText ? (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      onClick={handleExpand}
+      title="Expand preview"
+      className="h-6 w-6"
+    >
+      <Expand className="h-3.5 w-3.5" />
+    </Button>
+  ) : null;
+
   return (
-    <BaseNode {...props}>
+    <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* Model Info */}
         <div className="text-xs text-[var(--muted-foreground)]">

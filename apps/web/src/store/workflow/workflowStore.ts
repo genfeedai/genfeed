@@ -1,3 +1,4 @@
+import { temporal } from 'zundo';
 import { create } from 'zustand';
 import { createEdgeSlice } from './slices/edgeSlice';
 import { createGroupSlice } from './slices/groupSlice';
@@ -19,27 +20,47 @@ import type { WorkflowStore } from './types';
  * - groupSlice: Node grouping operations
  * - selectionSlice: Multi-selection state
  * - persistenceSlice: Save/load, validation, and API operations
+ *
+ * Wrapped with zundo temporal middleware for undo/redo support.
+ * Only tracks meaningful state (nodes, edges, groups) - not UI flags.
  */
-export const useWorkflowStore = create<WorkflowStore>()((...args) => ({
-  // Initial state
-  nodes: [],
-  edges: [],
-  edgeStyle: 'default',
-  workflowName: 'Untitled Workflow',
-  workflowId: null,
-  isDirty: false,
-  isSaving: false,
-  isLoading: false,
-  groups: [],
-  selectedNodeIds: [],
-  viewedCommentIds: new Set<string>(),
-  navigationTargetId: null,
+export const useWorkflowStore = create<WorkflowStore>()(
+  temporal(
+    (...args) => ({
+      // Initial state
+      nodes: [],
+      edges: [],
+      edgeStyle: 'default',
+      workflowName: 'Untitled Workflow',
+      workflowId: null,
+      isDirty: false,
+      isSaving: false,
+      isLoading: false,
+      groups: [],
+      selectedNodeIds: [],
+      viewedCommentIds: new Set<string>(),
+      navigationTargetId: null,
 
-  // Compose slices
-  ...createNodeSlice(...args),
-  ...createEdgeSlice(...args),
-  ...createLockingSlice(...args),
-  ...createGroupSlice(...args),
-  ...createSelectionSlice(...args),
-  ...createPersistenceSlice(...args),
-}));
+      // Compose slices
+      ...createNodeSlice(...args),
+      ...createEdgeSlice(...args),
+      ...createLockingSlice(...args),
+      ...createGroupSlice(...args),
+      ...createSelectionSlice(...args),
+      ...createPersistenceSlice(...args),
+    }),
+    {
+      // Only track meaningful state (not UI flags like isDirty, isSaving, etc.)
+      partialize: (state) => ({
+        nodes: state.nodes,
+        edges: state.edges,
+        groups: state.groups,
+      }),
+      // Limit history to prevent memory issues
+      limit: 50,
+      // Equality check to avoid duplicate entries for minor changes
+      equality: (pastState, currentState) =>
+        JSON.stringify(pastState) === JSON.stringify(currentState),
+    }
+  )
+);

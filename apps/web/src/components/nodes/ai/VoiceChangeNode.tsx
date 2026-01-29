@@ -2,10 +2,12 @@
 
 import type { VoiceChangeNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AudioLines, RefreshCw, Video } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { AudioLines, Expand, RefreshCw, Video } from 'lucide-react';
+import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import { Button } from '@/components/ui/button';
 import { useExecutionStore } from '@/store/executionStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 function VoiceChangeNodeComponent(props: NodeProps) {
@@ -13,6 +15,7 @@ function VoiceChangeNodeComponent(props: NodeProps) {
   const nodeData = data as VoiceChangeNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
 
   const handlePreserveOriginalChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -32,10 +35,30 @@ function VoiceChangeNodeComponent(props: NodeProps) {
     executeNode(id);
   }, [id, executeNode]);
 
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
   const hasRequiredInputs = nodeData.inputVideo && nodeData.inputAudio;
 
+  const headerActions = useMemo(
+    () =>
+      nodeData.outputVideo ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleExpand}
+          className="h-5 w-5"
+          title="Expand preview"
+        >
+          <Expand className="h-3 w-3" />
+        </Button>
+      ) : null,
+    [nodeData.outputVideo, handleExpand]
+  );
+
   return (
-    <BaseNode {...props}>
+    <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* Preserve Original Audio Toggle */}
         <div className="flex items-center gap-2">

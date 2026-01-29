@@ -13,6 +13,7 @@ import {
   Play,
   PlayCircle,
   Plus,
+  Redo2,
   RotateCcw,
   Save,
   SaveAll,
@@ -20,6 +21,7 @@ import {
   Sparkles,
   Square,
   Store,
+  Undo2,
   X,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -78,6 +80,9 @@ export function Toolbar() {
   const router = useRouter();
   const { exportWorkflow, selectedNodeIds, workflowId, workflowName, duplicateWorkflowApi, nodes } =
     useWorkflowStore();
+  const { undo, redo } = useWorkflowStore.temporal.getState();
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
   const [showSaveAsDialog, setShowSaveAsDialog] = useState(false);
   const {
     isRunning,
@@ -100,6 +105,19 @@ export function Toolbar() {
     if (!validationErrors?.errors.length) return [];
     return [...new Set(validationErrors.errors.map((e) => e.message))];
   }, [validationErrors]);
+
+  // Subscribe to temporal state changes for undo/redo button states
+  useEffect(() => {
+    const unsubscribe = useWorkflowStore.temporal.subscribe((state) => {
+      setCanUndo(state.pastStates.length > 0);
+      setCanRedo(state.futureStates.length > 0);
+    });
+    // Initialize state
+    const temporal = useWorkflowStore.temporal.getState();
+    setCanUndo(temporal.pastStates.length > 0);
+    setCanRedo(temporal.futureStates.length > 0);
+    return unsubscribe;
+  }, []);
 
   // Memoize cost-relevant data to avoid recalculating on every position change
   const costRelevantData = useMemo(
@@ -406,6 +424,28 @@ export function Toolbar() {
           </TooltipContent>
         </Tooltip>
 
+        {/* Undo/Redo Buttons */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" onClick={undo} disabled={!canUndo}>
+              <Undo2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Undo (⌘Z)</p>
+          </TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" onClick={redo} disabled={!canRedo}>
+              <Redo2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>Redo (⌘⇧Z)</p>
+          </TooltipContent>
+        </Tooltip>
+
         {/* Auto-Save Indicator */}
         <SaveIndicator />
 
@@ -444,7 +484,7 @@ export function Toolbar() {
         )}
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant={isRunning ? 'destructive' : 'default'} onClick={handleRunStop}>
+            <Button variant={isRunning ? 'destructive' : 'white'} onClick={handleRunStop}>
               {isRunning ? (
                 <>
                   <Square className="h-4 w-4" />

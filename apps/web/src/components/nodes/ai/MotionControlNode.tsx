@@ -7,11 +7,13 @@ import type {
   MotionControlNodeData,
 } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, Play, RefreshCw, Video } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { AlertCircle, Expand, Play, RefreshCw, Video } from 'lucide-react';
+import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import { Button } from '@/components/ui/button';
 import { useRequiredInputs } from '@/hooks/useRequiredInputs';
 import { useExecutionStore } from '@/store/executionStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const QUALITY_MODES: { value: KlingQualityMode; label: string; description: string }[] = [
@@ -51,6 +53,7 @@ function MotionControlNodeComponent(props: NodeProps) {
   const nodeData = data as MotionControlNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const { hasRequiredInputs } = useRequiredInputs(id, type as 'motionControl');
 
   const handleModeChange = useCallback(
@@ -111,10 +114,30 @@ function MotionControlNodeComponent(props: NodeProps) {
     executeNode(id);
   }, [id, executeNode]);
 
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
   const isVideoTransferMode = nodeData.mode === 'video_transfer';
 
+  const headerActions = useMemo(
+    () =>
+      nodeData.outputVideo ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleExpand}
+          className="h-5 w-5"
+          title="Expand preview"
+        >
+          <Expand className="h-3 w-3" />
+        </Button>
+      ) : null,
+    [nodeData.outputVideo, handleExpand]
+  );
+
   return (
-    <BaseNode {...props}>
+    <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* Mode Selection */}
         <div>

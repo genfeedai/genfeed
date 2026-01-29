@@ -2,10 +2,12 @@
 
 import type { LipSyncMode, LipSyncModel, LipSyncNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { Mic, RefreshCw, Video } from 'lucide-react';
-import { memo, useCallback } from 'react';
+import { Expand, Mic, RefreshCw, Video } from 'lucide-react';
+import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
+import { Button } from '@/components/ui/button';
 import { useExecutionStore } from '@/store/executionStore';
+import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 const MODELS: { value: LipSyncModel; label: string }[] = [
@@ -28,6 +30,7 @@ function LipSyncNodeComponent(props: NodeProps) {
   const nodeData = data as LipSyncNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
+  const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
 
   const handleModelChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -61,11 +64,31 @@ function LipSyncNodeComponent(props: NodeProps) {
     executeNode(id);
   }, [id, executeNode]);
 
+  const handleExpand = useCallback(() => {
+    openNodeDetailModal(id, 'preview');
+  }, [id, openNodeDetailModal]);
+
   const hasRequiredInputs = nodeData.inputAudio && (nodeData.inputImage || nodeData.inputVideo);
   const isSyncModel = nodeData.model.startsWith('sync/');
 
+  const headerActions = useMemo(
+    () =>
+      nodeData.outputVideo ? (
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={handleExpand}
+          className="h-5 w-5"
+          title="Expand preview"
+        >
+          <Expand className="h-3 w-3" />
+        </Button>
+      ) : null,
+    [nodeData.outputVideo, handleExpand]
+  );
+
   return (
-    <BaseNode {...props}>
+    <BaseNode {...props} headerActions={headerActions}>
       <div className="space-y-3">
         {/* Model Selection */}
         <div>

@@ -21,15 +21,18 @@ import type {
   NodeType,
   VideoGenNodeData,
   WorkflowEdge,
+  WorkflowEdgeData,
   WorkflowNode,
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { GroupOverlay } from '@/components/canvas/GroupOverlay';
 import { ContextMenu } from '@/components/context-menu';
+import { edgeTypes } from '@/components/edges';
 import { nodeTypes } from '@/components/nodes';
 import { NodeDetailModal } from '@/components/nodes/NodeDetailModal';
 import { useContextMenu } from '@/hooks/useContextMenu';
 import { DEFAULT_NODE_COLOR } from '@/lib/constants/colors';
+import { calculateEdgeOffsets } from '@/lib/utils/edgeOffsets';
 import { supportsImageInput } from '@/lib/utils/schemaUtils';
 import { useExecutionStore } from '@/store/executionStore';
 import { useSettingsStore } from '@/store/settingsStore';
@@ -74,14 +77,8 @@ export function WorkflowCanvas() {
     getConnectedNodeIds,
   } = useWorkflowStore();
 
-  const {
-    selectNode,
-    setHighlightedNodeIds,
-    highlightedNodeIds,
-    showPalette,
-    togglePalette,
-    openNodeDetailModal,
-  } = useUIStore();
+  const { selectNode, setHighlightedNodeIds, highlightedNodeIds, showPalette, togglePalette } =
+    useUIStore();
   const { edgeStyle, showMinimap } = useSettingsStore();
   const { isRunning, currentNodeId } = useExecutionStore();
 
@@ -178,6 +175,18 @@ export function WorkflowCanvas() {
         const position = { x: window.innerWidth / 2 - 150, y: window.innerHeight / 2 - 150 };
         addNode('llm', position);
       }
+
+      // Cmd/Ctrl+Z - Undo
+      if (e.key === 'z' && isMod && !e.shiftKey) {
+        e.preventDefault();
+        useWorkflowStore.temporal.getState().undo();
+      }
+
+      // Cmd/Ctrl+Shift+Z - Redo
+      if (e.key === 'z' && isMod && e.shiftKey) {
+        e.preventDefault();
+        useWorkflowStore.temporal.getState().redo();
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -233,8 +242,11 @@ export function WorkflowCanvas() {
     [nodeMap]
   );
 
-  // Compute edges with highlight/dim classes, data type colors, and execution state
+  // Compute edges with highlight/dim classes, data type colors, execution state, and offsets
   const styledEdges = useMemo(() => {
+    // Calculate offsets for parallel edges (edges going to same target)
+    const edgeOffsets = calculateEdgeOffsets(edges);
+
     return edges.map((edge) => {
       // Get the data type for coloring (based on source handle)
       const dataType = getEdgeDataType(edge, nodeMap);
@@ -242,6 +254,14 @@ export function WorkflowCanvas() {
 
       // Check if this edge targets a disabled input
       const isDisabledTarget = isEdgeTargetingDisabledInput(edge);
+
+      // Get offset data for parallel edge separation
+      const offsetData = edgeOffsets.get(edge.id);
+      const edgeData: WorkflowEdgeData = {
+        ...edge.data,
+        offsetIndex: offsetData?.offsetIndex ?? 0,
+        groupSize: offsetData?.groupSize ?? 1,
+      };
 
       // During execution - all edges show "pipe flow" effect
       if (isRunning) {
@@ -253,6 +273,7 @@ export function WorkflowCanvas() {
         if (isDisabledTarget) {
           return {
             ...edge,
+            data: edgeData,
             animated: false,
             className: `${typeClass} edge-disabled`.trim(),
           };
@@ -260,6 +281,7 @@ export function WorkflowCanvas() {
 
         return {
           ...edge,
+          data: edgeData,
           animated: false, // We use CSS animation instead
           className: `${typeClass} ${isExecutingEdge ? 'executing' : 'active-pipe'}`.trim(),
         };
@@ -269,6 +291,7 @@ export function WorkflowCanvas() {
       if (isDisabledTarget) {
         return {
           ...edge,
+          data: edgeData,
           className: `${typeClass} edge-disabled`.trim(),
         };
       }
@@ -279,13 +302,15 @@ export function WorkflowCanvas() {
           highlightedNodeIds.includes(edge.source) && highlightedNodeIds.includes(edge.target);
         return {
           ...edge,
+          data: edgeData,
           className: `${typeClass} ${isConnected ? 'highlighted' : 'dimmed'}`.trim(),
         };
       }
 
-      // Default state - just the type color
+      // Default state - just the type color with offset data
       return {
         ...edge,
+        data: edgeData,
         className: typeClass,
       };
     });
@@ -296,13 +321,6 @@ export function WorkflowCanvas() {
       selectNode(node.id);
     },
     [selectNode]
-  );
-
-  const handleNodeDoubleClick = useCallback(
-    (_event: React.MouseEvent, node: WorkflowNode) => {
-      openNodeDetailModal(node.id);
-    },
-    [openNodeDetailModal]
   );
 
   const handlePaneClick = useCallback(() => {
@@ -493,7 +511,6 @@ export function WorkflowCanvas() {
         onConnect={onConnect}
         onConnectEnd={handleConnectEnd as never}
         onNodeClick={handleNodeClick}
-        onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={handlePaneClick}
         onSelectionChange={handleSelectionChange}
         onNodeContextMenu={handleNodeContextMenu}
@@ -502,6 +519,7 @@ export function WorkflowCanvas() {
         onSelectionContextMenu={handleSelectionContextMenu}
         isValidConnection={checkValidConnection}
         nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
         fitView
         snapToGrid
         snapGrid={[16, 16]}
