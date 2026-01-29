@@ -9,13 +9,11 @@ describe('AppController', () => {
     getLiveness: vi
       .fn()
       .mockResolvedValue({ alive: true, timestamp: new Date().toISOString(), uptime: 0 }),
-    getReadiness: vi
-      .fn()
-      .mockResolvedValue({
-        ready: true,
-        timestamp: new Date().toISOString(),
-        checks: { database: true, redis: true },
-      }),
+    getReadiness: vi.fn().mockResolvedValue({
+      ready: true,
+      timestamp: new Date().toISOString(),
+      checks: { database: true, redis: true },
+    }),
     getDetailedHealth: vi.fn().mockResolvedValue({ status: 'healthy' }),
     getMetrics: vi.fn().mockResolvedValue({ timestamp: new Date().toISOString() }),
   };

@@ -385,7 +385,7 @@ describe('WorkflowGeneratorService', () => {
 
       // Output nodes
       expect(systemPrompt).toContain('output');
-      expect(systemPrompt).toContain('preview');
+      expect(systemPrompt).toContain('socialPublish');
     });
 
     it('should include connection rules in system prompt', async () => {

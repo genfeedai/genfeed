@@ -4,7 +4,9 @@ import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { CostCalculatorService } from '@/services/cost-calculator.service';
 import { ExecutionsService } from '@/services/executions.service';
+import { FilesService } from '@/services/files.service';
 import { ReplicateService } from '@/services/replicate.service';
+import { SchemaMapperService } from '@/services/schema-mapper.service';
 import { WorkflowsService } from '@/services/workflows.service';
 import { mockReplicateClient } from '@/test/mocks/replicate.mock';
 
@@ -66,6 +68,17 @@ describe('ReplicateService', () => {
         { provide: ExecutionsService, useValue: mockExecutionsService },
         { provide: WorkflowsService, useValue: mockWorkflowsService },
         { provide: CostCalculatorService, useValue: mockCostCalculatorService },
+        {
+          provide: FilesService,
+          useValue: {
+            downloadAndSaveOutput: vi.fn(),
+            urlsToBase64Async: vi.fn().mockResolvedValue([]),
+          },
+        },
+        {
+          provide: SchemaMapperService,
+          useValue: { mapSchemaToInput: vi.fn().mockReturnValue({}) },
+        },
       ],
     }).compile();
 

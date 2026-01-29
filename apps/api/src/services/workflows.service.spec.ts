@@ -3,6 +3,7 @@ import { getModelToken } from '@nestjs/mongoose';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Workflow } from '@/schemas/workflow.schema';
+import { WorkflowInterfaceService } from '@/services/workflow-interface.service';
 import { WorkflowsService } from '@/services/workflows.service';
 import {
   createConstructableMockModel,
@@ -45,6 +46,10 @@ describe('WorkflowsService', () => {
         {
           provide: getModelToken(Workflow.name),
           useValue: mockModel,
+        },
+        {
+          provide: WorkflowInterfaceService,
+          useValue: { computeInterface: vi.fn().mockReturnValue({ inputs: [], outputs: [] }) },
         },
       ],
     }).compile();

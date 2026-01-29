@@ -1,4 +1,3 @@
-import { Test, type TestingModule } from '@nestjs/testing';
 import { Types } from 'mongoose';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LLMProcessor } from '@/processors/llm.processor';
@@ -17,6 +16,8 @@ describe('LLMProcessor', () => {
     updateJobStatus: ReturnType<typeof vi.fn>;
     addJobLog: ReturnType<typeof vi.fn>;
     moveToDeadLetterQueue: ReturnType<typeof vi.fn>;
+    continueExecution: ReturnType<typeof vi.fn>;
+    heartbeatJob: ReturnType<typeof vi.fn>;
   };
   let mockExecutionsService: {
     updateNodeResult: ReturnType<typeof vi.fn>;
@@ -50,13 +51,15 @@ describe('LLMProcessor', () => {
     ...overrides,
   });
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
 
     mockQueueManager = {
       updateJobStatus: vi.fn().mockResolvedValue(undefined),
       addJobLog: vi.fn().mockResolvedValue(undefined),
       moveToDeadLetterQueue: vi.fn().mockResolvedValue(undefined),
+      continueExecution: vi.fn().mockResolvedValue(undefined),
+      heartbeatJob: vi.fn().mockResolvedValue(undefined),
     };
 
     mockExecutionsService = {
@@ -67,16 +70,11 @@ describe('LLMProcessor', () => {
       generateText: vi.fn().mockResolvedValue('Once upon a time in a digital world...'),
     };
 
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        LLMProcessor,
-        { provide: 'QueueManagerService', useValue: mockQueueManager },
-        { provide: 'ExecutionsService', useValue: mockExecutionsService },
-        { provide: 'ReplicateService', useValue: mockReplicateService },
-      ],
-    }).compile();
-
-    processor = module.get<LLMProcessor>(LLMProcessor);
+    processor = new LLMProcessor(
+      mockQueueManager as never,
+      mockExecutionsService as never,
+      mockReplicateService as never
+    );
   });
 
   describe('process', () => {
