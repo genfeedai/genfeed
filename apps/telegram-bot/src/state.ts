@@ -5,6 +5,24 @@
 
 export type ChatState = 'idle' | 'selecting' | 'collecting' | 'confirming' | 'running';
 
+export const IMAGE_MODELS = [
+  'nano-banana-pro',
+  'flux-schnell',
+  'flux-2-pro',
+  'imagen-3-fast',
+  'imagen-4-fast',
+] as const;
+
+export const VIDEO_MODELS = [
+  'veo-2',
+  'veo-3',
+  'veo-3-fast',
+  'veo-3.1',
+  'veo-3.1-fast',
+  'kling-v2.1',
+  'wan-2.2-i2v-fast',
+] as const;
+
 export interface WorkflowInput {
   nodeId: string;
   nodeType: string;
@@ -33,6 +51,11 @@ export interface WorkflowJson {
   }>;
 }
 
+export interface UserSettings {
+  imageModel: string;
+  videoModel: string;
+}
+
 export interface Session {
   state: ChatState;
   workflowId?: string;
@@ -47,6 +70,9 @@ export interface Session {
 
 /** In-memory session store keyed by chat ID */
 const sessions = new Map<number, Session>();
+
+/** In-memory user settings store keyed by chat ID */
+const userSettings = new Map<number, UserSettings>();
 
 export function getSession(chatId: number): Session | undefined {
   return sessions.get(chatId);
@@ -81,6 +107,34 @@ export function createIdleSession(): Session {
 
 export function activeSessionCount(): number {
   return sessions.size;
+}
+
+export function getUserSettings(chatId: number): UserSettings {
+  let settings = userSettings.get(chatId);
+  if (!settings) {
+    settings = {
+      imageModel: 'nano-banana-pro', // Default image model
+      videoModel: 'veo-3.1-fast', // Default video model
+    };
+    userSettings.set(chatId, settings);
+  }
+  return settings;
+}
+
+export function setUserSettings(chatId: number, settings: UserSettings): void {
+  userSettings.set(chatId, settings);
+}
+
+export function updateUserImageModel(chatId: number, model: string): void {
+  const settings = getUserSettings(chatId);
+  settings.imageModel = model;
+  setUserSettings(chatId, settings);
+}
+
+export function updateUserVideoModel(chatId: number, model: string): void {
+  const settings = getUserSettings(chatId);
+  settings.videoModel = model;
+  setUserSettings(chatId, settings);
 }
 
 /**

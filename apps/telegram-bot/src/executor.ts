@@ -30,6 +30,11 @@ export interface ExecutionResult {
 
 export type ProgressCallback = (message: string, pct: number) => void;
 
+export interface ModelOverrides {
+  imageModel?: string;
+  videoModel?: string;
+}
+
 /**
  * Execute a workflow with collected inputs using Replicate directly.
  *
@@ -41,7 +46,8 @@ export type ProgressCallback = (message: string, pct: number) => void;
 export async function executeWorkflow(
   workflow: WorkflowJson,
   collectedInputs: Map<string, string>,
-  onProgress?: ProgressCallback
+  onProgress?: ProgressCallback,
+  modelOverrides?: ModelOverrides
 ): Promise<ExecutionResult> {
   const replicate = new Replicate();
   const startTime = Date.now();
@@ -124,7 +130,9 @@ export async function executeWorkflow(
             if (val.image) imageUrl = val.image as string;
           }
 
-          const model = (node.data.model as string) || 'nano-banana-pro';
+          // Use model override if provided, otherwise fall back to workflow default
+          const model =
+            modelOverrides?.imageModel || (node.data.model as string) || 'nano-banana-pro';
           const replicateModel = MODEL_MAP[model] || (model as `${string}/${string}`);
           modelUsed = replicateModel;
 
@@ -161,7 +169,8 @@ export async function executeWorkflow(
             }
           }
 
-          const model = (node.data.model as string) || 'veo-3.1-fast';
+          // Use model override if provided, otherwise fall back to workflow default
+          const model = modelOverrides?.videoModel || (node.data.model as string) || 'veo-3.1-fast';
           const replicateModel = MODEL_MAP[model] || (model as `${string}/${string}`);
           modelUsed = replicateModel;
 

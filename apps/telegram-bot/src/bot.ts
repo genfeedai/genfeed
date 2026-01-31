@@ -8,6 +8,11 @@ import {
   deleteSession,
   activeSessionCount,
   extractInputs,
+  getUserSettings,
+  updateUserImageModel,
+  updateUserVideoModel,
+  IMAGE_MODELS,
+  VIDEO_MODELS,
   type Session,
   type WorkflowJson,
 } from './state';
@@ -20,6 +25,9 @@ const CB = {
   RUN: 'confirm:run',
   EDIT: 'confirm:edit',
   CANCEL: 'confirm:cancel',
+  SETTINGS_IMAGE: 'settings:image:',
+  SETTINGS_VIDEO: 'settings:video:',
+  SETTINGS_BACK: 'settings:back',
 } as const;
 
 export function createBot(
@@ -46,6 +54,7 @@ export function createBot(
         'Generate images & videos using AI workflows — right from Telegram.\n\n' +
         '*Commands:*\n' +
         '/workflows — Browse & run workflows\n' +
+        '/settings — Configure model preferences\n' +
         '/status — Check current workflow status\n' +
         '/cancel — Cancel current workflow',
       { parse_mode: 'Markdown' }
@@ -135,6 +144,20 @@ export function createBot(
     await ctx.reply('❌ Cancelled. Use /workflows to start again.');
   });
 
+  // --- /settings ---
+  bot.command('settings', async (ctx) => {
+    const chatId = ctx.chat.id;
+    const session = getSession(chatId);
+    if (session?.state === 'running') {
+      await ctx.reply(
+        '⏳ A workflow is running. Use /status to check progress or /cancel to abort.'
+      );
+      return;
+    }
+
+    await showSettingsMenu(ctx, chatId);
+  });
+
   // --- Inline keyboard callbacks ---
   bot.on('callback_query:data', async (ctx) => {
     const data = ctx.callbackQuery.data;
@@ -201,6 +224,37 @@ export function createBot(
     if (data === CB.CANCEL) {
       deleteSession(chatId);
       await ctx.reply('❌ Cancelled. Use /workflows to start again.');
+      return;
+    }
+
+    // Settings callbacks
+    if (data.startsWith(CB.SETTINGS_IMAGE)) {
+      const model = data.slice(CB.SETTINGS_IMAGE.length);
+      updateUserImageModel(chatId, model);
+      await showSettingsMenu(ctx, chatId);
+      return;
+    }
+
+    if (data.startsWith(CB.SETTINGS_VIDEO)) {
+      const model = data.slice(CB.SETTINGS_VIDEO.length);
+      updateUserVideoModel(chatId, model);
+      await showSettingsMenu(ctx, chatId);
+      return;
+    }
+
+    if (data === CB.SETTINGS_BACK) {
+      await showSettingsMenu(ctx, chatId);
+      return;
+    }
+
+    if (data === 'settings:show_image') {
+      await showImageModels(ctx, chatId);
+      return;
+    }
+
+    if (data === 'settings:show_video') {
+      await showVideoModels(ctx, chatId);
+      return;
     }
   });
 
@@ -291,6 +345,75 @@ export function createBot(
   return bot;
 }
 
+// --- Settings helpers ---
+
+async function showSettingsMenu(ctx: Context, chatId: number) {
+  const settings = getUserSettings(chatId);
+
+  const keyboard = new InlineKeyboard()
+    .text('🖼 Image Models', 'settings:show_image')
+    .row()
+    .text('🎬 Video Models', 'settings:show_video');
+
+  const message =
+    '⚙️ *Model Settings*\n\n' +
+    `🖼 Image Model: *${settings.imageModel}*\n` +
+    `🎬 Video Model: *${settings.videoModel}*\n\n` +
+    'Select a category to change:';
+
+  if (ctx.callbackQuery) {
+    await ctx.editMessageText(message, {
+      parse_mode: 'Markdown',
+      reply_markup: keyboard,
+    });
+  } else {
+    await ctx.reply(message, {
+      parse_mode: 'Markdown',
+      reply_markup: keyboard,
+    });
+  }
+}
+
+async function showImageModels(ctx: Context, chatId: number) {
+  const settings = getUserSettings(chatId);
+  const keyboard = new InlineKeyboard();
+
+  for (const model of IMAGE_MODELS) {
+    const isSelected = settings.imageModel === model;
+    const label = isSelected ? `${model} ✅` : model;
+    keyboard.text(label, `${CB.SETTINGS_IMAGE}${model}`).row();
+  }
+  keyboard.text('⬅️ Back', CB.SETTINGS_BACK);
+
+  await ctx.editMessageText(
+    '🖼 *Select Image Model*\n\nChoose your preferred image generation model:',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: keyboard,
+    }
+  );
+}
+
+async function showVideoModels(ctx: Context, chatId: number) {
+  const settings = getUserSettings(chatId);
+  const keyboard = new InlineKeyboard();
+
+  for (const model of VIDEO_MODELS) {
+    const isSelected = settings.videoModel === model;
+    const label = isSelected ? `${model} ✅` : model;
+    keyboard.text(label, `${CB.SETTINGS_VIDEO}${model}`).row();
+  }
+  keyboard.text('⬅️ Back', CB.SETTINGS_BACK);
+
+  await ctx.editMessageText(
+    '🎬 *Select Video Model*\n\nChoose your preferred video generation model:',
+    {
+      parse_mode: 'Markdown',
+      reply_markup: keyboard,
+    }
+  );
+}
+
 // --- Helpers ---
 
 async function promptNextInput(ctx: Context, chatId: number) {
@@ -336,7 +459,12 @@ async function promptNextInput(ctx: Context, chatId: number) {
 }
 
 async function showConfirmation(ctx: Context, session: Session) {
+  const chatId = ctx.chat!.id;
+  const settings = getUserSettings(chatId);
+
   let summary = `✅ *Ready to run: ${session.workflowName}*\n\n`;
+
+  // Show inputs
   for (const input of session.requiredInputs) {
     const value = session.collectedInputs.get(input.nodeId);
     if (input.inputType === 'image') {
@@ -350,6 +478,11 @@ async function showConfirmation(ctx: Context, session: Session) {
       summary += `✏️ ${input.label}: "${display}"\n`;
     }
   }
+
+  // Show current model settings
+  summary += `\n🛠 *Model Settings:*\n`;
+  summary += `🖼 Image: ${settings.imageModel}\n`;
+  summary += `🎬 Video: ${settings.videoModel}\n`;
 
   const keyboard = new InlineKeyboard()
     .text('▶️ Run', 'confirm:run')
@@ -381,6 +514,7 @@ async function handleRun(
   session.statusMessageId = statusMsg.message_id;
   setSession(chatId, session);
 
+  const settings = getUserSettings(chatId);
   const result = await executeWorkflow(
     session.workflow,
     session.collectedInputs,
@@ -395,6 +529,10 @@ async function handleRun(
       } catch {
         // Ignore "message not modified" errors
       }
+    },
+    {
+      imageModel: settings.imageModel,
+      videoModel: settings.videoModel,
     }
   );
 
