@@ -1,0 +1,111 @@
+{
+  "version": 1,
+  "name": "UGC Factory",
+  "description": "Generate UGC-style talking head videos: script → voice → motion video → lip sync",
+  "edgeStyle": "smoothstep",
+  "createdAt": "2026-01-31T00:00:00.000Z",
+  "updatedAt": "2026-01-31T00:00:00.000Z",
+  "nodes": [
+    {
+      "id": "script-input",
+      "type": "prompt",
+      "position": { "x": 50, "y": 200 },
+      "data": {
+        "label": "Script",
+        "status": "idle",
+        "prompt": "Hey everyone! I just discovered this amazing product and I had to share it with you. The quality is incredible and it's changed my daily routine completely. Trust me, you need to try this!",
+        "variables": {}
+      }
+    },
+    {
+      "id": "imageInput-1",
+      "type": "imageInput",
+      "position": { "x": 50, "y": 450 },
+      "data": {
+        "label": "Avatar Image",
+        "status": "idle",
+        "image": null,
+        "filename": null,
+        "dimensions": null,
+        "source": "upload"
+      }
+    },
+    {
+      "id": "tts-1",
+      "type": "textToSpeech",
+      "position": { "x": 400, "y": 200 },
+      "data": {
+        "label": "Voice Over",
+        "status": "idle",
+        "inputText": null,
+        "outputAudio": null,
+        "provider": "elevenlabs",
+        "voice": "rachel",
+        "stability": 0.5,
+        "similarityBoost": 0.75,
+        "speed": 1.0,
+        "jobId": null
+      }
+    },
+    {
+      "id": "lipSync-1",
+      "type": "lipSync",
+      "position": { "x": 750, "y": 350 },
+      "data": {
+        "label": "Lip Sync",
+        "status": "idle",
+        "inputImage": null,
+        "inputVideo": null,
+        "inputAudio": null,
+        "outputVideo": null,
+        "model": "sync/lipsync-2",
+        "syncMode": "loop",
+        "temperature": 0.5,
+        "activeSpeaker": false,
+        "jobId": null
+      }
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "position": { "x": 1100, "y": 350 },
+      "data": {
+        "label": "UGC Video",
+        "status": "idle",
+        "inputMedia": null,
+        "inputType": "video",
+        "outputName": "ugc-video"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "source": "script-input",
+      "target": "tts-1",
+      "sourceHandle": "text",
+      "targetHandle": "text"
+    },
+    {
+      "id": "e2",
+      "source": "imageInput-1",
+      "target": "lipSync-1",
+      "sourceHandle": "image",
+      "targetHandle": "image"
+    },
+    {
+      "id": "e3",
+      "source": "tts-1",
+      "target": "lipSync-1",
+      "sourceHandle": "audio",
+      "targetHandle": "audio"
+    },
+    {
+      "id": "e4",
+      "source": "lipSync-1",
+      "target": "output-1",
+      "sourceHandle": "video",
+      "targetHandle": "video"
+    }
+  ]
+}
