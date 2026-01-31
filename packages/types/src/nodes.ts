@@ -70,6 +70,7 @@ export type NodeType =
   | 'imageInput'
   | 'audioInput'
   | 'videoInput'
+  | 'telegramInput'
   | 'prompt'
   | 'template'
   // AI generation nodes
@@ -168,6 +169,14 @@ export interface VideoInputNodeData extends BaseNodeData {
   dimensions: { width: number; height: number } | null;
   source: 'upload' | 'url';
   url?: string;
+}
+
+export interface TelegramInputNodeData extends BaseNodeData {
+  image: string | null;
+  text: string | null;
+  chatId: string | null;
+  messageId: string | null;
+  source: 'telegram';
 }
 
 // =============================================================================
@@ -817,6 +826,7 @@ export type WorkflowNodeData =
   | ImageInputNodeData
   | AudioInputNodeData
   | VideoInputNodeData
+  | TelegramInputNodeData
   | PromptNodeData
   | TemplateNodeData
   | ImageGenNodeData
@@ -962,6 +972,27 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       duration: null,
       dimensions: null,
       source: 'upload',
+    },
+  },
+  telegramInput: {
+    type: 'telegramInput',
+    label: 'Telegram Input',
+    description: 'Receive images and text from Telegram',
+    category: 'input',
+    icon: 'Send',
+    inputs: [],
+    outputs: [
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'text', type: 'text', label: 'Text' },
+    ],
+    defaultData: {
+      label: 'Telegram Input',
+      status: 'idle',
+      image: null,
+      text: null,
+      chatId: null,
+      messageId: null,
+      source: 'telegram',
     },
   },
 
@@ -1474,7 +1505,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
 
 // Explicit ordering for each category (most used first)
 const NODE_ORDER: Record<NodeCategory, NodeType[]> = {
-  input: ['imageInput', 'videoInput', 'audioInput', 'prompt', 'template'],
+  input: ['imageInput', 'videoInput', 'audioInput', 'telegramInput', 'prompt', 'template'],
   ai: [
     'imageGen',
     'videoGen',
