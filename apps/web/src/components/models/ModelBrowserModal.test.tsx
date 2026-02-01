@@ -3,7 +3,9 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ModelBrowserModal } from './ModelBrowserModal';
 
-const mockAddRecentModel = vi.fn();
+const { mockAddRecentModel } = vi.hoisted(() => ({
+  mockAddRecentModel: vi.fn(),
+}));
 
 // The component calls useSettingsStore with individual selectors:
 // useSettingsStore((s) => s.recentModels)
