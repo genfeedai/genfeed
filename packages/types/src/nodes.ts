@@ -70,6 +70,7 @@ export type NodeType =
   | 'imageInput'
   | 'audioInput'
   | 'videoInput'
+  | 'telegramInput'
   | 'prompt'
   | 'template'
   // AI generation nodes
@@ -94,12 +95,29 @@ export type NodeType =
   | 'subtitle'
   // Output nodes (deprecated - outputs auto-save now)
   | 'output' // @deprecated - kept for backwards compatibility with existing workflows
+  // Distribution nodes
+  | 'telegramPost'
+  | 'discordPost'
+  | 'twitterPost'
+  | 'instagramPost'
+  | 'tiktokPost'
+  | 'youtubePost'
+  | 'facebookPost'
+  | 'linkedinPost'
+  | 'googleDriveUpload'
+  | 'webhookPost'
   // Composition nodes (workflow-as-node)
   | 'workflowInput'
   | 'workflowOutput'
   | 'workflowRef';
 
-export type NodeCategory = 'input' | 'ai' | 'processing' | 'output' | 'composition';
+export type NodeCategory =
+  | 'input'
+  | 'ai'
+  | 'processing'
+  | 'output'
+  | 'distribution'
+  | 'composition';
 
 export type NodeStatus = 'idle' | 'pending' | 'processing' | 'complete' | 'error';
 
@@ -168,6 +186,14 @@ export interface VideoInputNodeData extends BaseNodeData {
   dimensions: { width: number; height: number } | null;
   source: 'upload' | 'url';
   url?: string;
+}
+
+export interface TelegramInputNodeData extends BaseNodeData {
+  image: string | null;
+  text: string | null;
+  chatId: string | null;
+  messageId: string | null;
+  source: 'telegram';
 }
 
 // =============================================================================
@@ -810,6 +836,172 @@ export interface WorkflowRefNodeData extends BaseNodeData {
 }
 
 // =============================================================================
+// DISTRIBUTION NODE DATA INTERFACES
+// =============================================================================
+
+export interface TelegramPostNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputImage: string | null;
+  inputText: string | null;
+
+  // Configuration
+  chatId: string;
+  caption: string;
+  asVoice: boolean;
+
+  // Runtime
+  messageId: string | null;
+  postUrl: string | null;
+  jobId: string | null;
+}
+
+export interface DiscordPostNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputImage: string | null;
+  inputText: string | null;
+
+  // Configuration
+  channelId: string;
+  message: string;
+
+  // Runtime
+  messageId: string | null;
+  postUrl: string | null;
+  jobId: string | null;
+}
+
+export interface TwitterPostNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputImage: string | null;
+  inputText: string | null;
+
+  // Configuration
+  caption: string;
+  hashtags: string[];
+
+  // Runtime
+  tweetId: string | null;
+  postUrl: string | null;
+  jobId: string | null;
+}
+
+export interface InstagramPostNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputImage: string | null;
+
+  // Configuration
+  caption: string;
+  hashtags: string[];
+  postType: 'reels' | 'stories' | 'feed';
+
+  // Runtime
+  postId: string | null;
+  postUrl: string | null;
+  jobId: string | null;
+}
+
+export interface TikTokPostNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+
+  // Configuration
+  caption: string;
+  hashtags: string[];
+
+  // Runtime
+  videoId: string | null;
+  postUrl: string | null;
+  jobId: string | null;
+}
+
+export interface YouTubePostNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+
+  // Configuration
+  title: string;
+  description: string;
+  tags: string[];
+  visibility: 'public' | 'unlisted' | 'private';
+
+  // Runtime
+  videoId: string | null;
+  postUrl: string | null;
+  jobId: string | null;
+}
+
+export interface FacebookPostNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputImage: string | null;
+  inputText: string | null;
+
+  // Configuration
+  pageId: string;
+  caption: string;
+
+  // Runtime
+  postId: string | null;
+  postUrl: string | null;
+  jobId: string | null;
+}
+
+export interface LinkedInPostNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputImage: string | null;
+  inputText: string | null;
+
+  // Configuration
+  caption: string;
+
+  // Runtime
+  postId: string | null;
+  postUrl: string | null;
+  jobId: string | null;
+}
+
+export interface GoogleDriveUploadNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputImage: string | null;
+  inputFile: string | null;
+
+  // Configuration
+  folderId: string;
+  fileName: string;
+
+  // Runtime
+  fileId: string | null;
+  driveUrl: string | null;
+  jobId: string | null;
+}
+
+export interface WebhookPostNodeData extends BaseNodeData {
+  // Inputs from connections
+  inputVideo: string | null;
+  inputImage: string | null;
+  inputText: string | null;
+  inputData: any;
+
+  // Configuration
+  webhookUrl: string;
+  method: 'POST' | 'PUT' | 'PATCH';
+  headers: Record<string, string>;
+
+  // Runtime
+  response: any;
+  statusCode: number | null;
+  jobId: string | null;
+}
+
+// Multi-format nodes removed - format conversion now handled by schema-driven engine
+
+// =============================================================================
 // NODE DATA UNION
 // =============================================================================
 
@@ -817,6 +1009,7 @@ export type WorkflowNodeData =
   | ImageInputNodeData
   | AudioInputNodeData
   | VideoInputNodeData
+  | TelegramInputNodeData
   | PromptNodeData
   | TemplateNodeData
   | ImageGenNodeData
@@ -838,6 +1031,17 @@ export type WorkflowNodeData =
   | AnnotationNodeData
   | SubtitleNodeData
   | OutputNodeData
+  // Distribution nodes
+  | TelegramPostNodeData
+  | DiscordPostNodeData
+  | TwitterPostNodeData
+  | InstagramPostNodeData
+  | TikTokPostNodeData
+  | YouTubePostNodeData
+  | FacebookPostNodeData
+  | LinkedInPostNodeData
+  | GoogleDriveUploadNodeData
+  | WebhookPostNodeData
   // Composition nodes
   | WorkflowInputNodeData
   | WorkflowOutputNodeData
@@ -962,6 +1166,27 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       duration: null,
       dimensions: null,
       source: 'upload',
+    },
+  },
+  telegramInput: {
+    type: 'telegramInput',
+    label: 'Telegram Input',
+    description: 'Receive images and text from Telegram',
+    category: 'input',
+    icon: 'Send',
+    inputs: [],
+    outputs: [
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'text', type: 'text', label: 'Text' },
+    ],
+    defaultData: {
+      label: 'Telegram Input',
+      status: 'idle',
+      image: null,
+      text: null,
+      chatId: null,
+      messageId: null,
+      source: 'telegram',
     },
   },
 
@@ -1470,11 +1695,266 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       childExecutionId: null,
     },
   },
+
+  // Distribution nodes
+  telegramPost: {
+    type: 'telegramPost',
+    label: 'Telegram Post',
+    description: 'Send content to Telegram chat or channel',
+    category: 'distribution',
+    icon: 'Send',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video' },
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'text', type: 'text', label: 'Text' },
+    ],
+    outputs: [{ id: 'url', type: 'text', label: 'Post URL' }],
+    defaultData: {
+      label: 'Telegram Post',
+      status: 'idle',
+      inputVideo: null,
+      inputImage: null,
+      inputText: null,
+      chatId: '',
+      caption: '',
+      asVoice: false,
+      messageId: null,
+      postUrl: null,
+      jobId: null,
+    },
+  },
+
+  discordPost: {
+    type: 'discordPost',
+    label: 'Discord Post',
+    description: 'Send content to Discord channel',
+    category: 'distribution',
+    icon: 'Send',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video' },
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'text', type: 'text', label: 'Text' },
+    ],
+    outputs: [{ id: 'url', type: 'text', label: 'Post URL' }],
+    defaultData: {
+      label: 'Discord Post',
+      status: 'idle',
+      inputVideo: null,
+      inputImage: null,
+      inputText: null,
+      channelId: '',
+      message: '',
+      messageId: null,
+      postUrl: null,
+      jobId: null,
+    },
+  },
+
+  twitterPost: {
+    type: 'twitterPost',
+    label: 'Twitter Post',
+    description: 'Post content to Twitter/X',
+    category: 'distribution',
+    icon: 'Send',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video' },
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'text', type: 'text', label: 'Text' },
+    ],
+    outputs: [{ id: 'url', type: 'text', label: 'Tweet URL' }],
+    defaultData: {
+      label: 'Twitter Post',
+      status: 'idle',
+      inputVideo: null,
+      inputImage: null,
+      inputText: null,
+      caption: '',
+      hashtags: [],
+      tweetId: null,
+      postUrl: null,
+      jobId: null,
+    },
+  },
+
+  instagramPost: {
+    type: 'instagramPost',
+    label: 'Instagram Post',
+    description: 'Post content to Instagram',
+    category: 'distribution',
+    icon: 'Send',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video' },
+      { id: 'image', type: 'image', label: 'Image' },
+    ],
+    outputs: [{ id: 'url', type: 'text', label: 'Post URL' }],
+    defaultData: {
+      label: 'Instagram Post',
+      status: 'idle',
+      inputVideo: null,
+      inputImage: null,
+      caption: '',
+      hashtags: [],
+      postType: 'reels',
+      postId: null,
+      postUrl: null,
+      jobId: null,
+    },
+  },
+
+  tiktokPost: {
+    type: 'tiktokPost',
+    label: 'TikTok Post',
+    description: 'Post video to TikTok',
+    category: 'distribution',
+    icon: 'Send',
+    inputs: [{ id: 'video', type: 'video', label: 'Video', required: true }],
+    outputs: [{ id: 'url', type: 'text', label: 'Video URL' }],
+    defaultData: {
+      label: 'TikTok Post',
+      status: 'idle',
+      inputVideo: null,
+      caption: '',
+      hashtags: [],
+      videoId: null,
+      postUrl: null,
+      jobId: null,
+    },
+  },
+
+  youtubePost: {
+    type: 'youtubePost',
+    label: 'YouTube Shorts',
+    description: 'Upload video to YouTube Shorts',
+    category: 'distribution',
+    icon: 'Send',
+    inputs: [{ id: 'video', type: 'video', label: 'Video', required: true }],
+    outputs: [{ id: 'url', type: 'text', label: 'Video URL' }],
+    defaultData: {
+      label: 'YouTube Shorts',
+      status: 'idle',
+      inputVideo: null,
+      title: '',
+      description: '',
+      tags: [],
+      visibility: 'public',
+      videoId: null,
+      postUrl: null,
+      jobId: null,
+    },
+  },
+
+  facebookPost: {
+    type: 'facebookPost',
+    label: 'Facebook Post',
+    description: 'Post content to Facebook',
+    category: 'distribution',
+    icon: 'Send',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video' },
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'text', type: 'text', label: 'Text' },
+    ],
+    outputs: [{ id: 'url', type: 'text', label: 'Post URL' }],
+    defaultData: {
+      label: 'Facebook Post',
+      status: 'idle',
+      inputVideo: null,
+      inputImage: null,
+      inputText: null,
+      pageId: '',
+      caption: '',
+      postId: null,
+      postUrl: null,
+      jobId: null,
+    },
+  },
+
+  linkedinPost: {
+    type: 'linkedinPost',
+    label: 'LinkedIn Post',
+    description: 'Post content to LinkedIn',
+    category: 'distribution',
+    icon: 'Send',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video' },
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'text', type: 'text', label: 'Text' },
+    ],
+    outputs: [{ id: 'url', type: 'text', label: 'Post URL' }],
+    defaultData: {
+      label: 'LinkedIn Post',
+      status: 'idle',
+      inputVideo: null,
+      inputImage: null,
+      inputText: null,
+      caption: '',
+      postId: null,
+      postUrl: null,
+      jobId: null,
+    },
+  },
+
+  googleDriveUpload: {
+    type: 'googleDriveUpload',
+    label: 'Google Drive',
+    description: 'Upload files to Google Drive',
+    category: 'distribution',
+    icon: 'FolderUp',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video' },
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'file', type: 'text', label: 'File' },
+    ],
+    outputs: [{ id: 'url', type: 'text', label: 'Drive URL' }],
+    defaultData: {
+      label: 'Google Drive',
+      status: 'idle',
+      inputVideo: null,
+      inputImage: null,
+      inputFile: null,
+      folderId: '',
+      fileName: '',
+      fileId: null,
+      driveUrl: null,
+      jobId: null,
+    },
+  },
+
+  webhookPost: {
+    type: 'webhookPost',
+    label: 'Webhook',
+    description: 'Send data to custom webhook endpoint',
+    category: 'distribution',
+    icon: 'Globe',
+    inputs: [
+      { id: 'video', type: 'video', label: 'Video' },
+      { id: 'image', type: 'image', label: 'Image' },
+      { id: 'text', type: 'text', label: 'Text' },
+      { id: 'data', type: 'text', label: 'Data' },
+    ],
+    outputs: [{ id: 'response', type: 'text', label: 'Response' }],
+    defaultData: {
+      label: 'Webhook',
+      status: 'idle',
+      inputVideo: null,
+      inputImage: null,
+      inputText: null,
+      inputData: null,
+      webhookUrl: '',
+      method: 'POST',
+      headers: {},
+      response: null,
+      statusCode: null,
+      jobId: null,
+    },
+  },
+
+  // Multi-format nodes removed - format conversion now handled by schema-driven engine
 };
 
 // Explicit ordering for each category (most used first)
 const NODE_ORDER: Record<NodeCategory, NodeType[]> = {
-  input: ['imageInput', 'videoInput', 'audioInput', 'prompt', 'template'],
+  input: ['imageInput', 'videoInput', 'audioInput', 'telegramInput', 'prompt', 'template'],
   ai: [
     'imageGen',
     'videoGen',
@@ -1498,6 +1978,18 @@ const NODE_ORDER: Record<NodeCategory, NodeType[]> = {
     'animation',
   ],
   output: ['output'],
+  distribution: [
+    'telegramPost',
+    'discordPost',
+    'twitterPost',
+    'instagramPost',
+    'tiktokPost',
+    'youtubePost',
+    'facebookPost',
+    'linkedinPost',
+    'googleDriveUpload',
+    'webhookPost',
+  ],
   composition: ['workflowRef', 'workflowInput', 'workflowOutput'],
 };
 
@@ -1508,6 +2000,7 @@ export function getNodesByCategory(): Record<NodeCategory, NodeDefinition[]> {
     ai: [],
     processing: [],
     output: [],
+    distribution: [],
     composition: [],
   };
 

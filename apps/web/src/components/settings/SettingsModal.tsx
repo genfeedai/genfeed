@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { ToggleSwitch } from '@/components/ui/toggle-switch';
+import { InfoBox, LinkCard, SettingsField } from '@/components/ui/settings-section';
 import { type EdgeStyle, type ProviderType, useSettingsStore } from '@/store/settingsStore';
 import { useUIStore } from '@/store/uiStore';
 
@@ -70,9 +72,7 @@ function DefaultsTab() {
         Set default models for new nodes. You can always change models per-node.
       </p>
 
-      {/* Default Image Model */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Default Image Model</label>
+      <SettingsField label="Default Image Model">
         <Select
           value={defaults.imageModel}
           onValueChange={(value) => setDefaultModel('image', value, defaults.imageProvider)}
@@ -89,11 +89,9 @@ function DefaultsTab() {
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </SettingsField>
 
-      {/* Default Video Model */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Default Video Model</label>
+      <SettingsField label="Default Video Model">
         <Select
           value={defaults.videoModel}
           onValueChange={(value) => setDefaultModel('video', value, defaults.videoProvider)}
@@ -110,11 +108,12 @@ function DefaultsTab() {
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </SettingsField>
 
-      {/* Default Provider */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Default Provider</label>
+      <SettingsField
+        label="Default Provider"
+        description="Replicate is recommended for best model availability and reliability."
+      >
         <Select
           value={defaults.imageProvider}
           onValueChange={(value) => {
@@ -132,10 +131,7 @@ function DefaultsTab() {
             <SelectItem value="huggingface">Hugging Face</SelectItem>
           </SelectContent>
         </Select>
-        <p className="text-xs text-muted-foreground">
-          Replicate is recommended for best model availability and reliability.
-        </p>
-      </div>
+      </SettingsField>
     </div>
   );
 }
@@ -150,7 +146,7 @@ interface ApiKeyStatus {
   name: string;
   envVar: string;
   location: 'api' | 'web' | 'both';
-  isConfigured: boolean | null; // null = unknown (server-side only)
+  isConfigured: boolean | null;
   description: string;
   docsUrl?: string;
 }
@@ -190,36 +186,38 @@ const API_KEYS: ApiKeyStatus[] = [
   },
 ];
 
+function StatusDot({ status }: { status: boolean | null }) {
+  const color = status === true ? 'bg-green-500' : status === false ? 'bg-red-500' : 'bg-gray-400';
+  const label =
+    status === true ? 'Configured' : status === false ? 'Not configured' : 'Status unknown';
+
+  return <div className={`h-2.5 w-2.5 rounded-full ${color}`} title={label} />;
+}
+
 function ApiKeysTab() {
   return (
     <div className="space-y-6">
-      {/* Important Notice */}
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-        <h4 className="font-medium text-amber-600 dark:text-amber-400">
-          API keys must be configured in .env files
-        </h4>
-        <p className="mt-1 text-sm text-amber-600/80 dark:text-amber-400/80">
-          This app does not store API keys in the browser. You need to edit the environment files
-          directly on the server.
-        </p>
-      </div>
+      <InfoBox variant="warning" title="API keys must be configured in .env files">
+        This app does not store API keys in the browser. You need to edit the environment files
+        directly on the server.
+      </InfoBox>
 
       {/* File Locations */}
       <div className="space-y-2">
         <h4 className="text-sm font-medium text-foreground">Configuration Files</h4>
         <div className="grid gap-2">
-          <div className="rounded border border-border bg-secondary/30 p-3">
+          <InfoBox>
             <code className="text-xs font-medium text-primary">apps/api/.env</code>
             <p className="mt-1 text-xs text-muted-foreground">
               Backend API keys (Replicate, ElevenLabs, fal.ai, etc.)
             </p>
-          </div>
-          <div className="rounded border border-border bg-secondary/30 p-3">
+          </InfoBox>
+          <InfoBox>
             <code className="text-xs font-medium text-primary">apps/web/.env</code>
             <p className="mt-1 text-xs text-muted-foreground">
               Frontend flags (e.g., NEXT_PUBLIC_TTS_ENABLED=true)
             </p>
-          </div>
+          </InfoBox>
         </div>
       </div>
 
@@ -232,23 +230,9 @@ function ApiKeysTab() {
               key={key.envVar}
               className="flex items-start gap-3 rounded-lg border border-border p-3"
             >
-              {/* Status Indicator */}
               <div className="mt-0.5">
-                {key.isConfigured === true && (
-                  <div className="h-2.5 w-2.5 rounded-full bg-green-500" title="Configured" />
-                )}
-                {key.isConfigured === false && (
-                  <div className="h-2.5 w-2.5 rounded-full bg-red-500" title="Not configured" />
-                )}
-                {key.isConfigured === null && (
-                  <div
-                    className="h-2.5 w-2.5 rounded-full bg-gray-400"
-                    title="Status unknown (server-side)"
-                  />
-                )}
+                <StatusDot status={key.isConfigured} />
               </div>
-
-              {/* Key Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="font-medium text-sm text-foreground">{key.name}</span>
@@ -263,8 +247,6 @@ function ApiKeysTab() {
                   </p>
                 )}
               </div>
-
-              {/* Get Key Link */}
               {key.docsUrl && (
                 <a
                   href={key.docsUrl}
@@ -280,10 +262,8 @@ function ApiKeysTab() {
         </div>
       </div>
 
-      {/* ElevenLabs specific instructions */}
-      <div className="rounded-lg border border-border bg-secondary/30 p-4">
-        <h4 className="font-medium text-foreground text-sm">ElevenLabs Setup</h4>
-        <p className="mt-1 text-xs text-muted-foreground">To enable Text-to-Speech, add both:</p>
+      <InfoBox title="ElevenLabs Setup" icon={Code}>
+        <p className="text-xs text-muted-foreground">To enable Text-to-Speech, add both:</p>
         <pre className="mt-2 overflow-x-auto rounded bg-background p-3 text-xs text-muted-foreground">
           {`# apps/api/.env
 ELEVENLABS_API_KEY=your_key_here
@@ -294,7 +274,7 @@ NEXT_PUBLIC_TTS_ENABLED=true`}
         <p className="mt-2 text-xs text-muted-foreground">
           Then restart both the API and web servers.
         </p>
-      </div>
+      </InfoBox>
     </div>
   );
 }
@@ -314,34 +294,16 @@ function AppearanceTab() {
 
   return (
     <div className="space-y-6">
-      {/* Minimap Toggle */}
-      <div className="flex items-center justify-between">
-        <div>
-          <label className="text-sm font-medium text-foreground">Show Minimap</label>
-          <p className="text-xs text-muted-foreground">
-            Display a miniature overview of the workflow canvas
-          </p>
-        </div>
-        <button
-          onClick={() => setShowMinimap(!showMinimap)}
-          className={`relative h-6 w-11 rounded-full transition-colors ${
-            showMinimap ? 'bg-primary' : 'bg-border'
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-              showMinimap ? 'translate-x-5' : 'translate-x-0'
-            }`}
-          />
-        </button>
-      </div>
+      <SettingsField
+        label="Show Minimap"
+        description="Display a miniature overview of the workflow canvas"
+        action={<ToggleSwitch checked={showMinimap} onCheckedChange={setShowMinimap} />}
+      />
 
-      {/* Edge Style */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">Edge Style</label>
-        <p className="text-xs text-muted-foreground">
-          How connections between nodes are drawn on the canvas.
-        </p>
+      <SettingsField
+        label="Edge Style"
+        description="How connections between nodes are drawn on the canvas."
+      >
         <div className="mt-3 grid grid-cols-3 gap-3">
           {EDGE_STYLES.map((style) => (
             <button
@@ -358,16 +320,14 @@ function AppearanceTab() {
             </button>
           ))}
         </div>
-      </div>
+      </SettingsField>
 
       {/* Preview */}
-      <div className="rounded-lg border border-border bg-secondary/30 p-4">
+      <InfoBox>
         <div className="relative h-20 w-[232px] mx-auto">
-          {/* Node A - left side, lower */}
           <div className="absolute left-0 bottom-2 flex h-8 w-16 items-center justify-center rounded border border-border bg-background text-xs text-muted-foreground">
             Node A
           </div>
-          {/* Edge SVG - connects the nodes (64px gap between 64px nodes = 104px) */}
           <svg className="absolute left-16 top-0 text-primary" width="104" height="80">
             {edgeStyle === 'default' && (
               <path
@@ -389,12 +349,11 @@ function AppearanceTab() {
               <path d="M 0 56 L 104 24" fill="none" stroke="currentColor" strokeWidth="2" />
             )}
           </svg>
-          {/* Node B - right side, higher */}
           <div className="absolute right-0 top-2 flex h-8 w-16 items-center justify-center rounded border border-border bg-background text-xs text-muted-foreground">
             Node B
           </div>
         </div>
-      </div>
+      </InfoBox>
     </div>
   );
 }
@@ -412,57 +371,29 @@ function DeveloperTab() {
         Developer tools for debugging and testing workflows.
       </p>
 
-      {/* Debug Mode Toggle */}
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <label className="text-sm font-medium text-foreground flex items-center gap-2">
-              <Bug className="h-4 w-4" />
-              Debug Mode
-            </label>
-            <p className="text-xs text-muted-foreground mt-1">
-              Skip API calls and inspect payloads without paying for generations
-            </p>
-          </div>
-          <button
-            onClick={() => setDebugMode(!debugMode)}
-            className={`relative h-6 w-11 rounded-full transition-colors ${
-              debugMode ? 'bg-amber-500' : 'bg-border'
-            }`}
-          >
-            <span
-              className={`absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                debugMode ? 'translate-x-5' : 'translate-x-0'
-              }`}
+        <SettingsField
+          label="Debug Mode"
+          icon={Bug}
+          description="Skip API calls and inspect payloads without paying for generations"
+          action={
+            <ToggleSwitch
+              checked={debugMode}
+              onCheckedChange={setDebugMode}
+              activeColor="bg-amber-500"
             />
-          </button>
-        </div>
+          }
+        />
 
-        {/* Warning when enabled */}
         {debugMode && (
-          <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-              <div>
-                <h4 className="font-medium text-amber-600 dark:text-amber-400">
-                  Debug mode is active
-                </h4>
-                <p className="mt-1 text-sm text-amber-600/80 dark:text-amber-400/80">
-                  Use <strong>"Run Selected"</strong> to test nodes with mocked API calls. Full
-                  workflow execution ("Run Workflow") will still make real API calls.
-                </p>
-              </div>
-            </div>
-          </div>
+          <InfoBox variant="warning" icon={AlertTriangle} title="Debug mode is active">
+            Use <strong>&quot;Run Selected&quot;</strong> to test nodes with mocked API calls. Full
+            workflow execution (&quot;Run Workflow&quot;) will still make real API calls.
+          </InfoBox>
         )}
       </div>
 
-      {/* Info about debug mode */}
-      <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-3">
-        <h4 className="font-medium text-foreground text-sm flex items-center gap-2">
-          <Code className="h-4 w-4" />
-          What debug mode does
-        </h4>
+      <InfoBox icon={Code} title="What debug mode does">
         <ul className="text-xs text-muted-foreground space-y-2">
           <li className="flex items-start gap-2">
             <span className="text-primary mt-0.5">•</span>
@@ -470,7 +401,7 @@ function DeveloperTab() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary mt-0.5">•</span>
-            <span>Returns placeholder images/videos with "DEBUG" watermark</span>
+            <span>Returns placeholder images/videos with &quot;DEBUG&quot; watermark</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary mt-0.5">•</span>
@@ -478,10 +409,10 @@ function DeveloperTab() {
           </li>
           <li className="flex items-start gap-2">
             <span className="text-primary mt-0.5">•</span>
-            <span>Works with "Run Selected" for testing individual nodes</span>
+            <span>Works with &quot;Run Selected&quot; for testing individual nodes</span>
           </li>
         </ul>
-      </div>
+      </InfoBox>
     </div>
   );
 }
@@ -495,7 +426,6 @@ function HelpTab() {
 
   const handleShowWelcome = () => {
     closeModal();
-    // Small delay to let the settings modal close first
     setTimeout(() => openModal('welcome'), 100);
   };
 
@@ -524,63 +454,39 @@ function HelpTab() {
       <div className="space-y-3">
         <h3 className="text-sm font-medium text-foreground">Resources</h3>
         <div className="space-y-2">
-          <a
+          <LinkCard
             href="https://docs.genfeed.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-lg border border-border p-3 transition hover:border-primary/50 hover:bg-secondary/30"
-          >
-            <BookOpen className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <div className="font-medium text-foreground">Documentation</div>
-              <p className="text-xs text-muted-foreground">Learn how to use Genfeed</p>
-            </div>
-          </a>
-          <a
+            icon={BookOpen}
+            title="Documentation"
+            description="Learn how to use Genfeed"
+          />
+          <LinkCard
             href="https://discord.gg/Qy867n83Z4"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-lg border border-border p-3 transition hover:border-primary/50 hover:bg-secondary/30"
-          >
-            <MessageCircle className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <div className="font-medium text-foreground">Discord Community</div>
-              <p className="text-xs text-muted-foreground">Get help and share workflows</p>
-            </div>
-          </a>
-          <a
+            icon={MessageCircle}
+            title="Discord Community"
+            description="Get help and share workflows"
+          />
+          <LinkCard
             href="https://twitter.com/genfeedai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-lg border border-border p-3 transition hover:border-primary/50 hover:bg-secondary/30"
-          >
-            <Twitter className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <div className="font-medium text-foreground">Twitter / X</div>
-              <p className="text-xs text-muted-foreground">Follow for updates</p>
-            </div>
-          </a>
-          <a
+            icon={Twitter}
+            title="Twitter / X"
+            description="Follow for updates"
+          />
+          <LinkCard
             href="https://marketplace.genfeed.ai"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 rounded-lg border border-border p-3 transition hover:border-primary/50 hover:bg-secondary/30"
-          >
-            <Store className="h-5 w-5 text-muted-foreground" />
-            <div>
-              <div className="font-medium text-foreground">Marketplace</div>
-              <p className="text-xs text-muted-foreground">Browse workflows, prompts & assets</p>
-            </div>
-          </a>
+            icon={Store}
+            title="Marketplace"
+            description="Browse workflows, prompts & assets"
+          />
         </div>
       </div>
 
       {/* Version Info */}
-      <div className="rounded-lg border border-border bg-secondary/30 p-4">
+      <InfoBox>
         <div className="text-sm text-muted-foreground">
           <span className="font-medium text-foreground">Genfeed</span> v0.1.0
         </div>
-      </div>
+      </InfoBox>
     </div>
   );
 }
