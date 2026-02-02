@@ -531,7 +531,7 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
     };
 
     // Extract platform-specific config from nodeData
-    const platformConfig = nodeData as PlatformConfig;
+    const platformConfig = nodeData as unknown as PlatformConfig;
 
     await this.updateProgressWithLog(job, 50, `Delivering to ${distributionNode.platform}`);
 

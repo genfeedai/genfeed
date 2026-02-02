@@ -3,6 +3,7 @@ import type { NextConfig } from 'next';
 import path from 'node:path';
 
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: path.join(__dirname, '../../'),
   reactStrictMode: true,
   images: {
     remotePatterns: [
@@ -96,5 +97,7 @@ export default withSentryConfig(nextConfig, {
   project: 'core-web',
   silent: !process.env.CI,
   widenClientFileUpload: true,
-  disableLogger: true,
+  bundleSizeOptimizations: {
+    excludeDebugStatements: true,
+  },
 });
