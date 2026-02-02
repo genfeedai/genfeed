@@ -32,7 +32,7 @@ interface DiscordWebhookMessage {
 }
 
 @Injectable()
-export class DiscordOutputNode extends BaseOutputNode implements OnModuleInit {
+export class DiscordOutputNode extends BaseOutputNode<DiscordConfig> implements OnModuleInit {
   readonly platform = 'discord';
   readonly enabled: boolean;
 
@@ -66,13 +66,19 @@ export class DiscordOutputNode extends BaseOutputNode implements OnModuleInit {
       emptyTargetsError: 'No Discord channels specified',
       sendToTarget: async (channel, vid, cfg) => {
         if (channel.includes('discord.com/api/webhooks/')) {
-          return this.sendViaWebhook(channel, vid, cfg, platformConfig.caption) as Promise<
-            Record<string, unknown>
-          >;
+          return this.sendViaWebhook(
+            channel,
+            vid,
+            cfg,
+            platformConfig.caption
+          ) as unknown as Promise<Record<string, unknown>>;
         }
-        return this.sendViaChannelId(channel, vid, cfg, platformConfig.caption) as Promise<
-          Record<string, unknown>
-        >;
+        return this.sendViaChannelId(
+          channel,
+          vid,
+          cfg,
+          platformConfig.caption
+        ) as unknown as Promise<Record<string, unknown>>;
       },
       formatTargetResult: (channel, result) => ({
         channel,

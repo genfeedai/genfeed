@@ -1,6 +1,6 @@
 import { withSentryConfig } from '@sentry/nextjs';
-import path from 'node:path';
 import type { NextConfig } from 'next';
+import path from 'node:path';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,

@@ -20,6 +20,7 @@ import type {
   GeneratedVideo,
   DeliveryConfig,
   DeliveryResult,
+  PlatformConfig,
 } from '@/nodes/distribution/base-output-node';
 import type { DistributionNodeRegistry } from '@/nodes/distribution/distribution-node-registry';
 import { BaseProcessor } from '@/processors/base.processor';
@@ -530,7 +531,7 @@ export class ProcessingProcessor extends BaseProcessor<ProcessingJobData> {
     };
 
     // Extract platform-specific config from nodeData
-    const platformConfig = nodeData as Record<string, unknown>;
+    const platformConfig = nodeData as PlatformConfig;
 
     await this.updateProgressWithLog(job, 50, `Delivering to ${distributionNode.platform}`);
 

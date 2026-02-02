@@ -33,13 +33,13 @@ export interface DeliveryResult {
   total_targets?: number;
 }
 
-export abstract class BaseOutputNode {
+export abstract class BaseOutputNode<TPlatformConfig extends PlatformConfig = PlatformConfig> {
   protected readonly logger = new Logger(this.constructor.name);
 
   abstract readonly platform: string;
   abstract readonly enabled: boolean;
 
-  abstract deliver<TPlatformConfig extends PlatformConfig>(
+  abstract deliver(
     video: GeneratedVideo,
     config: DeliveryConfig,
     platformConfig: TPlatformConfig

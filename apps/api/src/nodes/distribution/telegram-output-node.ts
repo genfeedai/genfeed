@@ -26,7 +26,7 @@ interface TelegramMessage {
 }
 
 @Injectable()
-export class TelegramOutputNode extends BaseOutputNode implements OnModuleInit {
+export class TelegramOutputNode extends BaseOutputNode<TelegramConfig> implements OnModuleInit {
   readonly platform = 'telegram';
   readonly enabled: boolean;
 
@@ -60,7 +60,7 @@ export class TelegramOutputNode extends BaseOutputNode implements OnModuleInit {
       maxFileSizeMB: 50,
       emptyTargetsError: 'No Telegram targets specified',
       sendToTarget: async (target, vid, cfg) => {
-        return this.sendVideo(target, vid, cfg, platformConfig.caption) as Promise<
+        return this.sendVideo(target, vid, cfg, platformConfig.caption) as unknown as Promise<
           Record<string, unknown>
         >;
       },

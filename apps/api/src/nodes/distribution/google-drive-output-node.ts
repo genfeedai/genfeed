@@ -20,7 +20,10 @@ interface DriveFile {
 }
 
 @Injectable()
-export class GoogleDriveOutputNode extends BaseOutputNode implements OnModuleInit {
+export class GoogleDriveOutputNode
+  extends BaseOutputNode<GoogleDriveConfig>
+  implements OnModuleInit
+{
   readonly platform = 'google_drive';
   readonly enabled: boolean;
 
@@ -189,7 +192,7 @@ export class GoogleDriveOutputNode extends BaseOutputNode implements OnModuleIni
         fields: 'files(id, name)',
       });
 
-      return response.data.files?.[0] || null;
+      return (response.data.files?.[0] as DriveFile) || null;
     } catch (error) {
       this.logger.warn(`Error finding folder ${name}: ${error.message}`);
       return null;
@@ -210,7 +213,7 @@ export class GoogleDriveOutputNode extends BaseOutputNode implements OnModuleIni
     });
 
     this.logger.log(`Created Google Drive folder: ${name}`);
-    return response.data;
+    return response.data as DriveFile;
   }
 
   /**
@@ -244,7 +247,7 @@ export class GoogleDriveOutputNode extends BaseOutputNode implements OnModuleIni
     });
 
     this.logger.log(`Uploaded video to Google Drive: ${filename}`);
-    return response.data;
+    return response.data as DriveFile;
   }
 
   /**
@@ -301,7 +304,7 @@ export class GoogleDriveOutputNode extends BaseOutputNode implements OnModuleIni
       fields: 'id, name, webViewLink',
     });
 
-    return response.data;
+    return response.data as DriveFile;
   }
 
   /**
@@ -314,7 +317,7 @@ export class GoogleDriveOutputNode extends BaseOutputNode implements OnModuleIni
         fields: 'webViewLink',
       });
 
-      return response.data.webViewLink;
+      return response.data.webViewLink ?? '';
     } catch (error) {
       this.logger.warn(`Error getting folder URL: ${error.message}`);
       return '';
