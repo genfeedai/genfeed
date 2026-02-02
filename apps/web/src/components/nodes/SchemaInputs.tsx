@@ -43,6 +43,8 @@ interface SchemaInputsProps {
   enumValues?: Record<string, string[]>;
   /** Component schemas with type info for proper type coercion */
   componentSchemas?: Record<string, ComponentSchema>;
+  /** Disable all inputs (e.g. during processing) */
+  disabled?: boolean;
 }
 
 // Fields that come from node connections and should be skipped
@@ -288,6 +290,7 @@ function SchemaInputsComponent({
   onChange,
   enumValues,
   componentSchemas,
+  disabled,
 }: SchemaInputsProps) {
   const handleChange = useCallback(
     (key: string, value: unknown) => {
@@ -314,7 +317,7 @@ function SchemaInputsComponent({
   }
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className={`flex flex-col gap-2${disabled ? ' pointer-events-none opacity-50' : ''}`}>
       {sortedProperties.map(([key, property]) => {
         const value = values[key];
 

@@ -1,4 +1,4 @@
-import type { ModelCapability, ProviderModel, ProviderType } from '@genfeedai/types';
+import type { ModelCapability, ModelUseCase, ProviderModel, ProviderType } from '@genfeedai/types';
 import { Controller, Get, Headers, Query } from '@nestjs/common';
 
 // Replicate models (hardcoded, actual calls go through ReplicateService)
@@ -10,6 +10,7 @@ const REPLICATE_MODELS: ProviderModel[] = [
     id: 'google/nano-banana',
     pricing: '$0.039/image',
     provider: 'replicate',
+    useCases: ['general'],
   },
   {
     capabilities: ['text-to-image'],
@@ -18,6 +19,7 @@ const REPLICATE_MODELS: ProviderModel[] = [
     id: 'google/nano-banana-pro',
     pricing: '$0.15-0.30/image',
     provider: 'replicate',
+    useCases: ['general', 'style-transfer', 'image-variation'],
   },
   {
     capabilities: ['text-to-video', 'image-to-video'],
@@ -26,6 +28,7 @@ const REPLICATE_MODELS: ProviderModel[] = [
     id: 'google/veo-3.1-fast',
     pricing: '$0.10-0.15/sec',
     provider: 'replicate',
+    useCases: ['general'],
   },
   {
     capabilities: ['text-to-video', 'image-to-video'],
@@ -34,6 +37,7 @@ const REPLICATE_MODELS: ProviderModel[] = [
     id: 'google/veo-3.1',
     pricing: '$0.20-0.40/sec',
     provider: 'replicate',
+    useCases: ['general'],
   },
   {
     capabilities: ['image-to-image'],
@@ -42,6 +46,7 @@ const REPLICATE_MODELS: ProviderModel[] = [
     id: 'luma/reframe-image',
     pricing: '$0.01-0.03/image',
     provider: 'replicate',
+    useCases: ['general'],
   },
   {
     capabilities: ['image-to-video'],
@@ -50,6 +55,7 @@ const REPLICATE_MODELS: ProviderModel[] = [
     id: 'luma/reframe-video',
     pricing: '$0.06/sec',
     provider: 'replicate',
+    useCases: ['general'],
   },
   {
     capabilities: ['image-to-image'],
@@ -58,6 +64,7 @@ const REPLICATE_MODELS: ProviderModel[] = [
     id: 'topazlabs/image-upscale',
     pricing: '$0.05-0.82/image',
     provider: 'replicate',
+    useCases: ['upscale'],
   },
   {
     capabilities: ['image-to-video'],
@@ -66,12 +73,14 @@ const REPLICATE_MODELS: ProviderModel[] = [
     id: 'topazlabs/video-upscale',
     pricing: '$0.01-0.75/sec',
     provider: 'replicate',
+    useCases: ['upscale'],
   },
 ];
 
 interface ListModelsQuery {
   provider?: ProviderType;
   capabilities?: string;
+  useCase?: ModelUseCase;
   query?: string;
 }
 
@@ -85,7 +94,7 @@ export class ProvidersController {
     @Query() queryParams: ListModelsQuery,
     @Headers('X-Replicate-Key') _replicateKey?: string
   ): ProviderModel[] {
-    const { provider, capabilities: capabilitiesStr, query } = queryParams;
+    const { provider, capabilities: capabilitiesStr, useCase, query } = queryParams;
 
     // Parse capabilities from comma-separated string
     const capabilities = capabilitiesStr
@@ -96,7 +105,7 @@ export class ProvidersController {
 
     // Only Replicate is supported in OSS
     if (!provider || provider === 'replicate') {
-      models.push(...this.filterModels(REPLICATE_MODELS, capabilities, query));
+      models.push(...this.filterModels(REPLICATE_MODELS, capabilities, useCase, query));
     }
 
     return models;
@@ -136,12 +145,17 @@ export class ProvidersController {
   private filterModels(
     models: ProviderModel[],
     capabilities?: ModelCapability[],
+    useCase?: ModelUseCase,
     query?: string
   ): ProviderModel[] {
     let result = [...models];
 
     if (capabilities?.length) {
       result = result.filter((m) => m.capabilities.some((c) => capabilities.includes(c)));
+    }
+
+    if (useCase) {
+      result = result.filter((m) => m.useCases?.includes(useCase));
     }
 
     if (query) {

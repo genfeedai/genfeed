@@ -73,18 +73,21 @@ function VideoGenNodeComponent(props: NodeProps) {
     VIDEO_MODELS.find((m) => m.value === nodeData.model)?.label ||
     nodeData.model;
 
+  const isProcessing = nodeData.status === 'processing';
+
   const titleElement = useMemo(
     () => (
       <button
-        className="flex flex-1 items-center gap-1 text-sm font-medium text-left text-foreground hover:text-foreground/80 cursor-pointer"
-        onClick={() => setIsModelBrowserOpen(true)}
+        className={`flex flex-1 items-center gap-1 text-sm font-medium text-left text-foreground ${isProcessing ? 'opacity-50 cursor-default' : 'hover:text-foreground/80 cursor-pointer'}`}
+        onClick={() => !isProcessing && setIsModelBrowserOpen(true)}
         title="Browse models"
+        disabled={isProcessing}
       >
         <span className="truncate">{modelDisplayName}</span>
         <ChevronDown className="h-3 w-3 shrink-0" />
       </button>
     ),
-    [modelDisplayName]
+    [modelDisplayName, isProcessing]
   );
 
   const headerActions = useMemo(
@@ -139,6 +142,7 @@ function VideoGenNodeComponent(props: NodeProps) {
             onChange={handleSchemaParamChange}
             enumValues={enumValues}
             componentSchemas={componentSchemas}
+            disabled={nodeData.status === 'processing'}
           />
         )}
 

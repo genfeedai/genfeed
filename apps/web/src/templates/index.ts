@@ -19,6 +19,9 @@ import { JACKPOT_HIGHLIGHT_TEMPLATE } from './jackpot-highlight';
 import { SOCIAL_TEASER_CLIP_TEMPLATE } from './social-teaser-clip';
 import { SPORTS_BETTING_TEASER_TEMPLATE } from './sports-betting-teaser';
 import { STREAMER_HIGHLIGHT_REEL_TEMPLATE } from './streamer-highlight-reel';
+import { STYLE_TRANSFER_TEMPLATE } from './style-transfer';
+import { CHARACTER_VARIATIONS_TEMPLATE } from './character-variations';
+import { IMAGE_REMIX_TEMPLATE } from './image-remix';
 
 export interface TemplateInfo {
   id: string;
@@ -49,6 +52,9 @@ export const TEMPLATE_REGISTRY: Record<string, WorkflowTemplate> = {
   'streamer-highlight-reel': STREAMER_HIGHLIGHT_REEL_TEMPLATE,
   'cam-profile-promo': CAM_PROFILE_PROMO_TEMPLATE,
   'social-teaser-clip': SOCIAL_TEASER_CLIP_TEMPLATE,
+  'style-transfer': STYLE_TRANSFER_TEMPLATE,
+  'character-variations': CHARACTER_VARIATIONS_TEMPLATE,
+  'image-remix': IMAGE_REMIX_TEMPLATE,
 };
 
 export const TEMPLATE_INFO: TemplateInfo[] = [
@@ -208,6 +214,28 @@ export const TEMPLATE_INFO: TemplateInfo[] = [
     category: TemplateCategory.VIDEO,
     thumbnail: 'https://images.unsplash.com/photo-1611162616305-c69b3fa7fbe0?w=600&h=400&fit=crop',
   },
+  {
+    id: 'style-transfer',
+    name: 'Style Transfer',
+    description: 'Apply a new style to your reference image while preserving the subject identity',
+    category: TemplateCategory.IMAGE,
+    thumbnail: 'https://images.unsplash.com/photo-1547891654-e66ed7ebb968?w=600&h=400&fit=crop',
+  },
+  {
+    id: 'character-variations',
+    name: 'Character Variations',
+    description:
+      'Generate multiple scenes with a consistent character from a single reference photo',
+    category: TemplateCategory.IMAGE,
+    thumbnail: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=600&h=400&fit=crop',
+  },
+  {
+    id: 'image-remix',
+    name: 'Image Remix',
+    description: 'Reimagine your image in a new style while keeping the overall composition',
+    category: TemplateCategory.IMAGE,
+    thumbnail: 'https://images.unsplash.com/photo-1549490349-8643362247b5?w=600&h=400&fit=crop',
+  },
 ];
 
 export function getTemplate(id: string): WorkflowTemplate | undefined {
@@ -240,4 +268,7 @@ export {
   STREAMER_HIGHLIGHT_REEL_TEMPLATE,
   CAM_PROFILE_PROMO_TEMPLATE,
   SOCIAL_TEASER_CLIP_TEMPLATE,
+  STYLE_TRANSFER_TEMPLATE,
+  CHARACTER_VARIATIONS_TEMPLATE,
+  IMAGE_REMIX_TEMPLATE,
 };

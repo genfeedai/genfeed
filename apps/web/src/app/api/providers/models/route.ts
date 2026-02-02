@@ -1,4 +1,4 @@
-import type { ModelCapability, ProviderModel, ProviderType } from '@genfeedai/types';
+import type { ModelCapability, ModelUseCase, ProviderModel, ProviderType } from '@genfeedai/types';
 // Import the cached schemas (includes cover images from Replicate API)
 import replicateSchemas from '@genfeedai/types/replicate/schemas.json';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -23,74 +23,92 @@ function getConfiguredProviders(): Set<ProviderType> {
 // Model metadata (capabilities and pricing not in schema)
 const MODEL_METADATA: Record<
   string,
-  { capabilities: ModelCapability[]; pricing: string; displayName?: string }
+  {
+    capabilities: ModelCapability[];
+    pricing: string;
+    displayName?: string;
+    useCases?: ModelUseCase[];
+  }
 > = {
   // Image models
   'google/nano-banana': {
     capabilities: ['text-to-image'],
     pricing: '$0.039/image',
     displayName: 'Nano Banana',
+    useCases: ['general'],
   },
   'google/nano-banana-pro': {
     capabilities: ['text-to-image', 'image-to-image'],
     pricing: '$0.15-0.30/image',
     displayName: 'Nano Banana Pro',
+    useCases: ['general', 'style-transfer', 'image-variation'],
   },
   'prunaai/z-image-turbo': {
     capabilities: ['text-to-image'],
     pricing: '$0.002/image',
     displayName: 'Z-Image Turbo',
+    useCases: ['general'],
   },
   'black-forest-labs/flux-schnell': {
     capabilities: ['text-to-image'],
     pricing: '$0.003/image',
     displayName: 'FLUX Schnell',
+    useCases: ['general'],
   },
   'black-forest-labs/flux-dev': {
     capabilities: ['text-to-image'],
     pricing: '$0.025/image',
     displayName: 'FLUX Dev',
+    useCases: ['general'],
   },
   'black-forest-labs/flux-1.1-pro': {
     capabilities: ['text-to-image'],
     pricing: '$0.04/image',
     displayName: 'FLUX 1.1 Pro',
+    useCases: ['general'],
   },
   'black-forest-labs/flux-kontext-dev': {
     capabilities: ['text-to-image', 'image-to-image'],
     pricing: '$0.025/image',
     displayName: 'FLUX Kontext [dev]',
+    useCases: ['style-transfer', 'character-consistent', 'image-variation'],
   },
   // Video models
   'google/veo-3.1-fast': {
     capabilities: ['text-to-video', 'image-to-video'],
     pricing: '$0.10-0.15/sec',
     displayName: 'Veo 3.1 Fast',
+    useCases: ['general'],
   },
   'google/veo-3.1': {
     capabilities: ['text-to-video', 'image-to-video'],
     pricing: '$0.20-0.40/sec',
     displayName: 'Veo 3.1',
+    useCases: ['general'],
   },
   'kwaivgi/kling-v2.5-turbo-pro': {
     capabilities: ['text-to-video', 'image-to-video'],
     pricing: '$0.15/sec',
     displayName: 'Kling v2.5 Turbo Pro',
+    useCases: ['general'],
   },
   'kwaivgi/kling-v2.6-motion-control': {
     capabilities: ['image-to-video'],
     pricing: '$0.20/sec',
     displayName: 'Kling v2.6 Motion Control',
+    useCases: ['general'],
   },
   'minimax/video-01': {
     capabilities: ['text-to-video', 'image-to-video'],
     pricing: '$0.20/sec',
     displayName: 'MiniMax Video-01',
+    useCases: ['general'],
   },
   'luma/ray': {
     capabilities: ['text-to-video', 'image-to-video'],
     pricing: '$0.15/sec',
     displayName: 'Luma Ray',
+    useCases: ['general'],
   },
   // Lip-sync
   'sync/lipsync-2': {
@@ -105,6 +123,29 @@ const MODEL_METADATA: Record<
   },
 };
 
+// Auto-detect use cases from input schema fields
+function detectUseCases(schema: Record<string, unknown> | undefined): ModelUseCase[] {
+  if (!schema) return [];
+
+  const detected: ModelUseCase[] = [];
+  const schemaStr = JSON.stringify(schema).toLowerCase();
+
+  if (schemaStr.includes('ip_adapter') || schemaStr.includes('style_image')) {
+    detected.push('style-transfer');
+  }
+  if (schemaStr.includes('reference_image') || schemaStr.includes('subject_image')) {
+    detected.push('character-consistent');
+  }
+  if (schemaStr.includes('mask') || schemaStr.includes('inpaint')) {
+    detected.push('inpainting');
+  }
+  if (schemaStr.includes('upscale') || schemaStr.includes('scale_factor')) {
+    detected.push('upscale');
+  }
+
+  return detected;
+}
+
 // Build Replicate models from cached schemas
 function getReplicateModels(): ProviderModel[] {
   return replicateSchemas
@@ -114,6 +155,13 @@ function getReplicateModels(): ProviderModel[] {
       // Extract component schemas that contain enum definitions (aspect_ratio, duration, etc.)
       const componentSchemas = (schema as { componentSchemas?: Record<string, unknown> })
         .componentSchemas;
+
+      // Merge explicit use cases with auto-detected ones from schema
+      const explicitUseCases = meta.useCases || [];
+      const schemaUseCases = detectUseCases(
+        schema.inputSchema as Record<string, unknown> | undefined
+      );
+      const allUseCases = [...new Set([...explicitUseCases, ...schemaUseCases])];
 
       return {
         id: schema.modelId,
@@ -125,6 +173,7 @@ function getReplicateModels(): ProviderModel[] {
         thumbnail: (schema as { coverImageUrl?: string }).coverImageUrl || undefined,
         inputSchema: schema.inputSchema as Record<string, unknown> | undefined,
         componentSchemas: componentSchemas as Record<string, unknown> | undefined,
+        useCases: allUseCases.length > 0 ? allUseCases : undefined,
       };
     });
 }
@@ -162,6 +211,7 @@ export async function GET(request: NextRequest) {
 
   const provider = searchParams.get('provider') as ProviderType | null;
   const capabilitiesParam = searchParams.get('capabilities');
+  const useCaseParam = searchParams.get('useCase') as ModelUseCase | null;
   const query = searchParams.get('query')?.toLowerCase();
 
   // Parse capabilities filter
@@ -199,6 +249,11 @@ export async function GET(request: NextRequest) {
     filteredModels = filteredModels.filter((m) =>
       m.capabilities.some((c) => capabilities.includes(c))
     );
+  }
+
+  // Filter by use case
+  if (useCaseParam) {
+    filteredModels = filteredModels.filter((m) => m.useCases?.includes(useCaseParam));
   }
 
   // Filter by search query

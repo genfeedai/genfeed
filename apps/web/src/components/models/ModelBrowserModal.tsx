@@ -4,8 +4,20 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { logger } from '@/lib/logger';
 import { useSettingsStore } from '@/store/settingsStore';
-import type { ModelCapability, ProviderModel, ProviderType } from '@genfeedai/types';
-import { AlertTriangle, Clock, ExternalLink, Search, Sparkles, X } from 'lucide-react';
+import type { ModelCapability, ModelUseCase, ProviderModel, ProviderType } from '@genfeedai/types';
+import {
+  AlertTriangle,
+  Clock,
+  ExternalLink,
+  Layers,
+  Palette,
+  Repeat,
+  Search,
+  Sparkles,
+  User,
+  X,
+  ZoomIn,
+} from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -67,6 +79,32 @@ function CapabilityBadge({ capability }: { capability: ModelCapability }) {
 }
 
 // =============================================================================
+// USE CASE CONFIG
+// =============================================================================
+
+const USE_CASE_CONFIG: Record<ModelUseCase, { label: string; icon: typeof Sparkles }> = {
+  'style-transfer': { label: 'Style Transfer', icon: Palette },
+  'character-consistent': { label: 'Character Consistent', icon: User },
+  'image-variation': { label: 'Image Variation', icon: Repeat },
+  inpainting: { label: 'Inpainting', icon: Layers },
+  upscale: { label: 'Upscale', icon: ZoomIn },
+  general: { label: 'General', icon: Sparkles },
+};
+
+function UseCaseBadge({ useCase }: { useCase: ModelUseCase }) {
+  const config = USE_CASE_CONFIG[useCase];
+  if (!config || useCase === 'general') return null;
+  const Icon = config.icon;
+
+  return (
+    <span className="inline-flex items-center gap-1 rounded bg-purple-500/10 px-1.5 py-0.5 text-[10px] font-medium text-purple-400 border border-purple-500/20">
+      <Icon className="h-2.5 w-2.5" />
+      {config.label}
+    </span>
+  );
+}
+
+// =============================================================================
 // MODEL CARD
 // =============================================================================
 
@@ -115,6 +153,11 @@ function ModelCard({ model, onSelect, isRecent }: ModelCardProps) {
             {model.capabilities.map((cap) => (
               <CapabilityBadge key={cap} capability={cap} />
             ))}
+            {model.useCases
+              ?.filter((uc) => uc !== 'general')
+              .map((uc) => (
+                <UseCaseBadge key={uc} useCase={uc} />
+              ))}
           </div>
 
           {/* Description and pricing */}
@@ -154,6 +197,7 @@ function ModelBrowserModalComponent({
 
   const [searchQuery, setSearchQuery] = useState('');
   const [providerFilter, setProviderFilter] = useState<ProviderType | 'all'>('all');
+  const [useCaseFilter, setUseCaseFilter] = useState<ModelUseCase | 'all'>('all');
   const [models, setModels] = useState<ProviderModel[]>([]);
   const [configuredProviders, setConfiguredProviders] = useState<ProviderType[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -171,6 +215,10 @@ function ModelBrowserModalComponent({
 
         if (capabilities?.length) {
           params.set('capabilities', capabilities.join(','));
+        }
+
+        if (useCaseFilter !== 'all') {
+          params.set('useCase', useCaseFilter);
         }
 
         if (searchQuery) {
@@ -208,7 +256,7 @@ function ModelBrowserModalComponent({
         setHasFetched(true);
       }
     },
-    [searchQuery, providerFilter, capabilities, replicateKey, falKey, hfKey]
+    [searchQuery, providerFilter, useCaseFilter, capabilities, replicateKey, falKey, hfKey]
   );
 
   // Debounced search
@@ -246,6 +294,17 @@ function ModelBrowserModalComponent({
       .slice(0, 4);
   }, [recentModels, models, capabilities]);
 
+  // Derive available use cases from loaded models (only show chips with matching models)
+  const availableUseCases = useMemo(() => {
+    const useCaseSet = new Set<ModelUseCase>();
+    for (const model of models) {
+      model.useCases?.forEach((uc) => {
+        if (uc !== 'general') useCaseSet.add(uc);
+      });
+    }
+    return Array.from(useCaseSet).sort();
+  }, [models]);
+
   const handleSelect = useCallback(
     (model: ProviderModel) => {
       addRecentModel({
@@ -280,41 +339,78 @@ function ModelBrowserModalComponent({
         </div>
 
         {/* Filters */}
-        <div className="flex items-center gap-4 border-b border-border px-6 py-4">
-          {/* Search */}
-          <div className="relative max-w-md flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search models..."
-              className="pl-10"
-            />
+        <div className="space-y-0 border-b border-border">
+          <div className="flex items-center gap-4 px-6 py-4">
+            {/* Search */}
+            <div className="relative max-w-md flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search models..."
+                className="pl-10"
+              />
+            </div>
+
+            {/* Provider filter - only show configured providers */}
+            {configuredProviders.length > 0 && (
+              <div className="flex items-center gap-2">
+                {(['all', ...configuredProviders] as const).map((provider) => (
+                  <button
+                    key={provider}
+                    onClick={() => setProviderFilter(provider)}
+                    className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                      providerFilter === provider
+                        ? 'bg-primary text-primary-foreground'
+                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
+                    }`}
+                  >
+                    {provider === 'all'
+                      ? 'All'
+                      : provider === 'replicate'
+                        ? 'Replicate'
+                        : provider === 'fal'
+                          ? 'fal.ai'
+                          : 'Hugging Face'}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Provider filter - only show configured providers */}
-          {configuredProviders.length > 0 && (
-            <div className="flex items-center gap-2">
-              {(['all', ...configuredProviders] as const).map((provider) => (
-                <button
-                  key={provider}
-                  onClick={() => setProviderFilter(provider)}
-                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                    providerFilter === provider
-                      ? 'bg-primary text-primary-foreground'
-                      : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
-                  }`}
-                >
-                  {provider === 'all'
-                    ? 'All'
-                    : provider === 'replicate'
-                      ? 'Replicate'
-                      : provider === 'fal'
-                        ? 'fal.ai'
-                        : 'Hugging Face'}
-                </button>
-              ))}
+          {/* Use-case filter chips */}
+          {availableUseCases.length > 0 && (
+            <div className="flex items-center gap-2 overflow-x-auto px-6 pb-4">
+              <button
+                onClick={() => setUseCaseFilter('all')}
+                className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                  useCaseFilter === 'all'
+                    ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                    : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent'
+                }`}
+              >
+                <Sparkles className="h-3 w-3" />
+                All
+              </button>
+              {availableUseCases.map((uc) => {
+                const config = USE_CASE_CONFIG[uc];
+                const Icon = config.icon;
+                return (
+                  <button
+                    key={uc}
+                    onClick={() => setUseCaseFilter(uc)}
+                    className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-medium transition ${
+                      useCaseFilter === uc
+                        ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                        : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 border border-transparent'
+                    }`}
+                  >
+                    <Icon className="h-3 w-3" />
+                    {config.label}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
