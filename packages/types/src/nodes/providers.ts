@@ -8,7 +8,8 @@ export type ModelCapability =
   | 'text-to-image'
   | 'image-to-image'
   | 'text-to-video'
-  | 'image-to-video';
+  | 'image-to-video'
+  | 'text-generation';
 
 export type ModelUseCase =
   | 'style-transfer'

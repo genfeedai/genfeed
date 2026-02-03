@@ -79,6 +79,8 @@ export interface LLMInput {
   maxTokens?: number;
   temperature?: number;
   topP?: number;
+  selectedModel?: SelectedModel;
+  schemaParams?: Record<string, unknown>;
 }
 
 export interface LumaReframeImageInput {
@@ -561,17 +563,22 @@ export class ReplicateService {
   }
 
   /**
-   * Generate text using meta-llama
+   * Generate text using meta-llama or a dynamically selected model
    */
   async generateText(input: LLMInput): Promise<string> {
-    const output = await this.replicate.run(MODELS.llama, {
-      input: {
-        prompt: input.prompt,
-        system_prompt: input.systemPrompt ?? 'You are a helpful assistant.',
-        max_tokens: input.maxTokens ?? 1024,
-        temperature: input.temperature ?? 0.7,
-        top_p: input.topP ?? 0.9,
-      },
+    const modelId = input.selectedModel?.modelId ?? MODELS.llama;
+
+    const replicateInput: Record<string, unknown> = {
+      prompt: input.prompt,
+      system_prompt: input.systemPrompt ?? 'You are a helpful assistant.',
+      max_tokens: input.maxTokens ?? 1024,
+      temperature: input.temperature ?? 0.7,
+      top_p: input.topP ?? 0.9,
+      ...input.schemaParams,
+    };
+
+    const output = await this.replicate.run(modelId, {
+      input: replicateInput,
     });
 
     // Output is typically an array of strings

@@ -101,6 +101,9 @@ export interface LLMJobData extends NodeJobData {
     // Ollama-specific options
     provider?: LLMProvider;
     ollamaModel?: string; // e.g., 'llama3.1', 'mistral', 'codellama'
+    // Dynamic model selection (from model browser)
+    selectedModel?: SelectedModelInfo;
+    schemaParams?: Record<string, unknown>;
   };
 }
 

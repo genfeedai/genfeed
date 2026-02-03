@@ -49,7 +49,7 @@
   "private": true,
   "scripts": {
     "build": "nest build",
-    "dev": "nest start --watch",
+    "dev": "NODE_OPTIONS='--disable-warning=DEP0190' nest start --watch",
     "lint": "biome check --fix .",
     "start": "nest start",
     "start:debug": "nest start --debug --watch",

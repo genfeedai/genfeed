@@ -69,6 +69,8 @@ export class LLMProcessor extends BaseProcessor<LLMJobData> {
           maxTokens: nodeData.maxTokens,
           temperature: nodeData.temperature,
           topP: nodeData.topP,
+          selectedModel: nodeData.selectedModel,
+          schemaParams: nodeData.schemaParams,
         });
       }
 

@@ -197,6 +197,7 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       status: 'idle',
       inputPrompt: null,
       outputText: null,
+      model: 'meta-llama-3.1-405b-instruct',
       systemPrompt: 'You are a creative assistant helping generate content prompts.',
       temperature: 0.7,
       maxTokens: 1024,

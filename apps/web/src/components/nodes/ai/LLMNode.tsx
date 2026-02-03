@@ -1,14 +1,23 @@
 'use client';
 
-import type { LLMNodeData } from '@genfeedai/types';
+import type { LLMNodeData, TextModel } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, Expand, Loader2, RefreshCw, Sparkles } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
+import { AlertCircle, ChevronDown, Expand, Play, RefreshCw, Square } from 'lucide-react';
+import { memo, useCallback, useMemo, useState } from 'react';
+import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { useAutoLoadModelSchema } from '@/hooks/useAutoLoadModelSchema';
 import { useCanGenerate } from '@/hooks/useCanGenerate';
+import { useModelSelection } from '@/hooks/useModelSelection';
 import { useNodeExecution } from '@/hooks/useNodeExecution';
+import {
+  DEFAULT_LLM_MODEL,
+  LLM_MODEL_ID_MAP,
+  LLM_MODEL_MAP,
+  LLM_MODELS,
+} from '@/lib/models/registry';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
 
@@ -17,10 +26,27 @@ function LLMNodeComponent(props: NodeProps) {
   const nodeData = data as LLMNodeData;
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
-  const { handleGenerate } = useNodeExecution(id);
+  const { handleGenerate, handleStop } = useNodeExecution(id);
   const { canGenerate } = useCanGenerate({
     nodeId: id,
     nodeType: type as 'llm',
+  });
+
+  const [isModelBrowserOpen, setIsModelBrowserOpen] = useState(false);
+
+  // Model selection hook (same pattern as ImageGenNode)
+  const { handleModelSelect } = useModelSelection<TextModel, LLMNodeData>({
+    nodeId: id,
+    modelMap: LLM_MODEL_MAP,
+    fallbackModel: DEFAULT_LLM_MODEL,
+  });
+
+  // Auto-load schema for default model if selectedModel is not set
+  useAutoLoadModelSchema({
+    currentModel: nodeData.model,
+    selectedModel: nodeData.selectedModel,
+    modelIdMap: LLM_MODEL_ID_MAP,
+    onModelSelect: handleModelSelect,
   });
 
   const handleSystemPromptChange = useCallback(
@@ -48,23 +74,83 @@ function LLMNodeComponent(props: NodeProps) {
     openNodeDetailModal(id, 'preview');
   }, [id, openNodeDetailModal]);
 
+  const modelDisplayName =
+    nodeData.selectedModel?.displayName ||
+    LLM_MODELS.find((m) => m.value === nodeData.model)?.label ||
+    nodeData.model ||
+    'Llama 3.1 405B';
+
+  const isProcessing = nodeData.status === 'processing';
+
+  const titleElement = useMemo(
+    () => (
+      <button
+        className={`flex flex-1 items-center gap-1 text-sm font-medium text-left text-foreground ${isProcessing ? 'opacity-50 cursor-default' : 'hover:text-foreground/80 cursor-pointer'}`}
+        onClick={() => !isProcessing && setIsModelBrowserOpen(true)}
+        title="Browse models"
+        disabled={isProcessing}
+      >
+        <span className="truncate">{modelDisplayName}</span>
+        <ChevronDown className="h-3 w-3 shrink-0" />
+      </button>
+    ),
+    [modelDisplayName, isProcessing]
+  );
+
   const headerActions = useMemo(
-    () =>
-      nodeData.outputText ? (
-        <Button variant="ghost" size="icon-sm" onClick={handleExpand} title="Expand preview">
-          <Expand className="h-3.5 w-3.5" />
-        </Button>
-      ) : null,
-    [nodeData.outputText, handleExpand]
+    () => (
+      <>
+        {nodeData.outputText && (
+          <Button variant="ghost" size="icon-sm" onClick={handleExpand} title="Expand preview">
+            <Expand className="h-3 w-3" />
+          </Button>
+        )}
+        {isProcessing ? (
+          <Button variant="destructive" size="sm" onClick={handleStop}>
+            <Square className="h-4 w-4 fill-current" />
+            Generating
+          </Button>
+        ) : (
+          <Button
+            variant={canGenerate ? 'default' : 'secondary'}
+            size="sm"
+            onClick={handleGenerate}
+            disabled={!canGenerate}
+          >
+            <Play className="h-4 w-4 fill-current" />
+            Generate
+          </Button>
+        )}
+      </>
+    ),
+    [nodeData.outputText, isProcessing, handleGenerate, handleStop, handleExpand, canGenerate]
   );
 
   return (
-    <BaseNode {...props} headerActions={headerActions}>
+    <BaseNode
+      {...props}
+      titleElement={titleElement}
+      headerActions={headerActions}
+      hideStatusIndicator
+    >
       <div className="space-y-3">
-        {/* Model Info */}
-        <div className="text-xs text-[var(--muted-foreground)]">
-          Using: meta-llama-3.1-405b-instruct
-        </div>
+        {/* Input Prompt Preview */}
+        {nodeData.inputPrompt ? (
+          <div>
+            <label className="text-xs text-[var(--muted-foreground)]">Input Prompt</label>
+            <div className="mt-1 p-2 bg-[var(--secondary)]/30 border border-[var(--border)] rounded text-xs text-[var(--muted-foreground)] max-h-16 overflow-hidden line-clamp-3">
+              {nodeData.inputPrompt}
+            </div>
+          </div>
+        ) : (
+          !canGenerate &&
+          !isProcessing && (
+            <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              Connect a prompt to generate
+            </div>
+          )
+        )}
 
         {/* System Prompt */}
         <div>
@@ -74,6 +160,7 @@ function LLMNodeComponent(props: NodeProps) {
             onChange={handleSystemPromptChange}
             placeholder="Define the AI's behavior..."
             className="w-full h-16 px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded resize-none focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            disabled={isProcessing}
           />
         </div>
 
@@ -89,6 +176,7 @@ function LLMNodeComponent(props: NodeProps) {
             step={0.1}
             onValueChange={handleTemperatureChange}
             className="nodrag w-full"
+            disabled={isProcessing}
           />
           <div className="flex justify-between text-xs text-[var(--muted-foreground)]">
             <span>Precise</span>
@@ -106,6 +194,7 @@ function LLMNodeComponent(props: NodeProps) {
             value={nodeData.maxTokens}
             onChange={handleMaxTokensChange}
             className="w-full px-2 py-1.5 text-sm bg-[var(--background)] border border-[var(--border)] rounded focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            disabled={isProcessing}
           />
         </div>
 
@@ -119,40 +208,23 @@ function LLMNodeComponent(props: NodeProps) {
               variant="ghost"
               size="icon-sm"
               onClick={handleGenerate}
-              disabled={nodeData.status === 'processing'}
+              disabled={isProcessing}
               className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70"
             >
               <RefreshCw className="w-3 h-3" />
             </Button>
           </div>
         )}
-
-        {/* Generate Button */}
-        {!nodeData.outputText && (
-          <Button
-            variant={canGenerate ? 'default' : 'secondary'}
-            size="sm"
-            onClick={handleGenerate}
-            disabled={!canGenerate || nodeData.status === 'processing'}
-            className="w-full"
-          >
-            {nodeData.status === 'processing' ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <Sparkles className="w-4 h-4" />
-            )}
-            {nodeData.status === 'processing' ? 'Generating...' : 'Generate Text'}
-          </Button>
-        )}
-
-        {/* Help text for required inputs */}
-        {!canGenerate && nodeData.status !== 'processing' && (
-          <div className="text-xs text-[var(--muted-foreground)] flex items-center gap-1">
-            <AlertCircle className="w-3 h-3" />
-            Connect a prompt to generate
-          </div>
-        )}
       </div>
+
+      {/* Model Browser Modal */}
+      <ModelBrowserModal
+        isOpen={isModelBrowserOpen}
+        onClose={() => setIsModelBrowserOpen(false)}
+        onSelect={handleModelSelect}
+        capabilities={['text-generation']}
+        title="Select LLM Model"
+      />
     </BaseNode>
   );
 }

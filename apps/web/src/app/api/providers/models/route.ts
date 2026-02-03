@@ -110,6 +110,12 @@ const MODEL_METADATA: Record<
     displayName: 'Luma Ray',
     useCases: ['general'],
   },
+  // LLM (text generation)
+  'meta/meta-llama-3.1-405b-instruct': {
+    capabilities: ['text-generation'],
+    pricing: '$0.0032/1K tokens',
+    displayName: 'Llama 3.1 405B Instruct',
+  },
   // Lip-sync
   'sync/lipsync-2': {
     capabilities: ['image-to-video'],

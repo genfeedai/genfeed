@@ -100,6 +100,8 @@ export interface VideoGenNodeData extends BaseNodeData {
   jobId: string | null;
 }
 
+export type TextModel = 'meta-llama-3.1-405b-instruct';
+
 export interface LLMNodeData extends BaseNodeData {
   // Inputs from connections
   inputPrompt: string | null;
@@ -108,10 +110,18 @@ export interface LLMNodeData extends BaseNodeData {
   outputText: string | null;
 
   // Model config
+  model: TextModel;
   systemPrompt: string;
   temperature: number;
   maxTokens: number;
   topP: number;
+
+  // Provider (optional, defaults to replicate)
+  provider?: ProviderType;
+  selectedModel?: SelectedModel;
+
+  // Dynamic schema parameters (from model's inputSchema)
+  schemaParams?: Record<string, unknown>;
 
   // Job state
   jobId: string | null;

@@ -97,7 +97,7 @@ export function useCanGenerate({
     },
     [incomingEdges]
   );
-  const _connectedNodeData = useWorkflowStore(useShallow(connectedOutputsSelector));
+  const connectedNodeData = useWorkflowStore(useShallow(connectedOutputsSelector));
 
   return useMemo(() => {
     const missingItems: MissingItem[] = [];

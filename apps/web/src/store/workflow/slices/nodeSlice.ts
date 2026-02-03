@@ -252,7 +252,7 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
   },
 
   duplicateNode: (nodeId) => {
-    const { nodes } = get();
+    const { nodes, edges, edgeStyle, propagateOutputsDownstream } = get();
     const node = nodes.find((n) => n.id === nodeId);
     if (!node) return null;
 
@@ -271,10 +271,30 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
       } as WorkflowNodeData,
     };
 
+    // Clone incoming edges (where original node is the target)
+    // Skip self-connections (source === original node)
+    const incomingEdges = edges.filter((e) => e.target === nodeId && e.source !== nodeId);
+    const clonedEdges: WorkflowEdge[] = incomingEdges.map((edge) => ({
+      ...edge,
+      id: generateId(),
+      target: newId,
+      type: edgeStyle,
+    }));
+
     set((state) => ({
       nodes: [...state.nodes, newNode],
+      edges: [...state.edges, ...clonedEdges],
       isDirty: true,
     }));
+
+    // Propagate outputs from each source so the duplicate receives current data
+    const sourcesNotified = new Set<string>();
+    for (const edge of incomingEdges) {
+      if (!sourcesNotified.has(edge.source)) {
+        sourcesNotified.add(edge.source);
+        propagateOutputsDownstream(edge.source);
+      }
+    }
 
     return newId;
   },

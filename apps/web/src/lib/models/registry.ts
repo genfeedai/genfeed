@@ -1,4 +1,4 @@
-import type { ImageModel, LipSyncModel, VideoModel } from '@genfeedai/types';
+import type { ImageModel, LipSyncModel, TextModel, VideoModel } from '@genfeedai/types';
 
 /**
  * Centralized Model Registry
@@ -98,6 +98,36 @@ export const LIPSYNC_SYNC_MODES = [
 export const DEFAULT_LIPSYNC_MODEL: LipSyncModel = 'bytedance/omni-human';
 
 // =============================================================================
+// LLM (TEXT) MODELS
+// =============================================================================
+
+export interface TextModelConfig {
+  value: TextModel;
+  label: string;
+  apiId: string;
+}
+
+export const LLM_MODELS: TextModelConfig[] = [
+  {
+    value: 'meta-llama-3.1-405b-instruct',
+    label: 'Llama 3.1 405B',
+    apiId: 'meta/meta-llama-3.1-405b-instruct',
+  },
+];
+
+/** Maps API model ID -> internal model type */
+export const LLM_MODEL_MAP: Record<string, TextModel> = Object.fromEntries(
+  LLM_MODELS.map((m) => [m.apiId, m.value])
+) as Record<string, TextModel>;
+
+/** Maps internal model type -> API model ID */
+export const LLM_MODEL_ID_MAP: Record<TextModel, string> = Object.fromEntries(
+  LLM_MODELS.map((m) => [m.value, m.apiId])
+) as Record<TextModel, string>;
+
+export const DEFAULT_LLM_MODEL: TextModel = 'meta-llama-3.1-405b-instruct';
+
+// =============================================================================
 // UTILITY FUNCTIONS
 // =============================================================================
 
@@ -114,6 +144,11 @@ export function getVideoModelLabel(model: VideoModel): string {
 /** Get display label for a lip sync model */
 export function getLipSyncModelLabel(model: LipSyncModel): string {
   return LIPSYNC_MODELS.find((m) => m.value === model)?.label ?? model;
+}
+
+/** Get display label for an LLM model */
+export function getLLMModelLabel(model: TextModel): string {
+  return LLM_MODELS.find((m) => m.value === model)?.label ?? model;
 }
 
 /** Check if a lip sync model supports image input */
