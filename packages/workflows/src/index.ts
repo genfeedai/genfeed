@@ -5,6 +5,8 @@
  * The actual workflow JSON files are stored in the `workflows/` directory.
  */
 
+export * from './comfyui/index';
+
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import type { WorkflowEdge, WorkflowNode } from '@genfeedai/types';

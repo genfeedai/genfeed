@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./nodes": "./src/nodes.ts",
     "./workflow": "./src/workflow.ts",
+    "./comfyui": "./src/comfyui/index.ts",
     "./replicate": "./src/replicate/index.ts",
     "./replicate/schemas.json": "./src/replicate/schemas.json"
   },

@@ -2,7 +2,7 @@
 // PROVIDER TYPES
 // =============================================================================
 
-export type ProviderType = 'replicate' | 'fal' | 'huggingface';
+export type ProviderType = 'replicate' | 'fal' | 'huggingface' | 'genfeed-ai';
 
 export type ModelCapability =
   | 'text-to-image'
