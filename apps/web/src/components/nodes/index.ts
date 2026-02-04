@@ -18,12 +18,21 @@ import {
   VoiceChangeNode,
 } from './ai';
 import { WorkflowInputNode, WorkflowOutputNode, WorkflowRefNode } from './composition';
-import { AudioInputNode, ImageInputNode, PromptNode, TemplateNode, VideoInputNode } from './input';
+import {
+  AudioInputNode,
+  ImageInputNode,
+  PromptConstructorNode,
+  PromptNode,
+  TemplateNode,
+  VideoInputNode,
+} from './input';
 import { OutputNode } from './output';
 import {
   AnimationNode,
   AnnotationNode,
+  ImageCompareNode,
   ImageGridSplitNode,
+  OutputGalleryNode,
   ReframeNode,
   ResizeNode,
   SubtitleNode,
@@ -39,6 +48,7 @@ export const nodeTypes: NodeTypes = {
   imageInput: ImageInputNode,
   videoInput: VideoInputNode,
   prompt: PromptNode,
+  promptConstructor: PromptConstructorNode,
   template: TemplateNode,
   // AI nodes
   imageGen: ImageGenNode,
@@ -54,6 +64,8 @@ export const nodeTypes: NodeTypes = {
   animation: AnimationNode,
   annotation: AnnotationNode,
   imageGridSplit: ImageGridSplitNode,
+  outputGallery: OutputGalleryNode,
+  imageCompare: ImageCompareNode,
   videoStitch: VideoStitchNode,
   videoTrim: VideoTrimNode,
   videoFrameExtract: VideoFrameExtractNode,

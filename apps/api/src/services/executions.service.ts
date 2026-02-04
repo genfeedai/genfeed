@@ -44,6 +44,7 @@ const PASSTHROUGH_NODE_TYPES = [
   'videoInput',
   'audioInput',
   'prompt',
+  'promptConstructor',
   'template',
   'workflowInput',
   'workflowOutput',
@@ -61,6 +62,7 @@ const PASSTHROUGH_OUTPUT_MAP: Record<string, Record<string, string>> = {
   videoInput: { video: 'video', output: 'video' },
   audioInput: { audio: 'audio', output: 'audio' },
   prompt: { text: 'prompt', output: 'prompt' },
+  promptConstructor: { text: 'outputText', output: 'outputText' },
   template: { text: 'resolvedPrompt', output: 'resolvedPrompt' },
   workflowInput: { value: 'value', output: 'value' },
 };
@@ -153,6 +155,15 @@ export class ExecutionsService {
       throw new NotFoundException(`Execution ${id} not found`);
     }
     return execution;
+  }
+
+  /**
+   * Set or clear the paused-at node ID for pause edge breakpoints
+   */
+  async setPausedAtNodeId(executionId: string, nodeId: string | null): Promise<void> {
+    await this.executionModel
+      .updateOne({ _id: executionId, isDeleted: false }, { $set: { pausedAtNodeId: nodeId } })
+      .exec();
   }
 
   async updateNodeResult(

@@ -107,6 +107,22 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
       source: 'upload',
     },
   },
+  promptConstructor: {
+    type: 'promptConstructor',
+    label: 'Prompt Constructor',
+    description: 'Template-based prompt with @variable interpolation from connected Prompt nodes',
+    category: 'input',
+    icon: 'Puzzle',
+    inputs: [{ id: 'text', type: 'text', label: 'Variables', multiple: true }],
+    outputs: [{ id: 'text', type: 'text', label: 'Prompt' }],
+    defaultData: {
+      label: 'Prompt Constructor',
+      status: 'idle',
+      template: '',
+      outputText: null,
+      unresolvedVars: [],
+    },
+  },
   telegramInput: {
     type: 'telegramInput',
     label: 'Telegram Input',
@@ -559,6 +575,39 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
     },
   },
 
+  outputGallery: {
+    type: 'outputGallery',
+    label: 'Output Gallery',
+    description: 'Thumbnail grid with lightbox for multi-image outputs',
+    category: 'processing',
+    icon: 'LayoutGrid',
+    inputs: [{ id: 'image', type: 'image', label: 'Images', multiple: true }],
+    outputs: [],
+    defaultData: {
+      label: 'Output Gallery',
+      status: 'idle',
+      images: [],
+    },
+  },
+  imageCompare: {
+    type: 'imageCompare',
+    label: 'Image Compare',
+    description: 'Side-by-side A/B comparison with draggable slider',
+    category: 'processing',
+    icon: 'Columns2',
+    inputs: [
+      { id: 'image', type: 'image', label: 'Image A' },
+      { id: 'image-1', type: 'image', label: 'Image B' },
+    ],
+    outputs: [],
+    defaultData: {
+      label: 'Image Compare',
+      status: 'idle',
+      imageA: null,
+      imageB: null,
+    },
+  },
+
   // Output nodes
   output: {
     type: 'output',
@@ -894,7 +943,15 @@ export const NODE_DEFINITIONS: Record<NodeType, NodeDefinition> = {
 
 // Explicit ordering for each category (most used first)
 export const NODE_ORDER: Record<NodeCategory, NodeType[]> = {
-  input: ['imageInput', 'videoInput', 'audioInput', 'telegramInput', 'prompt', 'template'],
+  input: [
+    'imageInput',
+    'videoInput',
+    'audioInput',
+    'telegramInput',
+    'prompt',
+    'promptConstructor',
+    'template',
+  ],
   ai: [
     'imageGen',
     'videoGen',
@@ -916,6 +973,8 @@ export const NODE_ORDER: Record<NodeCategory, NodeType[]> = {
     'annotation',
     'subtitle',
     'animation',
+    'outputGallery',
+    'imageCompare',
   ],
   output: ['output'],
   distribution: [

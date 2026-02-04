@@ -271,6 +271,15 @@ export interface SubtitleNodeData extends BaseNodeData {
 // OUTPUT NODE DATA
 // =============================================================================
 
+export interface OutputGalleryNodeData extends BaseNodeData {
+  images: string[];
+}
+
+export interface ImageCompareNodeData extends BaseNodeData {
+  imageA: string | null;
+  imageB: string | null;
+}
+
 export type OutputInputType = 'image' | 'video' | null;
 
 export interface OutputNodeData extends BaseNodeData {

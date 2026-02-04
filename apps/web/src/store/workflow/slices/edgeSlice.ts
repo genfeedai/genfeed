@@ -12,6 +12,7 @@ export interface EdgeSlice {
   onConnect: (connection: Connection) => void;
   removeEdge: (edgeId: string) => void;
   setEdgeStyle: (style: EdgeStyle) => void;
+  toggleEdgePause: (edgeId: string) => void;
   isValidConnection: (connection: Connection) => boolean;
   findCompatibleHandle: (
     sourceNodeId: string,
@@ -78,6 +79,23 @@ export const createEdgeSlice: StateCreator<WorkflowStore, [], [], EdgeSlice> = (
     set((state) => ({
       edgeStyle: style,
       edges: state.edges.map((edge) => ({ ...edge, type: style })),
+      isDirty: true,
+    }));
+  },
+
+  toggleEdgePause: (edgeId) => {
+    set((state) => ({
+      edges: state.edges.map((edge) =>
+        edge.id === edgeId
+          ? {
+              ...edge,
+              data: {
+                ...edge.data,
+                hasPause: !edge.data?.hasPause,
+              },
+            }
+          : edge
+      ),
       isDirty: true,
     }));
   },

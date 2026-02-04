@@ -35,6 +35,7 @@ import type {
 import type {
   AudioInputNodeData,
   ImageInputNodeData,
+  PromptConstructorNodeData,
   PromptNodeData,
   TelegramInputNodeData,
   TemplateNodeData,
@@ -43,7 +44,9 @@ import type {
 import type {
   AnimationNodeData,
   AnnotationNodeData,
+  ImageCompareNodeData,
   ImageGridSplitNodeData,
+  OutputGalleryNodeData,
   OutputNodeData,
   ReframeNodeData,
   ResizeNodeData,
@@ -60,6 +63,7 @@ export type WorkflowNodeData =
   | VideoInputNodeData
   | TelegramInputNodeData
   | PromptNodeData
+  | PromptConstructorNodeData
   | TemplateNodeData
   | ImageGenNodeData
   | VideoGenNodeData
@@ -79,6 +83,8 @@ export type WorkflowNodeData =
   | ImageGridSplitNodeData
   | AnnotationNodeData
   | SubtitleNodeData
+  | OutputGalleryNodeData
+  | ImageCompareNodeData
   | OutputNodeData
   // Distribution nodes
   | TelegramPostNodeData
@@ -106,6 +112,8 @@ export type WorkflowNode = Node<WorkflowNodeData, NodeType>;
  * Edge data for workflow edges
  */
 export interface WorkflowEdgeData {
+  /** Whether execution should pause before the target node */
+  hasPause?: boolean;
   /** Index signature for React Flow Edge compatibility */
   [key: string]: unknown;
 }

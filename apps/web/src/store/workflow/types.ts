@@ -7,6 +7,8 @@ import type {
   WorkflowNode,
   WorkflowNodeData,
 } from '@genfeedai/types';
+import type { ChatSlice } from './slices/chatSlice';
+import type { SnapshotSlice } from './slices/snapshotSlice';
 import type { Connection, EdgeChange, NodeChange, XYPosition } from '@xyflow/react';
 import type { WorkflowData } from '@/lib/api';
 import type { GroupColor, NodeGroup } from '@/types/groups';
@@ -51,6 +53,7 @@ export interface ReactFlowActions {
 export interface EdgeActions {
   removeEdge: (edgeId: string) => void;
   setEdgeStyle: (style: EdgeStyle) => void;
+  toggleEdgePause: (edgeId: string) => void;
 }
 
 export interface LockingActions {
@@ -135,4 +138,6 @@ export interface WorkflowStore
     LocalWorkflowActions,
     ApiActions,
     HelperActions,
-    CommentNavigationActions {}
+    CommentNavigationActions,
+    SnapshotSlice,
+    ChatSlice {}

@@ -10,6 +10,7 @@ export type NodeType =
   | 'telegramInput'
   | 'prompt'
   | 'template'
+  | 'promptConstructor'
   // AI generation nodes
   | 'imageGen'
   | 'videoGen'
@@ -30,6 +31,8 @@ export type NodeType =
   | 'imageGridSplit'
   | 'annotation'
   | 'subtitle'
+  | 'outputGallery'
+  | 'imageCompare'
   // Output nodes (deprecated - outputs auto-save now)
   | 'output' // @deprecated - kept for backwards compatibility with existing workflows
   // Distribution nodes

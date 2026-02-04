@@ -1,12 +1,14 @@
 import { temporal } from 'zundo';
 import { create } from 'zustand';
 import { temporalStateEquals } from './helpers/equality';
+import { createChatSlice } from './slices/chatSlice';
 import { createEdgeSlice } from './slices/edgeSlice';
 import { createGroupSlice } from './slices/groupSlice';
 import { createLockingSlice } from './slices/lockingSlice';
 import { createNodeSlice } from './slices/nodeSlice';
 import { createPersistenceSlice } from './slices/persistenceSlice';
 import { createSelectionSlice } from './slices/selectionSlice';
+import { createSnapshotSlice } from './slices/snapshotSlice';
 import type { WorkflowStore } from './types';
 
 /**
@@ -49,6 +51,8 @@ export const useWorkflowStore = create<WorkflowStore>()(
       ...createGroupSlice(...args),
       ...createSelectionSlice(...args),
       ...createPersistenceSlice(...args),
+      ...(createSnapshotSlice as unknown as typeof createNodeSlice)(...args),
+      ...(createChatSlice as unknown as typeof createNodeSlice)(...args),
     }),
     {
       // Only track meaningful state (not UI flags like isDirty, isSaving, etc.)

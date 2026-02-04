@@ -48,3 +48,15 @@ export interface TelegramInputNodeData extends BaseNodeData {
   messageId: string | null;
   source: 'telegram';
 }
+
+export interface AvailableVariable {
+  name: string;
+  value: string;
+  nodeId: string;
+}
+
+export interface PromptConstructorNodeData extends BaseNodeData {
+  template: string;
+  outputText: string | null;
+  unresolvedVars: string[];
+}

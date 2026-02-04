@@ -88,6 +88,7 @@ export interface ExecutionState {
   validationErrors: ValidationResult | null;
   eventSource: EventSource | null;
   lastFailedNodeId: string | null;
+  pausedAtNodeId: string | null;
   jobs: Map<string, Job>;
   estimatedCost: number;
   actualCost: number;

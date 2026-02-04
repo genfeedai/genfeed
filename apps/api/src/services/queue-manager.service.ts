@@ -420,6 +420,23 @@ export class QueueManagerService {
 
     // Enqueue only the first ready node (sequential execution)
     const nextNode = readyNodes[0];
+
+    // Check if any incoming edge to this node has a pause breakpoint
+    const hasIncomingPause = workflowDef.edges.some(
+      (edge) =>
+        edge.target === nextNode.nodeId &&
+        (edge as { data?: { hasPause?: boolean } }).data?.hasPause === true
+    );
+
+    if (hasIncomingPause) {
+      await this.executionsService.updateExecutionStatus(executionId, 'paused');
+      await this.executionsService.setPausedAtNodeId(executionId, nextNode.nodeId);
+      this.logger.log(
+        `Execution ${executionId}: paused at node ${nextNode.nodeId} (pause edge breakpoint)`
+      );
+      return;
+    }
+
     await this.enqueueNode(
       executionId,
       workflowId,
@@ -435,5 +452,25 @@ export class QueueManagerService {
     this.logger.log(
       `Execution ${executionId}: enqueued next node ${nextNode.nodeId} (${nextNode.nodeType})`
     );
+  }
+
+  /**
+   * Resume a paused execution from the paused node
+   */
+  async resumeExecution(executionId: string, workflowId: string): Promise<void> {
+    const execution = await this.executionsService.findExecution(executionId);
+    const pausedAtNodeId = (execution as unknown as { pausedAtNodeId?: string }).pausedAtNodeId;
+
+    if (!pausedAtNodeId) {
+      this.logger.warn(`Execution ${executionId}: no paused node to resume from`);
+      return;
+    }
+
+    // Clear paused state and set back to running
+    await this.executionsService.updateExecutionStatus(executionId, 'running');
+    await this.executionsService.setPausedAtNodeId(executionId, null);
+
+    // Re-dispatch via continueExecution which will pick up the ready node
+    await this.continueExecution(executionId, workflowId);
   }
 }
