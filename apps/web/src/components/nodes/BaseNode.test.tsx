@@ -22,26 +22,36 @@ const mockIsNodeLocked = vi.fn().mockReturnValue(false);
 const mockUpdateNodeData = vi.fn();
 
 vi.mock('@/store/uiStore', () => ({
-  useUIStore: () => ({
-    selectNode: mockSelectNode,
-    selectedNodeId: null,
-    highlightedNodeIds: [],
-  }),
+  useUIStore: (selector: (state: unknown) => unknown) => {
+    const state = {
+      selectNode: mockSelectNode,
+      selectedNodeId: null,
+      highlightedNodeIds: [],
+    };
+    return selector(state);
+  },
 }));
 
 vi.mock('@/store/workflowStore', () => ({
-  useWorkflowStore: () => ({
-    toggleNodeLock: mockToggleNodeLock,
-    isNodeLocked: mockIsNodeLocked,
-    updateNodeData: mockUpdateNodeData,
-  }),
+  useWorkflowStore: (selector: (state: unknown) => unknown) => {
+    const state = {
+      toggleNodeLock: mockToggleNodeLock,
+      isNodeLocked: mockIsNodeLocked,
+      updateNodeData: mockUpdateNodeData,
+    };
+    return selector(state);
+  },
 }));
 
 vi.mock('@/store/executionStore', () => ({
-  useExecutionStore: () => ({
-    executeNode: vi.fn(),
-    isRunning: false,
-  }),
+  useExecutionStore: (selector: (state: unknown) => unknown) => {
+    const state = {
+      executeNode: vi.fn(),
+      isRunning: false,
+      activeNodeExecutions: new Set(),
+    };
+    return selector(state);
+  },
 }));
 
 // Mock child components
