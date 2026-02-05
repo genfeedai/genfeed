@@ -53,6 +53,25 @@ vi.mock('@/store/uiStore', () => ({
   },
 }));
 
+// Mock UI components
+vi.mock('@/components/ui/button', () => ({
+  Button: ({
+    children,
+    onClick,
+    disabled,
+    title,
+  }: {
+    children: React.ReactNode;
+    onClick?: () => void;
+    disabled?: boolean;
+    title?: string;
+  }) => (
+    <button onClick={onClick} disabled={disabled} title={title}>
+      {children}
+    </button>
+  ),
+}));
+
 // Mock hooks used by the component
 const mockHandleGenerate = vi.fn();
 

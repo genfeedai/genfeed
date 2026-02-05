@@ -20,10 +20,14 @@ describe('WorkflowsService', () => {
     return createConstructableMockModel(
       {
         find: vi.fn().mockReturnValue({
-          sort: vi.fn().mockReturnValue({
-            skip: vi.fn().mockReturnValue({
-              limit: vi.fn().mockReturnValue({
-                exec: vi.fn().mockResolvedValue([mockWorkflow]),
+          select: vi.fn().mockReturnValue({
+            sort: vi.fn().mockReturnValue({
+              skip: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  lean: vi.fn().mockReturnValue({
+                    exec: vi.fn().mockResolvedValue([mockWorkflow]),
+                  }),
+                }),
               }),
             }),
           }),
