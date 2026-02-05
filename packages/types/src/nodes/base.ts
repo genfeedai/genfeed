@@ -70,4 +70,6 @@ export interface BaseNodeData extends Record<string, unknown> {
   lockTimestamp?: number;
   // Optional comment/note for the node (used for comment navigation)
   comment?: string;
+  // Optional custom color for the node (hex color string)
+  color?: string;
 }

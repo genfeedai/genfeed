@@ -2,12 +2,13 @@
 
 import type { LLMNodeData, TextModel } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, ChevronDown, Expand, Play, RefreshCw, Square } from 'lucide-react';
+import { AlertCircle, Expand, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
+import { useAIGenNodeHeader } from '@/hooks/useAIGenNodeHeader';
 import { useAutoLoadModelSchema } from '@/hooks/useAutoLoadModelSchema';
 import { useCanGenerate } from '@/hooks/useCanGenerate';
 import { useModelSelection } from '@/hooks/useModelSelection';
@@ -87,49 +88,18 @@ function LLMNodeComponent(props: NodeProps) {
 
   const isProcessing = nodeData.status === 'processing';
 
-  const titleElement = useMemo(
-    () => (
-      <button
-        className={`flex flex-1 items-center gap-1 text-sm font-medium text-left text-foreground ${isProcessing ? 'opacity-50 cursor-default' : 'hover:text-foreground/80 cursor-pointer'}`}
-        onClick={() => !isProcessing && setIsModelBrowserOpen(true)}
-        title="Browse models"
-        disabled={isProcessing}
-      >
-        <span className="truncate">{modelDisplayName}</span>
-        <ChevronDown className="h-3 w-3 shrink-0" />
-      </button>
-    ),
-    [modelDisplayName, isProcessing]
-  );
+  const handleModelBrowse = useCallback(() => setIsModelBrowserOpen(true), []);
 
-  const headerActions = useMemo(
-    () => (
-      <>
-        {nodeData.outputText && (
-          <Button variant="ghost" size="icon-sm" onClick={handleExpand} title="Expand preview">
-            <Expand className="h-3 w-3" />
-          </Button>
-        )}
-        {isProcessing ? (
-          <Button variant="destructive" size="sm" onClick={handleStop}>
-            <Square className="h-4 w-4 fill-current" />
-            Generating
-          </Button>
-        ) : (
-          <Button
-            variant={canGenerate ? 'default' : 'secondary'}
-            size="sm"
-            onClick={handleGenerate}
-            disabled={!canGenerate}
-          >
-            <Play className="h-4 w-4 fill-current" />
-            Generate
-          </Button>
-        )}
-      </>
-    ),
-    [nodeData.outputText, isProcessing, handleGenerate, handleStop, handleExpand, canGenerate]
-  );
+  const { titleElement, headerActions } = useAIGenNodeHeader({
+    modelDisplayName,
+    isProcessing,
+    canGenerate,
+    hasOutput: !!nodeData.outputText,
+    onModelBrowse: handleModelBrowse,
+    onGenerate: handleGenerate,
+    onStop: handleStop,
+    onExpand: handleExpand,
+  });
 
   return (
     <BaseNode

@@ -1,4 +1,5 @@
 import type { WorkflowNodeData } from '@genfeedai/types';
+import { useReactFlow } from '@xyflow/react';
 import { useCallback, useMemo, useRef } from 'react';
 import type { ContextMenuItemConfig } from '@/components/context-menu';
 import {
@@ -10,6 +11,14 @@ import {
 import { workflowsApi } from '@/lib/api';
 import { logger } from '@/lib/logger';
 import { useContextMenuStore } from '@/store/contextMenuStore';
+import {
+  selectCreateGroup,
+  selectNodes,
+  selectSetSelectedNodeIds,
+  selectToggleNodeLock,
+  selectUpdateNodeData,
+  selectWorkflowId,
+} from '@/store/workflow/selectors';
 import { useWorkflowStore } from '@/store/workflowStore';
 import { useNodeActions } from './useNodeActions';
 import { usePaneActions } from './usePaneActions';
@@ -28,7 +37,14 @@ export function useContextMenu() {
     close,
   } = useContextMenuStore();
 
-  const { nodes, removeEdge, toggleNodeLock, createGroup, workflowId } = useWorkflowStore();
+  const nodes = useWorkflowStore(selectNodes);
+  const removeEdge = useWorkflowStore((state) => state.removeEdge);
+  const toggleNodeLock = useWorkflowStore(selectToggleNodeLock);
+  const createGroup = useWorkflowStore(selectCreateGroup);
+  const workflowId = useWorkflowStore(selectWorkflowId);
+  const addNodesAndEdges = useWorkflowStore((state) => state.addNodesAndEdges);
+  const setSelectedNodeIds = useWorkflowStore(selectSetSelectedNodeIds);
+  const updateNodeData = useWorkflowStore(selectUpdateNodeData);
   const {
     clipboard,
     deleteNode,
@@ -37,8 +53,10 @@ export function useContextMenu() {
     cutNode,
     deleteMultipleNodes,
     duplicateMultipleNodes,
+    getPasteData,
   } = useNodeActions();
   const { addNodeAtPosition, selectAll, fitView, autoLayout } = usePaneActions();
+  const reactFlow = useReactFlow();
 
   // Stable reference for handlers that don't need to change
   const stableHandlersRef = useRef({
@@ -123,17 +141,71 @@ export function useContextMenu() {
     [nodes, toggleNodeLock]
   );
 
-  const alignNodesHorizontally = useCallback((_nodeIds: string[]) => {
-    // TODO: Implement horizontal alignment
-  }, []);
+  const alignNodesHorizontally = useCallback(
+    (nodeIds: string[]) => {
+      if (nodeIds.length < 2) return;
 
-  const alignNodesVertically = useCallback((_nodeIds: string[]) => {
-    // TODO: Implement vertical alignment
-  }, []);
+      const selectedNodes = nodes.filter((n) => nodeIds.includes(n.id));
+      if (selectedNodes.length < 2) return;
+
+      // Calculate average Y position
+      const avgY = selectedNodes.reduce((sum, n) => sum + n.position.y, 0) / selectedNodes.length;
+
+      // Update all selected nodes to the same Y position
+      reactFlow.setNodes((nds) =>
+        nds.map((node) =>
+          nodeIds.includes(node.id) ? { ...node, position: { ...node.position, y: avgY } } : node
+        )
+      );
+    },
+    [nodes, reactFlow]
+  );
+
+  const alignNodesVertically = useCallback(
+    (nodeIds: string[]) => {
+      if (nodeIds.length < 2) return;
+
+      const selectedNodes = nodes.filter((n) => nodeIds.includes(n.id));
+      if (selectedNodes.length < 2) return;
+
+      // Calculate average X position
+      const avgX = selectedNodes.reduce((sum, n) => sum + n.position.x, 0) / selectedNodes.length;
+
+      // Update all selected nodes to the same X position
+      reactFlow.setNodes((nds) =>
+        nds.map((node) =>
+          nodeIds.includes(node.id) ? { ...node, position: { ...node.position, x: avgX } } : node
+        )
+      );
+    },
+    [nodes, reactFlow]
+  );
 
   const pasteNodes = useCallback(() => {
-    // TODO: Implement paste from clipboard
-  }, []);
+    if (!clipboard) return;
+
+    // Convert the context menu position to flow coordinates
+    const flowPosition = reactFlow.screenToFlowPosition({
+      x: position.x,
+      y: position.y,
+    });
+
+    const pasteData = getPasteData(flowPosition.x, flowPosition.y);
+    if (!pasteData) return;
+
+    // Add nodes and edges to the store
+    addNodesAndEdges(pasteData.nodes, pasteData.edges);
+
+    // Select the pasted nodes
+    setSelectedNodeIds(pasteData.nodes.map((n) => n.id));
+  }, [clipboard, position, reactFlow, getPasteData, addNodesAndEdges, setSelectedNodeIds]);
+
+  const setNodeColor = useCallback(
+    (nodeId: string, color: string | null) => {
+      updateNodeData(nodeId, { color: color || undefined });
+    },
+    [updateNodeData]
+  );
 
   const setAsThumbnail = useCallback(
     async (nodeId: string) => {
@@ -186,10 +258,12 @@ export function useContextMenu() {
         const node = nodes.find((n) => n.id === targetId);
         const isLocked = Boolean(node?.data.locked);
         const nodeHasMediaOutput = hasMediaOutput(targetId);
+        const currentColor = (node?.data as { color?: string })?.color;
         return getNodeMenuItems({
           nodeId: targetId,
           isLocked,
           hasMediaOutput: nodeHasMediaOutput,
+          currentColor,
           onDuplicate: handlers.duplicate,
           onLock: lockNode,
           onUnlock: unlockNode,
@@ -197,6 +271,7 @@ export function useContextMenu() {
           onCopy: handlers.copyNode,
           onDelete: handlers.deleteNode,
           onSetAsThumbnail: workflowId ? setAsThumbnail : undefined,
+          onSetColor: setNodeColor,
         });
       }
 
@@ -252,6 +327,7 @@ export function useContextMenu() {
     alignNodesVertically,
     hasMediaOutput,
     setAsThumbnail,
+    setNodeColor,
     workflowId,
   ]);
 

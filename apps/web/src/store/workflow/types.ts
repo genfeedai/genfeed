@@ -38,6 +38,7 @@ export interface WorkflowState {
 
 export interface NodeActions {
   addNode: (type: NodeType, position: XYPosition) => string;
+  addNodesAndEdges: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void;
   updateNodeData: <T extends WorkflowNodeData>(nodeId: string, data: Partial<T>) => void;
   removeNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => string | null;

@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import { useCommandPaletteStore } from '@/store/commandPaletteStore';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
+import { selectSelectedNodeIds } from '@/store/workflow/selectors';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 /**
@@ -16,7 +17,8 @@ export function useGlobalShortcuts() {
   const executeSelectedNodes = useExecutionStore((state) => state.executeSelectedNodes);
   const isRunning = useExecutionStore((state) => state.isRunning);
   const { openModal } = useUIStore();
-  const { selectedNodeIds, exportWorkflow } = useWorkflowStore();
+  const selectedNodeIds = useWorkflowStore(selectSelectedNodeIds);
+  const exportWorkflow = useWorkflowStore((state) => state.exportWorkflow);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

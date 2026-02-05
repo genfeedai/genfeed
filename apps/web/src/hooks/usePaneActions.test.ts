@@ -29,13 +29,17 @@ const mockNodes = [
 ];
 const mockEdges = [{ id: 'edge-1', source: 'node-1', target: 'node-2' }];
 
-vi.mock('@/store/workflowStore', () => ({
-  useWorkflowStore: () => ({
-    addNode: mockAddNode,
-    nodes: mockNodes,
-    edges: mockEdges,
-  }),
-}));
+vi.mock('@/store/workflowStore', () => {
+  const store = (selector?: (state: unknown) => unknown) => {
+    const state = {
+      addNode: mockAddNode,
+      nodes: mockNodes,
+      edges: mockEdges,
+    };
+    return selector ? selector(state) : state;
+  };
+  return { useWorkflowStore: store };
+});
 
 // Mock settingsStore
 vi.mock('@/store/settingsStore', () => {

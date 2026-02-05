@@ -13,6 +13,7 @@ import type { WorkflowStore } from '../types';
 
 export interface NodeSlice {
   addNode: (type: NodeType, position: XYPosition) => string;
+  addNodesAndEdges: (nodes: WorkflowNode[], edges: WorkflowEdge[]) => void;
   updateNodeData: <T extends WorkflowNodeData>(nodeId: string, data: Partial<T>) => void;
   removeNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => string | null;
@@ -43,6 +44,23 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
     }));
 
     return id;
+  },
+
+  addNodesAndEdges: (newNodes, newEdges) => {
+    if (newNodes.length === 0) return;
+
+    set((state) => ({
+      nodes: [...state.nodes, ...newNodes],
+      edges: [...state.edges, ...newEdges],
+      isDirty: true,
+    }));
+
+    // Propagate outputs for nodes that have existing connections
+    const { propagateOutputsDownstream } = get();
+    const sourceNodeIds = new Set(newEdges.map((e) => e.source));
+    for (const sourceId of sourceNodeIds) {
+      propagateOutputsDownstream(sourceId);
+    }
   },
 
   updateNodeData: (nodeId, data) => {

@@ -8,6 +8,8 @@ export type ModalType =
   | 'promptLibrary'
   | 'modelBrowser'
   | 'nodeDetail'
+  | 'shortcutHelp'
+  | 'nodeSearch'
   | null;
 
 export type NodeDetailTab = 'preview' | 'history';

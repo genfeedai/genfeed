@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Slider } from '@/components/ui/slider';
+import { useNodeFieldUpdater } from '@/hooks/useNodeFieldUpdater';
 import { useExecutionStore } from '@/store/executionStore';
 import { useUIStore } from '@/store/uiStore';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -78,31 +79,17 @@ function UpscaleNodeComponent(props: NodeProps) {
   const hasInput = inputType !== null;
   const hasOutput = inputType === 'image' ? !!nodeData.outputImage : !!nodeData.outputVideo;
 
-  const handleModelChange = useCallback(
-    (value: string) => {
-      updateNodeData<UpscaleNodeData>(id, {
-        model: value as UpscaleModel,
-      });
-    },
-    [id, updateNodeData]
+  const createUpdater = useNodeFieldUpdater<UpscaleNodeData>(id);
+  const handleModelChange = createUpdater('model', (v) => v as UpscaleModel);
+  const handleFactorChange = createUpdater('upscaleFactor', (v) => v as TopazUpscaleFactor);
+  const handleFormatChange = createUpdater('outputFormat', (v) => v as 'jpg' | 'png');
+  const handleResolutionChange = createUpdater(
+    'targetResolution',
+    (v) => v as TopazVideoResolution
   );
-
-  const handleFactorChange = useCallback(
-    (value: string) => {
-      updateNodeData<UpscaleNodeData>(id, {
-        upscaleFactor: value as TopazUpscaleFactor,
-      });
-    },
-    [id, updateNodeData]
-  );
-
-  const handleFormatChange = useCallback(
-    (value: string) => {
-      updateNodeData<UpscaleNodeData>(id, {
-        outputFormat: value as 'jpg' | 'png',
-      });
-    },
-    [id, updateNodeData]
+  const handleFpsChange = createUpdater(
+    'targetFps',
+    (v) => Number.parseInt(v, 10) as TopazVideoFPS
   );
 
   const handleFaceEnhancementToggle = useCallback(
@@ -129,24 +116,6 @@ function UpscaleNodeComponent(props: NodeProps) {
     ([value]: number[]) => {
       updateNodeData<UpscaleNodeData>(id, {
         faceEnhancementCreativity: value,
-      });
-    },
-    [id, updateNodeData]
-  );
-
-  const handleResolutionChange = useCallback(
-    (value: string) => {
-      updateNodeData<UpscaleNodeData>(id, {
-        targetResolution: value as TopazVideoResolution,
-      });
-    },
-    [id, updateNodeData]
-  );
-
-  const handleFpsChange = useCallback(
-    (value: string) => {
-      updateNodeData<UpscaleNodeData>(id, {
-        targetFps: Number.parseInt(value, 10) as TopazVideoFPS,
       });
     },
     [id, updateNodeData]

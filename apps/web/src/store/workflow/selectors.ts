@@ -93,6 +93,12 @@ export const selectUnlockAllNodes = (state: WorkflowStore) => state.unlockAllNod
 /** Select setDirty action */
 export const selectSetDirty = (state: WorkflowStore) => state.setDirty;
 
+/** Select removeEdge action */
+export const selectRemoveEdge = (state: WorkflowStore) => state.removeEdge;
+
+/** Select addNodesAndEdges action */
+export const selectAddNodesAndEdges = (state: WorkflowStore) => state.addNodesAndEdges;
+
 // =============================================================================
 // HELPER SELECTORS
 // =============================================================================

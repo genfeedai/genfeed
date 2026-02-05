@@ -1,12 +1,5 @@
 'use client';
 
-import { NodeErrorBoundary } from '@/components/nodes/NodeErrorBoundary';
-import { PreviewTooltip } from '@/components/nodes/PreviewTooltip';
-import { Button } from '@/components/ui/button';
-import { generateHandlesFromSchema } from '@/lib/utils/schemaHandles';
-import { useExecutionStore } from '@/store/executionStore';
-import { useUIStore } from '@/store/uiStore';
-import { useWorkflowStore } from '@/store/workflowStore';
 import type {
   HandleDefinition,
   NodeStatus,
@@ -67,6 +60,13 @@ import {
   Wand2,
 } from 'lucide-react';
 import { memo, type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { NodeErrorBoundary } from '@/components/nodes/NodeErrorBoundary';
+import { PreviewTooltip } from '@/components/nodes/PreviewTooltip';
+import { Button } from '@/components/ui/button';
+import { generateHandlesFromSchema } from '@/lib/utils/schemaHandles';
+import { useExecutionStore } from '@/store/executionStore';
+import { useUIStore } from '@/store/uiStore';
+import { useWorkflowStore } from '@/store/workflowStore';
 
 // Icon mapping
 const ICON_MAP: Record<string, typeof Image> = {
@@ -143,6 +143,13 @@ interface BaseNodeProps extends NodeProps {
 // Hover delay for showing preview tooltip (ms)
 const HOVER_DELAY = 300;
 
+// Node dimension constraints
+const NODE_MIN_WIDTH = 220;
+const NODE_RESIZER_MAX_WIDTH = 500;
+const DOWNLOAD_NODE_MIN_WIDTH = 200;
+const DOWNLOAD_NODE_MIN_HEIGHT = 280;
+const NODE_MIN_HEIGHT = 100;
+
 function BaseNodeComponent({
   id,
   type,
@@ -159,8 +166,12 @@ function BaseNodeComponent({
 }: BaseNodeProps) {
   // Check if node has been manually resized (has explicit dimensions)
   const isResized = width !== undefined || height !== undefined;
-  const { selectNode, selectedNodeId, highlightedNodeIds } = useUIStore();
-  const { toggleNodeLock, isNodeLocked, updateNodeData } = useWorkflowStore();
+  const selectNode = useUIStore((state) => state.selectNode);
+  const selectedNodeId = useUIStore((state) => state.selectedNodeId);
+  const highlightedNodeIds = useUIStore((state) => state.highlightedNodeIds);
+  const toggleNodeLock = useWorkflowStore((state) => state.toggleNodeLock);
+  const isNodeLocked = useWorkflowStore((state) => state.isNodeLocked);
+  const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const executeNode = useExecutionStore((state) => state.executeNode);
   const isRunning = useExecutionStore((state) => state.isRunning);
   const stopExecution = useExecutionStore((state) => state.stopExecution);
@@ -307,6 +318,9 @@ function BaseNodeComponent({
   };
 
   const categoryColor = categoryCssVars[nodeDef.category] ?? categoryCssVars.input;
+  // Use custom node color if set, otherwise fall back to category color
+  const customColor = nodeData.color;
+  const effectiveColor = customColor || categoryColor;
 
   const isProcessing = nodeData.status === 'processing';
 
@@ -315,17 +329,17 @@ function BaseNodeComponent({
       {/* Resizer - only shown when selected and not locked */}
       <NodeResizer
         isVisible={isSelected && !isLocked}
-        minWidth={type === 'download' ? 200 : 220}
-        minHeight={type === 'download' ? 280 : 100}
-        maxWidth={500}
+        minWidth={type === 'download' ? DOWNLOAD_NODE_MIN_WIDTH : NODE_MIN_WIDTH}
+        minHeight={type === 'download' ? DOWNLOAD_NODE_MIN_HEIGHT : NODE_MIN_HEIGHT}
+        maxWidth={NODE_RESIZER_MAX_WIDTH}
         lineClassName="!border-transparent"
         handleClassName="!w-2.5 !h-2.5 !border-0 !rounded-sm"
-        handleStyle={{ backgroundColor: categoryColor }}
+        handleStyle={{ backgroundColor: effectiveColor }}
       />
       <div
         ref={nodeRef}
         className={clsx(
-          'relative flex flex-col rounded-lg border border-[var(--border)] bg-[var(--card)] shadow-lg transition-all duration-200',
+          'relative flex flex-col rounded-lg bg-[var(--card)] shadow-lg transition-all duration-200',
           // Only apply min/max width if node hasn't been manually resized
           // Output nodes get larger minimums for better preview visibility
           !isResized && type === 'download' && 'min-w-[200px] min-h-[280px]',
@@ -333,14 +347,18 @@ function BaseNodeComponent({
           isSelected && 'ring-1',
           isLocked && 'opacity-60',
           isProcessing && 'node-processing',
-          !isHighlighted && !isSelected && 'opacity-40'
+          !isHighlighted && !isSelected && 'opacity-40',
+          // Use custom border color when set, otherwise default border
+          customColor ? 'border-2' : 'border border-[var(--border)]'
         )}
         style={
           {
             // Category color used for processing glow animation
-            '--node-color': categoryColor,
-            // Selection ring matches category color
-            ...(isSelected && { '--tw-ring-color': categoryColor }),
+            '--node-color': effectiveColor,
+            // Selection ring matches effective color
+            ...(isSelected && { '--tw-ring-color': effectiveColor }),
+            // Custom border color when set
+            ...(customColor && { borderColor: customColor }),
             // When resized, use explicit dimensions
             ...(isResized && {
               width: width ? `${width}px` : undefined,
@@ -536,6 +554,9 @@ function arePropsEqual(prev: BaseNodeProps, next: BaseNodeProps): boolean {
 
   // Label affects title display
   if (prevData.label !== nextData.label) return false;
+
+  // Color affects border styling
+  if (prevData.color !== nextData.color) return false;
 
   // Children reference
   if (prev.children !== next.children) return false;

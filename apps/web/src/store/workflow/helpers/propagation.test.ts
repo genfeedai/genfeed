@@ -7,6 +7,7 @@ import {
   computeDownstreamUpdates,
   hasStateChanged,
   applyNodeUpdates,
+  propagateExistingOutputs,
 } from './propagation';
 
 // ---------------------------------------------------------------------------
@@ -507,5 +508,100 @@ describe('integration: full propagation pipeline', () => {
 
     const updates = computeDownstreamUpdates('missing', 'val', nodes, edges);
     expect(updates.size).toBe(0);
+  });
+});
+
+// ===========================================================================
+// I. propagateExistingOutputs
+// ===========================================================================
+
+describe('propagateExistingOutputs', () => {
+  it('calls propagateFn for nodes with outputImages', () => {
+    const propagateFn = vi.fn();
+    const nodes = [makeNode('1', 'imageGen', { outputImages: ['a.png', 'b.png'] })];
+
+    propagateExistingOutputs(nodes, propagateFn);
+
+    expect(propagateFn).toHaveBeenCalledTimes(1);
+    expect(propagateFn).toHaveBeenCalledWith('1');
+  });
+
+  it('calls propagateFn for nodes with outputImage', () => {
+    const propagateFn = vi.fn();
+    const nodes = [makeNode('1', 'imageGen', { outputImage: 'single.png' })];
+
+    propagateExistingOutputs(nodes, propagateFn);
+
+    expect(propagateFn).toHaveBeenCalledTimes(1);
+    expect(propagateFn).toHaveBeenCalledWith('1');
+  });
+
+  it('calls propagateFn for nodes with outputVideo', () => {
+    const propagateFn = vi.fn();
+    const nodes = [makeNode('1', 'videoGen', { outputVideo: 'vid.mp4' })];
+
+    propagateExistingOutputs(nodes, propagateFn);
+
+    expect(propagateFn).toHaveBeenCalledTimes(1);
+    expect(propagateFn).toHaveBeenCalledWith('1');
+  });
+
+  it('calls propagateFn for nodes with prompt (prompt node)', () => {
+    const propagateFn = vi.fn();
+    const nodes = [makeNode('1', 'prompt', { prompt: 'a sunset over the ocean' })];
+
+    propagateExistingOutputs(nodes, propagateFn);
+
+    expect(propagateFn).toHaveBeenCalledTimes(1);
+    expect(propagateFn).toHaveBeenCalledWith('1');
+  });
+
+  it('calls propagateFn for nodes with extractedTweet', () => {
+    const propagateFn = vi.fn();
+    const nodes = [makeNode('1', 'tweetExtractor', { extractedTweet: 'tweet content' })];
+
+    propagateExistingOutputs(nodes, propagateFn);
+
+    expect(propagateFn).toHaveBeenCalledTimes(1);
+    expect(propagateFn).toHaveBeenCalledWith('1');
+  });
+
+  it('calls propagateFn for nodes with video (video input node)', () => {
+    const propagateFn = vi.fn();
+    const nodes = [makeNode('1', 'video', { video: 'input-video.mp4' })];
+
+    propagateExistingOutputs(nodes, propagateFn);
+
+    expect(propagateFn).toHaveBeenCalledTimes(1);
+    expect(propagateFn).toHaveBeenCalledWith('1');
+  });
+
+  it('does NOT call propagateFn for nodes with no output', () => {
+    const propagateFn = vi.fn();
+    const nodes = [makeNode('1', 'imageGen', {})];
+
+    propagateExistingOutputs(nodes, propagateFn);
+
+    expect(propagateFn).not.toHaveBeenCalled();
+  });
+
+  it('calls propagateFn for each qualifying node in a mixed array', () => {
+    const propagateFn = vi.fn();
+    const nodes = [
+      makeNode('has-images', 'imageGen', { outputImages: ['a.png'] }),
+      makeNode('empty', 'imageGen', {}),
+      makeNode('has-prompt', 'prompt', { prompt: 'hello' }),
+      makeNode('also-empty', 'videoGen', {}),
+      makeNode('has-video', 'videoGen', { outputVideo: 'v.mp4' }),
+    ];
+
+    propagateExistingOutputs(nodes, propagateFn);
+
+    expect(propagateFn).toHaveBeenCalledTimes(3);
+    expect(propagateFn).toHaveBeenCalledWith('has-images');
+    expect(propagateFn).toHaveBeenCalledWith('has-prompt');
+    expect(propagateFn).toHaveBeenCalledWith('has-video');
+    expect(propagateFn).not.toHaveBeenCalledWith('empty');
+    expect(propagateFn).not.toHaveBeenCalledWith('also-empty');
   });
 });

@@ -2,14 +2,14 @@
 
 import type { VideoGenNodeData, VideoModel } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
-import { AlertCircle, ChevronDown, Expand, Play, Square, Video } from 'lucide-react';
+import { AlertCircle, Video } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { ProcessingOverlay } from '@/components/nodes/ProcessingOverlay';
 import { SchemaInputs } from '@/components/nodes/SchemaInputs';
-import { Button } from '@/components/ui/button';
 import { useAIGenNode } from '@/hooks/useAIGenNode';
+import { useAIGenNodeHeader } from '@/hooks/useAIGenNodeHeader';
 import { useAutoLoadModelSchema } from '@/hooks/useAutoLoadModelSchema';
 import { useCanGenerate } from '@/hooks/useCanGenerate';
 import { useModelSelection } from '@/hooks/useModelSelection';
@@ -68,56 +68,28 @@ function VideoGenNodeComponent(props: NodeProps) {
     openNodeDetailModal(id, 'preview');
   }, [id, openNodeDetailModal]);
 
-  const modelDisplayName =
-    nodeData.selectedModel?.displayName ||
-    VIDEO_MODELS.find((m) => m.value === nodeData.model)?.label ||
-    nodeData.model;
+  const modelDisplayName = useMemo(
+    () =>
+      nodeData.selectedModel?.displayName ||
+      VIDEO_MODELS.find((m) => m.value === nodeData.model)?.label ||
+      nodeData.model,
+    [nodeData.selectedModel?.displayName, nodeData.model]
+  );
 
   const isProcessing = nodeData.status === 'processing';
 
-  const titleElement = useMemo(
-    () => (
-      <button
-        className={`flex flex-1 items-center gap-1 text-sm font-medium text-left text-foreground ${isProcessing ? 'opacity-50 cursor-default' : 'hover:text-foreground/80 cursor-pointer'}`}
-        onClick={() => !isProcessing && setIsModelBrowserOpen(true)}
-        title="Browse models"
-        disabled={isProcessing}
-      >
-        <span className="truncate">{modelDisplayName}</span>
-        <ChevronDown className="h-3 w-3 shrink-0" />
-      </button>
-    ),
-    [modelDisplayName, isProcessing]
-  );
+  const handleModelBrowse = useCallback(() => setIsModelBrowserOpen(true), []);
 
-  const headerActions = useMemo(
-    () => (
-      <>
-        {nodeData.outputVideo && (
-          <Button variant="ghost" size="icon-sm" onClick={handleExpand} title="Expand preview">
-            <Expand className="h-3 w-3" />
-          </Button>
-        )}
-        {nodeData.status === 'processing' ? (
-          <Button variant="destructive" size="sm" onClick={handleStop}>
-            <Square className="h-4 w-4 fill-current" />
-            Generating
-          </Button>
-        ) : (
-          <Button
-            variant={canGenerate ? 'default' : 'secondary'}
-            size="sm"
-            onClick={handleGenerate}
-            disabled={!canGenerate}
-          >
-            <Play className="h-4 w-4 fill-current" />
-            Generate
-          </Button>
-        )}
-      </>
-    ),
-    [nodeData.outputVideo, nodeData.status, handleGenerate, handleStop, handleExpand, canGenerate]
-  );
+  const { titleElement, headerActions } = useAIGenNodeHeader({
+    modelDisplayName,
+    isProcessing,
+    canGenerate,
+    hasOutput: !!nodeData.outputVideo,
+    onModelBrowse: handleModelBrowse,
+    onGenerate: handleGenerate,
+    onStop: handleStop,
+    onExpand: handleExpand,
+  });
 
   // Determine which inputs to disable based on model support
   const disabledInputs = useMemo(() => {

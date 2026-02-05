@@ -1,10 +1,12 @@
-import { Copy, Image, Lock, LockOpen, Scissors, Trash2 } from 'lucide-react';
+import { Copy, Image, Lock, LockOpen, Palette, Scissors, Trash2 } from 'lucide-react';
 import { type ContextMenuItemConfig, createSeparator } from '@/components/context-menu/ContextMenu';
+import { NODE_COLORS, NODE_COLOR_LABELS, NODE_COLOR_VALUES } from '@/lib/constants/colors';
 
 interface NodeMenuOptions {
   nodeId: string;
   isLocked: boolean;
   hasMediaOutput: boolean;
+  currentColor?: string;
   onDuplicate: (nodeId: string) => void;
   onLock: (nodeId: string) => void;
   onUnlock: (nodeId: string) => void;
@@ -12,12 +14,14 @@ interface NodeMenuOptions {
   onCopy: (nodeId: string) => void;
   onDelete: (nodeId: string) => void;
   onSetAsThumbnail?: (nodeId: string) => void;
+  onSetColor?: (nodeId: string, color: string | null) => void;
 }
 
 export function getNodeMenuItems({
   nodeId,
   isLocked,
   hasMediaOutput,
+  currentColor,
   onDuplicate,
   onLock,
   onUnlock,
@@ -25,6 +29,7 @@ export function getNodeMenuItems({
   onCopy,
   onDelete,
   onSetAsThumbnail,
+  onSetColor,
 }: NodeMenuOptions): ContextMenuItemConfig[] {
   const items: ContextMenuItemConfig[] = [
     {
@@ -43,6 +48,32 @@ export function getNodeMenuItems({
       label: 'Set as Thumbnail',
       icon: <Image className="w-4 h-4" />,
       onClick: () => onSetAsThumbnail(nodeId),
+    });
+  }
+
+  // Add color picker submenu
+  if (onSetColor) {
+    const colorSubmenu: ContextMenuItemConfig[] = NODE_COLORS.map((color) => {
+      const colorValue = NODE_COLOR_VALUES[color];
+      const isSelected = colorValue === currentColor || (color === 'none' && !currentColor);
+      return {
+        id: `color-${color}`,
+        label: `${isSelected ? '✓ ' : ''}${NODE_COLOR_LABELS[color]}`,
+        icon: (
+          <div
+            className="w-4 h-4 rounded-sm border border-border"
+            style={{ backgroundColor: colorValue || 'transparent' }}
+          />
+        ),
+        onClick: () => onSetColor(nodeId, colorValue),
+      };
+    });
+
+    items.push({
+      id: 'setColor',
+      label: 'Set Color',
+      icon: <Palette className="w-4 h-4" />,
+      submenu: colorSubmenu,
     });
   }
 

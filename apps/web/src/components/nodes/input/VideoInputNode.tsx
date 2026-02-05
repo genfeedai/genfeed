@@ -3,164 +3,76 @@
 import type { VideoInputNodeData } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { Expand, Link, Loader2, Upload, Video, X } from 'lucide-react';
-import { memo, useCallback, useRef, useState } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '@/components/nodes/BaseNode';
 import { Button } from '@/components/ui/button';
-import { apiClient } from '@/lib/api/client';
+import { useMediaUpload } from '@/hooks/useMediaUpload';
+import { getVideoMetadata } from '@/lib/utils/media';
 import { useUIStore } from '@/store/uiStore';
-import { useWorkflowStore } from '@/store/workflowStore';
-
-interface FileUploadResult {
-  filename: string;
-  url: string;
-  path: string;
-  size: number;
-  mimeType: string;
-}
 
 function VideoInputNodeComponent(props: NodeProps) {
   const { id, data } = props;
   const nodeData = data as VideoInputNodeData;
-  const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
-  const workflowId = useWorkflowStore((state) => state.workflowId);
   const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [showUrlInput, setShowUrlInput] = useState(false);
-  const [urlValue, setUrlValue] = useState(nodeData.url || '');
-  const [isUploading, setIsUploading] = useState(false);
 
-  const handleFileSelect = useCallback(
-    async (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      // Get video metadata
-      const getMetadata = (
-        src: string
-      ): Promise<{ duration: number; dimensions: { width: number; height: number } }> => {
-        return new Promise((resolve) => {
-          const video = document.createElement('video');
-          video.onloadedmetadata = () =>
-            resolve({
-              duration: video.duration,
-              dimensions: { width: video.videoWidth, height: video.videoHeight },
-            });
-          video.onerror = () => resolve({ duration: 0, dimensions: { width: 0, height: 0 } });
-          video.src = src;
-        });
-      };
-
-      // If workflow is saved (has ID), upload to backend
-      if (workflowId) {
-        setIsUploading(true);
-        try {
-          const result = await apiClient.uploadFile<FileUploadResult>(
-            `/files/workflows/${workflowId}/input/video`,
-            file
-          );
-
-          // Get metadata from the uploaded URL
-          const metadata = await getMetadata(result.url);
-
-          updateNodeData<VideoInputNodeData>(id, {
-            video: result.url,
-            filename: result.filename,
-            duration: metadata.duration,
-            dimensions: metadata.dimensions,
-            source: 'upload',
-          });
-        } catch (_error) {
-          // Fallback to Base64 if upload fails
-          const reader = new FileReader();
-          reader.onload = async (event) => {
-            const dataUrl = event.target?.result as string;
-            const metadata = await getMetadata(dataUrl);
-            updateNodeData<VideoInputNodeData>(id, {
-              video: dataUrl,
-              filename: file.name,
-              duration: metadata.duration,
-              dimensions: metadata.dimensions,
-              source: 'upload',
-            });
-          };
-          reader.readAsDataURL(file);
-        } finally {
-          setIsUploading(false);
-        }
-      } else {
-        // Workflow not saved yet - use Base64
-        const reader = new FileReader();
-        reader.onload = async (event) => {
-          const dataUrl = event.target?.result as string;
-          const metadata = await getMetadata(dataUrl);
-          updateNodeData<VideoInputNodeData>(id, {
-            video: dataUrl,
-            filename: file.name,
-            duration: metadata.duration,
-            dimensions: metadata.dimensions,
-            source: 'upload',
-          });
-        };
-        reader.readAsDataURL(file);
-      }
+  const {
+    fileInputRef,
+    showUrlInput,
+    setShowUrlInput,
+    urlValue,
+    setUrlValue,
+    isUploading,
+    handleFileSelect,
+    handleRemove,
+    handleUrlSubmit,
+    handleUrlKeyDown,
+  } = useMediaUpload<VideoInputNodeData>({
+    nodeId: id,
+    mediaType: 'video',
+    initialUrl: nodeData.url || '',
+    getMetadata: async (src) => {
+      const meta = await getVideoMetadata(src);
+      return meta;
     },
-    [id, updateNodeData, workflowId]
-  );
-
-  const handleRemoveVideo = useCallback(() => {
-    updateNodeData<VideoInputNodeData>(id, {
+    buildUploadUpdate: (url, filename, metadata) => {
+      const meta = metadata as { duration: number; dimensions: { width: number; height: number } };
+      return {
+        video: url,
+        filename,
+        duration: meta.duration,
+        dimensions: meta.dimensions,
+        source: 'upload' as const,
+      };
+    },
+    buildUrlUpdate: (url, metadata) => {
+      if (metadata) {
+        const meta = metadata as { duration: number; width: number; height: number };
+        return {
+          video: url,
+          filename: url.split('/').pop() || 'url-video',
+          duration: meta.duration,
+          dimensions: { width: meta.width, height: meta.height },
+          source: 'url' as const,
+          url,
+        };
+      }
+      return {
+        video: url,
+        filename: url.split('/').pop() || 'url-video',
+        duration: null,
+        dimensions: null,
+        source: 'url' as const,
+        url,
+      };
+    },
+    buildRemoveUpdate: () => ({
       video: null,
       filename: null,
       duration: null,
       dimensions: null,
       url: undefined,
-    });
-    setUrlValue('');
-  }, [id, updateNodeData]);
-
-  const handleUrlSubmit = useCallback(() => {
-    if (!urlValue.trim()) return;
-
-    // Create a video to validate and get metadata
-    const video = document.createElement('video');
-    video.crossOrigin = 'anonymous';
-    video.onloadedmetadata = () => {
-      updateNodeData<VideoInputNodeData>(id, {
-        video: urlValue,
-        filename: urlValue.split('/').pop() || 'url-video',
-        duration: video.duration,
-        dimensions: { width: video.videoWidth, height: video.videoHeight },
-        source: 'url',
-        url: urlValue,
-      });
-      setShowUrlInput(false);
-    };
-    video.onerror = () => {
-      // Still set the URL even if we can't load it (might be CORS)
-      updateNodeData<VideoInputNodeData>(id, {
-        video: urlValue,
-        filename: urlValue.split('/').pop() || 'url-video',
-        duration: null,
-        dimensions: null,
-        source: 'url',
-        url: urlValue,
-      });
-      setShowUrlInput(false);
-    };
-    video.src = urlValue;
-  }, [id, updateNodeData, urlValue]);
-
-  const handleUrlKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter') {
-        handleUrlSubmit();
-      } else if (e.key === 'Escape') {
-        setShowUrlInput(false);
-        setUrlValue(nodeData.url || '');
-      }
-    },
-    [handleUrlSubmit, nodeData.url]
-  );
+    }),
+  });
 
   const formatDuration = (seconds: number | null) => {
     if (!seconds) return '';
@@ -174,30 +86,33 @@ function VideoInputNodeComponent(props: NodeProps) {
   }, [id, openNodeDetailModal]);
 
   // Header actions - Upload, Link, and Expand buttons
-  const headerActions = (
-    <div className="flex items-center gap-1">
-      {nodeData.video && (
-        <Button variant="ghost" size="icon-sm" onClick={handleExpand} title="Expand preview">
-          <Expand className="h-3.5 w-3.5" />
+  const headerActions = useMemo(
+    () => (
+      <div className="flex items-center gap-1">
+        {nodeData.video && (
+          <Button variant="ghost" size="icon-sm" onClick={handleExpand} title="Expand preview">
+            <Expand className="h-3.5 w-3.5" />
+          </Button>
+        )}
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => fileInputRef.current?.click()}
+          title="Upload video"
+        >
+          <Upload className="h-3.5 w-3.5" />
         </Button>
-      )}
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => fileInputRef.current?.click()}
-        title="Upload video"
-      >
-        <Upload className="h-3.5 w-3.5" />
-      </Button>
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={() => setShowUrlInput(!showUrlInput)}
-        title="Paste URL"
-      >
-        <Link className="h-3.5 w-3.5" />
-      </Button>
-    </div>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => setShowUrlInput(!showUrlInput)}
+          title="Paste URL"
+        >
+          <Link className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    ),
+    [nodeData.video, handleExpand, fileInputRef, showUrlInput, setShowUrlInput]
   );
 
   return (
@@ -245,7 +160,7 @@ function VideoInputNodeComponent(props: NodeProps) {
           <Button
             variant="secondary"
             size="icon-sm"
-            onClick={handleRemoveVideo}
+            onClick={handleRemove}
             className="absolute right-1.5 top-1.5 h-5 w-5"
           >
             <X className="h-3 w-3" />

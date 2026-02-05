@@ -27,16 +27,34 @@ vi.mock('@/store/contextMenuStore', () => ({
   })),
 }));
 
-vi.mock('@/store/workflowStore', () => ({
-  useWorkflowStore: () => ({
-    nodes: [
-      { id: 'node-1', type: 'imageGen', data: { locked: false }, position: { x: 0, y: 0 } },
-      { id: 'node-2', type: 'llm', data: { locked: true }, position: { x: 100, y: 0 } },
-    ],
-    removeEdge: mockRemoveEdge,
-    toggleNodeLock: mockToggleNodeLock,
-    createGroup: mockCreateGroup,
-    workflowId: 'workflow-1',
+vi.mock('@/store/workflowStore', () => {
+  const store = (selector?: (state: unknown) => unknown) => {
+    const state = {
+      nodes: [
+        { id: 'node-1', type: 'imageGen', data: { locked: false }, position: { x: 0, y: 0 } },
+        { id: 'node-2', type: 'llm', data: { locked: true }, position: { x: 100, y: 0 } },
+      ],
+      removeEdge: mockRemoveEdge,
+      toggleNodeLock: mockToggleNodeLock,
+      createGroup: mockCreateGroup,
+      workflowId: 'workflow-1',
+      addNodesAndEdges: vi.fn(),
+      setSelectedNodeIds: vi.fn(),
+      updateNodeData: vi.fn(),
+    };
+    return selector ? selector(state) : state;
+  };
+  return { useWorkflowStore: store };
+});
+
+vi.mock('@xyflow/react', () => ({
+  useReactFlow: () => ({
+    setNodes: vi.fn(),
+    setEdges: vi.fn(),
+    getNodes: vi.fn(() => []),
+    getEdges: vi.fn(() => []),
+    fitView: vi.fn(),
+    screenToFlowPosition: vi.fn((pos: { x: number; y: number }) => pos),
   }),
 }));
 
@@ -49,6 +67,7 @@ vi.mock('./useNodeActions', () => ({
     cutNode: vi.fn(),
     deleteMultipleNodes: vi.fn(),
     duplicateMultipleNodes: vi.fn(),
+    getPasteData: vi.fn(() => null),
   }),
 }));
 

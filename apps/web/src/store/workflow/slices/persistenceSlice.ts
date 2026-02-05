@@ -14,6 +14,7 @@ import { type WorkflowData, workflowsApi } from '@/lib/api';
 import { calculateWorkflowCost } from '@/lib/replicate/client';
 import { hydrateWorkflowNodes } from '@/lib/utils/nodeHydration';
 import { useExecutionStore } from '@/store/executionStore';
+import { propagateExistingOutputs } from '../helpers/propagation';
 import type { WorkflowStore } from '../types';
 
 /**
@@ -71,22 +72,7 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
     useExecutionStore.getState().setEstimatedCost(estimatedCost);
 
     // Propagate existing outputs to downstream nodes after load
-    // Includes both output fields from generation nodes and values from input nodes
-    const { propagateOutputsDownstream } = get();
-    for (const node of hydratedNodes) {
-      const data = node.data as Record<string, unknown>;
-      const hasOutput =
-        data.outputImage ||
-        data.outputVideo ||
-        data.outputAudio ||
-        data.outputText ||
-        data.prompt || // Prompt node
-        data.image || // Image node
-        data.audio; // Audio node
-      if (hasOutput) {
-        propagateOutputsDownstream(node.id);
-      }
-    }
+    propagateExistingOutputs(hydratedNodes, get().propagateOutputsDownstream);
 
     // Propagation after load is idempotent; don't trigger save cycle
     set({ isDirty: false });
@@ -397,22 +383,7 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
       useExecutionStore.getState().setEstimatedCost(estimatedCost);
 
       // Propagate existing outputs to downstream nodes after load
-      // Includes both output fields from generation nodes and values from input nodes
-      const { propagateOutputsDownstream } = get();
-      for (const node of nodes) {
-        const data = node.data as Record<string, unknown>;
-        const hasOutput =
-          data.outputImage ||
-          data.outputVideo ||
-          data.outputAudio ||
-          data.outputText ||
-          data.prompt || // Prompt node
-          data.image || // Image node
-          data.audio; // Audio node
-        if (hasOutput) {
-          propagateOutputsDownstream(node.id);
-        }
-      }
+      propagateExistingOutputs(nodes, get().propagateOutputsDownstream);
 
       // Propagation after load is idempotent; don't trigger save cycle
       set({ isDirty: false });

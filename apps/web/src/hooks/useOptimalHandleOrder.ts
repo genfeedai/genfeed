@@ -1,6 +1,7 @@
 import type { HandleDefinition } from '@genfeedai/types';
 import { useReactFlow } from '@xyflow/react';
 import { useMemo } from 'react';
+import { selectEdges } from '@/store/workflow/selectors';
 import { useWorkflowStore } from '@/store/workflowStore';
 
 /**
@@ -11,7 +12,7 @@ export function useOptimalHandleOrder(
   nodeId: string,
   inputs: HandleDefinition[]
 ): HandleDefinition[] {
-  const { edges } = useWorkflowStore();
+  const edges = useWorkflowStore(selectEdges);
   const { getNode } = useReactFlow();
 
   return useMemo(() => {

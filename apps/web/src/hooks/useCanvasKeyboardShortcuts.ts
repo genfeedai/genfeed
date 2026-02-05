@@ -1,4 +1,5 @@
-import type { NodeType } from '@genfeedai/types';
+import type { NodeType, WorkflowNode } from '@genfeedai/types';
+import type { FitViewOptions } from '@xyflow/react';
 import { useEffect } from 'react';
 import type { NodeGroup } from '@/types/groups';
 import { useWorkflowStore } from '@/store/workflowStore';
@@ -6,12 +7,16 @@ import { useWorkflowStore } from '@/store/workflowStore';
 interface UseCanvasKeyboardShortcutsParams {
   selectedNodeIds: string[];
   groups: NodeGroup[];
+  nodes: WorkflowNode[];
   toggleNodeLock: (nodeId: string) => void;
   createGroup: (nodeIds: string[]) => string;
   deleteGroup: (groupId: string) => void;
   unlockAllNodes: () => void;
   addNode: (type: NodeType, position: { x: number; y: number }) => string;
   togglePalette: () => void;
+  fitView: (options?: FitViewOptions) => void;
+  openShortcutHelp: () => void;
+  openNodeSearch: () => void;
 }
 
 /**
@@ -20,6 +25,9 @@ interface UseCanvasKeyboardShortcutsParams {
  * Shortcuts:
  * - M: Toggle sidebar/palette
  * - L: Toggle lock on selected nodes
+ * - F: Fit view to selection (or all if none selected)
+ * - ?: Show shortcut help modal
+ * - Ctrl/Cmd+F: Open node search
  * - Ctrl/Cmd+G: Create group from selection
  * - Ctrl/Cmd+Shift+G: Ungroup selected nodes
  * - Ctrl/Cmd+Shift+L: Unlock all nodes
@@ -33,12 +41,16 @@ interface UseCanvasKeyboardShortcutsParams {
 export function useCanvasKeyboardShortcuts({
   selectedNodeIds,
   groups,
+  nodes,
   toggleNodeLock,
   createGroup,
   deleteGroup,
   unlockAllNodes,
   addNode,
   togglePalette,
+  fitView,
+  openShortcutHelp,
+  openNodeSearch,
 }: UseCanvasKeyboardShortcutsParams) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -53,6 +65,31 @@ export function useCanvasKeyboardShortcuts({
       if (e.key === 'm' && !isMod && !e.shiftKey) {
         e.preventDefault();
         togglePalette();
+      }
+
+      // F - Fit view to selection (or all nodes if none selected)
+      if (e.key === 'f' && !isMod && !e.shiftKey) {
+        e.preventDefault();
+        if (selectedNodeIds.length > 0) {
+          // Fit to selected nodes
+          const selectedNodes = nodes.filter((n) => selectedNodeIds.includes(n.id));
+          fitView({ nodes: selectedNodes, padding: 0.3, duration: 200 });
+        } else {
+          // Fit to all nodes
+          fitView({ padding: 0.2, duration: 200 });
+        }
+      }
+
+      // ? - Show shortcut help modal
+      if (e.key === '?' && e.shiftKey && !isMod) {
+        e.preventDefault();
+        openShortcutHelp();
+      }
+
+      // Ctrl/Cmd+F - Open node search
+      if (e.key === 'f' && isMod && !e.shiftKey) {
+        e.preventDefault();
+        openNodeSearch();
       }
 
       // L - Toggle lock on selected nodes
@@ -139,7 +176,11 @@ export function useCanvasKeyboardShortcuts({
     deleteGroup,
     unlockAllNodes,
     groups,
+    nodes,
     addNode,
     togglePalette,
+    fitView,
+    openShortcutHelp,
+    openNodeSearch,
   ]);
 }

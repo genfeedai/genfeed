@@ -26,6 +26,9 @@ import type {
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { GroupOverlay } from '@/components/canvas/GroupOverlay';
+import { HelperLines } from '@/components/canvas/HelperLines';
+import { NodeSearch } from '@/components/canvas/NodeSearch';
+import { ShortcutHelpModal } from '@/components/canvas/ShortcutHelpModal';
 import { ContextMenu } from '@/components/context-menu';
 import { nodeTypes } from '@/components/nodes';
 import { NodeDetailModal } from '@/components/nodes/NodeDetailModal';
@@ -72,8 +75,14 @@ export function WorkflowCanvas() {
     getConnectedNodeIds,
   } = useWorkflowStore();
 
-  const { selectNode, setHighlightedNodeIds, highlightedNodeIds, showPalette, togglePalette } =
-    useUIStore();
+  const {
+    selectNode,
+    setHighlightedNodeIds,
+    highlightedNodeIds,
+    showPalette,
+    togglePalette,
+    openModal,
+  } = useUIStore();
   const reactFlow = useReactFlow();
   const { edgeStyle, showMinimap } = useSettingsStore();
   const isRunning = useExecutionStore((state) => state.isRunning);
@@ -83,6 +92,7 @@ export function WorkflowCanvas() {
   const hasActiveNodeExecutions = useExecutionStore((state) => state.activeNodeExecutions.size > 0);
 
   const [isMinimapVisible, setIsMinimapVisible] = useState(false);
+  const [draggingNodeId, setDraggingNodeId] = useState<string | null>(null);
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const MINIMAP_HIDE_DELAY = 1500; // ms after stopping movement
 
@@ -97,15 +107,22 @@ export function WorkflowCanvas() {
     close: closeContextMenu,
   } = useContextMenu();
 
+  const openShortcutHelp = useCallback(() => openModal('shortcutHelp'), [openModal]);
+  const openNodeSearch = useCallback(() => openModal('nodeSearch'), [openModal]);
+
   useCanvasKeyboardShortcuts({
     selectedNodeIds,
     groups,
+    nodes,
     toggleNodeLock,
     createGroup,
     deleteGroup,
     unlockAllNodes,
     addNode,
     togglePalette,
+    fitView: reactFlow.fitView,
+    openShortcutHelp,
+    openNodeSearch,
   });
 
   useEffect(() => {
@@ -304,6 +321,19 @@ export function WorkflowCanvas() {
     event.dataTransfer.dropEffect = 'move';
   }, []);
 
+  const handleNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
+    setDraggingNodeId(node.id);
+  }, []);
+
+  const handleNodeDrag = useCallback((_event: React.MouseEvent, node: Node) => {
+    // Update dragging node ID to trigger helper lines recalculation
+    setDraggingNodeId(node.id);
+  }, []);
+
+  const handleNodeDragStop = useCallback(() => {
+    setDraggingNodeId(null);
+  }, []);
+
   const handleConnectEnd = useCallback(
     (event: MouseEvent | TouchEvent, connectionState: unknown) => {
       const state = connectionState as {
@@ -403,6 +433,9 @@ export function WorkflowCanvas() {
         onEdgeContextMenu={handleEdgeContextMenu}
         onPaneContextMenu={handlePaneContextMenu}
         onSelectionContextMenu={handleSelectionContextMenu}
+        onNodeDragStart={handleNodeDragStart}
+        onNodeDrag={handleNodeDrag}
+        onNodeDragStop={handleNodeDragStop}
         isValidConnection={checkValidConnection}
         nodeTypes={nodeTypes}
         fitView
@@ -444,6 +477,7 @@ export function WorkflowCanvas() {
             }`}
           />
         )}
+        <HelperLines draggingNodeId={draggingNodeId} />
       </ReactFlow>
       {isContextMenuOpen && (
         <ContextMenu
@@ -454,6 +488,8 @@ export function WorkflowCanvas() {
         />
       )}
       <NodeDetailModal />
+      <ShortcutHelpModal />
+      <NodeSearch />
     </div>
   );
 }

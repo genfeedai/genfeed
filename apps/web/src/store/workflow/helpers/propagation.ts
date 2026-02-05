@@ -322,3 +322,21 @@ export function applyNodeUpdates(
     return n;
   });
 }
+
+/**
+ * Propagate existing outputs to downstream nodes after loading a workflow.
+ * Uses `getNodeOutput` to check for any output value, ensuring the same
+ * priority chain is used everywhere (outputImages, outputImage, etc.).
+ *
+ * Used by both `loadWorkflow` and `loadWorkflowById` in the persistence slice.
+ */
+export function propagateExistingOutputs(
+  nodes: WorkflowNode[],
+  propagateFn: (nodeId: string) => void
+): void {
+  for (const node of nodes) {
+    if (getNodeOutput(node) !== null) {
+      propagateFn(node.id);
+    }
+  }
+}
