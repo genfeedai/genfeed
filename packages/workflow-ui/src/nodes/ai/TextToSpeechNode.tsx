@@ -14,8 +14,8 @@ import {
   SelectValue,
 } from '../../ui/select';
 import { Slider } from '../../ui/slider';
-import { useCanGenerate } from '@/hooks/useCanGenerate';
-import { useNodeExecution } from '@/hooks/useNodeExecution';
+import { useCanGenerate } from '../../hooks/useCanGenerate';
+import { useNodeExecution } from '../../hooks/useNodeExecution';
 import { useWorkflowStore } from '../../stores/workflowStore';
 
 const TTS_ENABLED = process.env.NEXT_PUBLIC_TTS_ENABLED === 'true';

@@ -1,5 +1,5 @@
 /**
- * Store re-exports for @genfeedai/workflow-ui
+ * Store re-exports for @genfeedai/core-ui
  *
  * These are the actual Zustand stores used by workflow-ui components.
  * The consuming app can override behavior by:
@@ -68,3 +68,19 @@ export { PROVIDER_INFO } from './settingsStore';
 
 // UI types
 export type { ModalType, NodeDetailTab } from './uiStore';
+
+// Embedded stores (moved from core app)
+export { usePromptEditorStore } from './promptEditorStore';
+export { useAnnotationStore } from './annotationStore';
+export type {
+  AnnotationTool,
+  ToolOptions,
+  BaseShape,
+  RectangleShape,
+  CircleShape,
+  ArrowShape,
+  FreehandShape,
+  TextShape,
+  AnnotationShape,
+} from './annotationStore';
+export { usePromptLibraryStore, configurePromptLibrary } from './promptLibraryStore';

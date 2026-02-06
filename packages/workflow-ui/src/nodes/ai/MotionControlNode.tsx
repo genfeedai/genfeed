@@ -20,8 +20,8 @@ import {
   SelectValue,
 } from '../../ui/select';
 import { Slider } from '../../ui/slider';
-import { useCanGenerate } from '@/hooks/useCanGenerate';
-import { useNodeExecution } from '@/hooks/useNodeExecution';
+import { useCanGenerate } from '../../hooks/useCanGenerate';
+import { useNodeExecution } from '../../hooks/useNodeExecution';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflowStore';
 

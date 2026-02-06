@@ -7,8 +7,8 @@ import Image from 'next/image';
 import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '../BaseNode';
 import { Button } from '../../ui/button';
-import { useMediaUpload } from '@/hooks/useMediaUpload';
-import { getImageDimensions } from '@/lib/utils/media';
+import { useMediaUpload } from '../../hooks/useMediaUpload';
+import { getImageDimensions } from '../../lib/media';
 import { useUIStore } from '../../stores/uiStore';
 
 function ImageInputNodeComponent(props: NodeProps) {

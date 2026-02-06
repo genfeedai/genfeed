@@ -4,7 +4,7 @@ import type { NodeType, WorkflowNodeData } from '@genfeedai/types';
 import Image from 'next/image';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { getMediaFromNode } from '@/lib/utils/mediaExtraction';
+import { getMediaFromNode } from '../lib/mediaExtraction';
 
 interface PreviewTooltipProps {
   nodeType: NodeType;

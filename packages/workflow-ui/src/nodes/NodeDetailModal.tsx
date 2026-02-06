@@ -6,8 +6,8 @@ import { ChevronLeft, ChevronRight, Download, X, ZoomIn, ZoomOut } from 'lucide-
 import Image from 'next/image';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button } from '../ui/button';
-import { getMediaFromNode } from '@/lib/utils/mediaExtraction';
-import { usePromptEditorStore } from '@/store/promptEditorStore';
+import { getMediaFromNode } from '../lib/mediaExtraction';
+import { usePromptEditorStore } from '../stores/promptEditorStore';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflowStore';
 

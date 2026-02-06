@@ -6,8 +6,8 @@ import { Expand, Link, Loader2, Upload, Video, X } from 'lucide-react';
 import { memo, useCallback, useMemo } from 'react';
 import { BaseNode } from '../BaseNode';
 import { Button } from '../../ui/button';
-import { useMediaUpload } from '@/hooks/useMediaUpload';
-import { getVideoMetadata } from '@/lib/utils/media';
+import { useMediaUpload } from '../../hooks/useMediaUpload';
+import { getVideoMetadata } from '../../lib/media';
 import { useUIStore } from '../../stores/uiStore';
 
 function VideoInputNodeComponent(props: NodeProps) {

@@ -9,7 +9,7 @@ import { BaseNode } from '../BaseNode';
 import { Button } from '../../ui/button';
 import { Checkbox } from '../../ui/checkbox';
 import { Slider } from '../../ui/slider';
-import { useCanGenerate } from '@/hooks/useCanGenerate';
+import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useExecutionStore } from '../../stores/executionStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflowStore';

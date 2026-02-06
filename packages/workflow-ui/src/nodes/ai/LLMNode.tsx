@@ -4,27 +4,28 @@ import type { LLMNodeData, TextModel } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { AlertCircle, Expand, RefreshCw } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
 import { BaseNode } from '../BaseNode';
 import { Button } from '../../ui/button';
 import { Slider } from '../../ui/slider';
-import { useAIGenNodeHeader } from '@/hooks/useAIGenNodeHeader';
-import { useAutoLoadModelSchema } from '@/hooks/useAutoLoadModelSchema';
-import { useCanGenerate } from '@/hooks/useCanGenerate';
-import { useModelSelection } from '@/hooks/useModelSelection';
-import { useNodeExecution } from '@/hooks/useNodeExecution';
+import { useAIGenNodeHeader } from '../../hooks/useAIGenNodeHeader';
+import { useAutoLoadModelSchema } from '../../hooks/useAutoLoadModelSchema';
+import { useCanGenerate } from '../../hooks/useCanGenerate';
+import { useModelSelection } from '../../hooks/useModelSelection';
+import { useNodeExecution } from '../../hooks/useNodeExecution';
 import {
   DEFAULT_LLM_MODEL,
   LLM_MODEL_ID_MAP,
   LLM_MODEL_MAP,
   LLM_MODELS,
-} from '@/lib/models/registry';
+} from '../../lib/models/registry';
+import { useWorkflowUIConfig } from '../../provider';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflowStore';
 
 function LLMNodeComponent(props: NodeProps) {
   const { id, type, data } = props;
   const nodeData = data as LLMNodeData;
+  const { ModelBrowserModal } = useWorkflowUIConfig();
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const { handleGenerate, handleStop } = useNodeExecution(id);
@@ -203,13 +204,15 @@ function LLMNodeComponent(props: NodeProps) {
         )}
       </div>
 
-      <ModelBrowserModal
-        isOpen={isModelBrowserOpen}
-        onClose={() => setIsModelBrowserOpen(false)}
-        onSelect={handleModelSelect}
-        capabilities={['text-generation']}
-        title="Select LLM Model"
-      />
+      {ModelBrowserModal && (
+        <ModelBrowserModal
+          isOpen={isModelBrowserOpen}
+          onClose={() => setIsModelBrowserOpen(false)}
+          onSelect={handleModelSelect}
+          capabilities={['text-generation']}
+          title="Select LLM Model"
+        />
+      )}
     </BaseNode>
   );
 }

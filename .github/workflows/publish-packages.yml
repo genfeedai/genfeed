@@ -5,6 +5,7 @@ on:
     tags:
       - 'workflows-v*'
       - 'prompts-v*'
+      - 'core-ui-v*'
   workflow_dispatch:
     inputs:
       package:
@@ -14,7 +15,8 @@ on:
         options:
           - workflows
           - prompts
-          - both
+          - core-ui
+          - all
 
 concurrency:
   group: publish-${{ github.ref }}
@@ -26,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       startsWith(github.ref, 'refs/tags/workflows-v') ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'workflows' || github.event.inputs.package == 'both'))
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'workflows' || github.event.inputs.package == 'all'))
     permissions:
       contents: read
       id-token: write
@@ -70,7 +72,7 @@ jobs:
     runs-on: ubuntu-latest
     if: >-
       startsWith(github.ref, 'refs/tags/prompts-v') ||
-      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'prompts' || github.event.inputs.package == 'both'))
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'prompts' || github.event.inputs.package == 'all'))
     permissions:
       contents: read
       id-token: write
@@ -107,4 +109,48 @@ jobs:
 
       - name: Publish
         working-directory: packages/prompts
+        run: npm publish --provenance --access public
+
+  publish-core-ui:
+    name: Publish @genfeedai/core-ui
+    runs-on: ubuntu-latest
+    if: >-
+      startsWith(github.ref, 'refs/tags/core-ui-v') ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'core-ui' || github.event.inputs.package == 'all'))
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate version (tag push only)
+        if: startsWith(github.ref, 'refs/tags/core-ui-v')
+        working-directory: packages/workflow-ui
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/core-ui-v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "Version validated: $TAG_VERSION"
+
+      - name: Build
+        working-directory: packages/workflow-ui
+        run: bun run build
+
+      - name: Publish
+        working-directory: packages/workflow-ui
         run: npm publish --provenance --access public

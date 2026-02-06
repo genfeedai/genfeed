@@ -1,22 +1,22 @@
 'use client';
 
-import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
 import { BaseNode } from '../BaseNode';
 import { ProcessingOverlay } from '../ProcessingOverlay';
 import { SchemaInputs } from '../SchemaInputs';
 import { Button } from '../../ui/button';
-import { useAIGenNode } from '@/hooks/useAIGenNode';
-import { useAIGenNodeHeader } from '@/hooks/useAIGenNodeHeader';
-import { useAutoLoadModelSchema } from '@/hooks/useAutoLoadModelSchema';
-import { useCanGenerate } from '@/hooks/useCanGenerate';
-import { useModelSelection } from '@/hooks/useModelSelection';
-import { useNodeExecution } from '@/hooks/useNodeExecution';
+import { useAIGenNode } from '../../hooks/useAIGenNode';
+import { useAIGenNodeHeader } from '../../hooks/useAIGenNodeHeader';
+import { useAutoLoadModelSchema } from '../../hooks/useAutoLoadModelSchema';
+import { useCanGenerate } from '../../hooks/useCanGenerate';
+import { useModelSelection } from '../../hooks/useModelSelection';
+import { useNodeExecution } from '../../hooks/useNodeExecution';
 import {
   DEFAULT_IMAGE_MODEL,
   IMAGE_MODEL_ID_MAP,
   IMAGE_MODEL_MAP,
   IMAGE_MODELS,
-} from '@/lib/models/registry';
+} from '../../lib/models/registry';
+import { useWorkflowUIConfig } from '../../provider';
 import { useUIStore } from '../../stores/uiStore';
 import type { ImageGenNodeData, ImageModel } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
@@ -27,6 +27,7 @@ import { memo, useCallback, useMemo, useState } from 'react';
 function ImageGenNodeComponent(props: NodeProps) {
   const { id, type, data } = props;
   const nodeData = data as ImageGenNodeData;
+  const { ModelBrowserModal } = useWorkflowUIConfig();
   const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const { handleGenerate, handleStop } = useNodeExecution(id);
   const { canGenerate } = useCanGenerate({
@@ -248,13 +249,15 @@ function ImageGenNodeComponent(props: NodeProps) {
       </div>
 
       {/* Model Browser Modal */}
-      <ModelBrowserModal
-        isOpen={isModelBrowserOpen}
-        onClose={() => setIsModelBrowserOpen(false)}
-        onSelect={handleModelSelect}
-        capabilities={['text-to-image', 'image-to-image']}
-        title="Select Image Model"
-      />
+      {ModelBrowserModal && (
+        <ModelBrowserModal
+          isOpen={isModelBrowserOpen}
+          onClose={() => setIsModelBrowserOpen(false)}
+          onSelect={handleModelSelect}
+          capabilities={['text-to-image', 'image-to-image']}
+          title="Select Image Model"
+        />
+      )}
     </BaseNode>
   );
 }

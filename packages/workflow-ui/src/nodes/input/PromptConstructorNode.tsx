@@ -10,7 +10,7 @@ import { Expand } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BaseNode } from '../BaseNode';
 import { Button } from '../../ui/button';
-import { usePromptAutocomplete } from '@/hooks/usePromptAutocomplete';
+import { usePromptAutocomplete } from '../../hooks/usePromptAutocomplete';
 import { useWorkflowStore } from '../../stores/workflowStore';
 
 function PromptConstructorNodeComponent(props: NodeProps) {

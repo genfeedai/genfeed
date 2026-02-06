@@ -1,18 +1,24 @@
 'use client';
 
+import type { ProviderModel } from '@genfeedai/types';
 import { ReactFlowProvider } from '@xyflow/react';
 import dynamic from 'next/dynamic';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { WorkflowCanvas } from '@genfeedai/workflow-ui/canvas';
-import { DebugPanel, NodePalette } from '@genfeedai/workflow-ui/panels';
-import { BottomBar, Toolbar } from '@genfeedai/workflow-ui/toolbar';
+import { useEffect, useMemo, useState } from 'react';
+import { WorkflowCanvas } from '@genfeedai/core-ui/canvas';
+import { DebugPanel, NodePalette } from '@genfeedai/core-ui/panels';
+import { WorkflowUIProvider } from '@genfeedai/core-ui/provider';
+import type { WorkflowUIConfig } from '@genfeedai/core-ui/provider';
+import { BottomBar, Toolbar } from '@genfeedai/core-ui/toolbar';
 import { CommandPalette } from '@/components/command-palette';
+import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
 import { AIGeneratorPanel } from '@/components/panels/AIGeneratorPanel';
 import { PromptEditorModal } from '@/components/prompt-editor/PromptEditorModal';
-import { CreatePromptModal, PromptLibraryModal } from '@/components/prompt-library';
+import { CreatePromptModal, PromptLibraryModal, PromptPicker } from '@/components/prompt-library';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
+import { apiClient } from '@/lib/api/client';
+import { promptsApi } from '@/lib/api';
 import { usePromptLibraryStore } from '@/store/promptLibraryStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUIStore } from '@/store/uiStore';
@@ -65,6 +71,36 @@ export default function WorkflowEditorPage() {
   } = useWorkflowStore();
 
   const [error, setError] = useState<string | null>(null);
+
+  // Configure WorkflowUIProvider with core app's API services
+  const workflowUIConfig = useMemo<WorkflowUIConfig>(
+    () => ({
+      fileUpload: {
+        uploadFile: async (path: string, file: File) => {
+          const result = await apiClient.uploadFile<{ url: string; filename: string }>(path, file);
+          return result;
+        },
+      },
+      modelSchema: {
+        fetchModelSchema: async (
+          modelId: string,
+          signal?: AbortSignal
+        ): Promise<ProviderModel | null> => {
+          const response = await fetch(
+            `/api/providers/models?query=${encodeURIComponent(modelId)}`,
+            { signal }
+          );
+          if (!response.ok) return null;
+          const data = await response.json();
+          return data.models?.find((m: { id: string }) => m.id === modelId) ?? null;
+        },
+      },
+      promptLibrary: promptsApi,
+      ModelBrowserModal,
+      PromptPicker,
+    }),
+    []
+  );
 
   // Initialize auto-save (triggers 2.5s after last change)
   useAutoSave(autoSaveEnabled);
@@ -163,37 +199,39 @@ export default function WorkflowEditorPage() {
   }
 
   return (
-    <ReactFlowProvider>
-      <main className="h-screen w-screen flex flex-col overflow-hidden bg-[var(--background)]">
-        <Toolbar />
-        <div className="flex-1 flex overflow-hidden">
-          {/* Node Palette with slide animation */}
-          <div
-            className={`transition-all duration-300 ease-in-out ${
-              showPalette ? 'w-64 opacity-100' : 'w-0 opacity-0'
-            } overflow-hidden`}
-          >
-            <NodePalette />
+    <WorkflowUIProvider config={workflowUIConfig}>
+      <ReactFlowProvider>
+        <main className="h-screen w-screen flex flex-col overflow-hidden bg-[var(--background)]">
+          <Toolbar />
+          <div className="flex-1 flex overflow-hidden">
+            {/* Node Palette with slide animation */}
+            <div
+              className={`transition-all duration-300 ease-in-out ${
+                showPalette ? 'w-64 opacity-100' : 'w-0 opacity-0'
+              } overflow-hidden`}
+            >
+              <NodePalette />
+            </div>
+            <div className="flex-1 relative">
+              <WorkflowCanvas />
+            </div>
+            {showAIGenerator && <AIGeneratorPanel />}
+            {debugMode && showDebugPanel && <DebugPanel />}
           </div>
-          <div className="flex-1 relative">
-            <WorkflowCanvas />
-          </div>
-          {showAIGenerator && <AIGeneratorPanel />}
-          {debugMode && showDebugPanel && <DebugPanel />}
-        </div>
-        <BottomBar />
-      </main>
-      <PromptLibraryModal />
-      {/* Render CreatePromptModal independently when library modal is closed (e.g., saving from PromptNode) */}
-      {isCreatePromptModalOpen && activeModal !== 'promptLibrary' && <CreatePromptModal />}
-      <PromptEditorModal />
-      <SettingsModal />
-      <AnnotationModal />
-      <GenerateWorkflowModal />
-      <TemplatesModal />
-      <CostModal />
-      <CommandPalette />
-      {activeModal === 'welcome' && <WelcomeModal />}
-    </ReactFlowProvider>
+          <BottomBar />
+        </main>
+        <PromptLibraryModal />
+        {/* Render CreatePromptModal independently when library modal is closed (e.g., saving from PromptNode) */}
+        {isCreatePromptModalOpen && activeModal !== 'promptLibrary' && <CreatePromptModal />}
+        <PromptEditorModal />
+        <SettingsModal />
+        <AnnotationModal />
+        <GenerateWorkflowModal />
+        <TemplatesModal />
+        <CostModal />
+        <CommandPalette />
+        {activeModal === 'welcome' && <WelcomeModal />}
+      </ReactFlowProvider>
+    </WorkflowUIProvider>
   );
 }

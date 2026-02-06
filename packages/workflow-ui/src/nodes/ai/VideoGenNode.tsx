@@ -4,27 +4,28 @@ import type { VideoGenNodeData, VideoModel } from '@genfeedai/types';
 import type { NodeProps } from '@xyflow/react';
 import { AlertCircle, Video } from 'lucide-react';
 import { memo, useCallback, useMemo, useState } from 'react';
-import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
 import { BaseNode } from '../BaseNode';
 import { ProcessingOverlay } from '../ProcessingOverlay';
 import { SchemaInputs } from '../SchemaInputs';
-import { useAIGenNode } from '@/hooks/useAIGenNode';
-import { useAIGenNodeHeader } from '@/hooks/useAIGenNodeHeader';
-import { useAutoLoadModelSchema } from '@/hooks/useAutoLoadModelSchema';
-import { useCanGenerate } from '@/hooks/useCanGenerate';
-import { useModelSelection } from '@/hooks/useModelSelection';
-import { useNodeExecution } from '@/hooks/useNodeExecution';
+import { useAIGenNode } from '../../hooks/useAIGenNode';
+import { useAIGenNodeHeader } from '../../hooks/useAIGenNodeHeader';
+import { useAutoLoadModelSchema } from '../../hooks/useAutoLoadModelSchema';
+import { useCanGenerate } from '../../hooks/useCanGenerate';
+import { useModelSelection } from '../../hooks/useModelSelection';
+import { useNodeExecution } from '../../hooks/useNodeExecution';
 import {
   DEFAULT_VIDEO_MODEL,
   VIDEO_MODEL_ID_MAP,
   VIDEO_MODEL_MAP,
   VIDEO_MODELS,
-} from '@/lib/models/registry';
+} from '../../lib/models/registry';
+import { useWorkflowUIConfig } from '../../provider';
 import { useUIStore } from '../../stores/uiStore';
 
 function VideoGenNodeComponent(props: NodeProps) {
   const { id, type, data } = props;
   const nodeData = data as VideoGenNodeData;
+  const { ModelBrowserModal } = useWorkflowUIConfig();
   const openNodeDetailModal = useUIStore((state) => state.openNodeDetailModal);
   const { handleGenerate, handleStop } = useNodeExecution(id);
   const { canGenerate } = useCanGenerate({
@@ -154,13 +155,15 @@ function VideoGenNodeComponent(props: NodeProps) {
       </div>
 
       {/* Model Browser Modal */}
-      <ModelBrowserModal
-        isOpen={isModelBrowserOpen}
-        onClose={() => setIsModelBrowserOpen(false)}
-        onSelect={handleModelSelect}
-        capabilities={['text-to-video', 'image-to-video']}
-        title="Select Video Model"
-      />
+      {ModelBrowserModal && (
+        <ModelBrowserModal
+          isOpen={isModelBrowserOpen}
+          onClose={() => setIsModelBrowserOpen(false)}
+          onSelect={handleModelSelect}
+          capabilities={['text-to-video', 'image-to-video']}
+          title="Select Video Model"
+        />
+      )}
     </BaseNode>
   );
 }

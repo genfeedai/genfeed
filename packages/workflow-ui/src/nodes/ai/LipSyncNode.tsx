@@ -15,9 +15,9 @@ import {
   SelectValue,
 } from '../../ui/select';
 import { Slider } from '../../ui/slider';
-import { useCanGenerate } from '@/hooks/useCanGenerate';
-import { useNodeExecution } from '@/hooks/useNodeExecution';
-import { LIPSYNC_MODELS, LIPSYNC_SYNC_MODES } from '@/lib/models/registry';
+import { useCanGenerate } from '../../hooks/useCanGenerate';
+import { useNodeExecution } from '../../hooks/useNodeExecution';
+import { LIPSYNC_MODELS, LIPSYNC_SYNC_MODES } from '../../lib/models/registry';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflowStore';
 

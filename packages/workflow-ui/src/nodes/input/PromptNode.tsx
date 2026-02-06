@@ -5,15 +5,16 @@ import type { NodeProps } from '@xyflow/react';
 import { Expand, Save } from 'lucide-react';
 import { memo, useCallback } from 'react';
 import { BaseNode } from '../BaseNode';
-import { PromptPicker } from '@/components/prompt-library';
 import { Button } from '../../ui/button';
-import { usePromptEditorStore } from '@/store/promptEditorStore';
-import { usePromptLibraryStore } from '@/store/promptLibraryStore';
+import { usePromptEditorStore } from '../../stores/promptEditorStore';
+import { usePromptLibraryStore } from '../../stores/promptLibraryStore';
 import { useWorkflowStore } from '../../stores/workflowStore';
+import { useWorkflowUIConfig } from '../../provider';
 
 function PromptNodeComponent(props: NodeProps) {
   const { id, data } = props;
   const nodeData = data as PromptNodeData;
+  const { PromptPicker } = useWorkflowUIConfig();
   const updateNodeData = useWorkflowStore((state) => state.updateNodeData);
   const { openCreateModal } = usePromptLibraryStore();
   const { openEditor } = usePromptEditorStore();
@@ -55,7 +56,11 @@ function PromptNodeComponent(props: NodeProps) {
     openEditor(id, nodeData.prompt ?? '');
   }, [id, nodeData.prompt, openEditor]);
 
-  const titleElement = <PromptPicker onSelect={handleSelectFromLibrary} label="Prompt" />;
+  const titleElement = PromptPicker ? (
+    <PromptPicker onSelect={handleSelectFromLibrary} label="Prompt" />
+  ) : (
+    <span className="text-xs font-medium">Prompt</span>
+  );
 
   const headerActions = (
     <>

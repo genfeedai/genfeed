@@ -15,7 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../../ui/select';
-import { useCanGenerate } from '@/hooks/useCanGenerate';
+import { useCanGenerate } from '../../hooks/useCanGenerate';
 import { useExecutionStore } from '../../stores/executionStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflowStore';

@@ -15,8 +15,8 @@ import {
   SelectValue,
 } from '../../ui/select';
 import { Slider } from '../../ui/slider';
-import { useRequiredInputs } from '@/hooks/useRequiredInputs';
-import { EASING_PRESETS } from '@/lib/easing/presets';
+import { useRequiredInputs } from '../../hooks/useRequiredInputs';
+import { EASING_PRESETS } from '../../lib/easing';
 import { useExecutionStore } from '../../stores/executionStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflowStore';
