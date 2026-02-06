@@ -3,16 +3,39 @@ name: Publish Packages
 on:
   push:
     tags:
-      - 'v*'
+      - 'workflows-v*'
+      - 'prompts-v*'
   workflow_dispatch:
+    inputs:
+      package:
+        description: 'Which package to publish'
+        required: true
+        type: choice
+        options:
+          - workflows
+          - prompts
+          - both
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  publish:
+  publish-workflows:
+    name: Publish @genfeedai/workflows
     runs-on: ubuntu-latest
+    if: >-
+      startsWith(github.ref, 'refs/tags/workflows-v') ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'workflows' || github.event.inputs.package == 'both'))
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -21,21 +44,68 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Build workflows package
+      - name: Validate version (tag push only)
+        if: startsWith(github.ref, 'refs/tags/workflows-v')
+        working-directory: packages/workflows
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/workflows-v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "Version validated: $TAG_VERSION"
+
+      - name: Build
         working-directory: packages/workflows
         run: bun run build
 
-      - name: Build prompts package
-        working-directory: packages/prompts
-        run: bun run build
-
-      - name: Publish @genfeedai/workflows
+      - name: Publish
         working-directory: packages/workflows
         run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish @genfeedai/prompts
+  publish-prompts:
+    name: Publish @genfeedai/prompts
+    runs-on: ubuntu-latest
+    if: >-
+      startsWith(github.ref, 'refs/tags/prompts-v') ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'prompts' || github.event.inputs.package == 'both'))
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate version (tag push only)
+        if: startsWith(github.ref, 'refs/tags/prompts-v')
+        working-directory: packages/prompts
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/prompts-v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "Version validated: $TAG_VERSION"
+
+      - name: Build
+        working-directory: packages/prompts
+        run: bun run build
+
+      - name: Publish
         working-directory: packages/prompts
         run: npm publish --access public
         env:

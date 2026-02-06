@@ -27,10 +27,8 @@
     "prepublishOnly": "bun run build",
     "test": "bun test __tests__/*.spec.ts"
   },
-  "dependencies": {
-    "@genfeedai/types": "workspace:*"
-  },
   "devDependencies": {
+    "@genfeedai/types": "workspace:*",
     "tsup": "8.4.0",
     "typescript": "5.9.3"
   }

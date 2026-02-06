@@ -31,10 +31,8 @@
     "dev": "tsup src/index.ts --format esm,cjs --dts --watch",
     "prepublishOnly": "bun run build"
   },
-  "dependencies": {
-    "@genfeedai/types": "workspace:*"
-  },
   "devDependencies": {
+    "@genfeedai/types": "workspace:*",
     "tsup": "8.4.0",
     "typescript": "5.9.3"
   }
