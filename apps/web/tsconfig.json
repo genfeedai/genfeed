@@ -19,7 +19,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@genfeedai/workflow-ui": ["../../packages/workflow-ui/src/index.ts"],
+      "@genfeedai/workflow-ui/*": ["../../packages/workflow-ui/src/*/index.ts"]
     }
   },
   "include": [
