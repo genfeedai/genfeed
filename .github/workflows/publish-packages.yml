@@ -29,6 +29,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'workflows' || github.event.inputs.package == 'both'))
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -62,9 +63,7 @@ jobs:
 
       - name: Publish
         working-directory: packages/workflows
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
 
   publish-prompts:
     name: Publish @genfeedai/prompts
@@ -74,6 +73,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'prompts' || github.event.inputs.package == 'both'))
     permissions:
       contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -107,6 +107,4 @@ jobs:
 
       - name: Publish
         working-directory: packages/prompts
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --provenance --access public
