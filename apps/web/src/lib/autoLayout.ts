@@ -206,7 +206,7 @@ export function getLayoutedNodes(
 ): Node[] {
   if (nodes.length === 0) return nodes;
 
-  const { direction = 'LR', nodeSpacing = 80, rankSpacing = 150 } = options;
+  const { direction = 'LR', nodeSpacing = 50, rankSpacing = 120 } = options;
 
   const graph = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 

@@ -1,6 +1,7 @@
 @use "tailwindcss";
 
 @source "../**/*.{ts,tsx}";
+@source "../../../../packages/workflow-ui/src/**/*.{ts,tsx}";
 
 // Design tokens
 :root {

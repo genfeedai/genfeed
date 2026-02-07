@@ -1,4 +1,5 @@
 import type { NodeType, WorkflowEdge, WorkflowNode } from '@genfeedai/types';
+import { NODE_DEFINITIONS } from '@genfeedai/types';
 import { useCallback, useMemo } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { CONNECTION_FIELDS, validateRequiredSchemaFields } from '../lib/schemaValidation';
@@ -111,10 +112,13 @@ export function useCanGenerate({
       });
     }
 
-    // 2. Check connected nodes have actual data (informational only)
-    // This does NOT block generation — the backend resolves dependencies
-    // and runs upstream nodes first during single-node execution
+    // 2. Check connected nodes targeting required handles have actual data
     const connectedInputs = getConnectedInputs(nodeId);
+    const nodeDef = NODE_DEFINITIONS[nodeType];
+    const requiredHandleIds = new Set(
+      nodeDef?.inputs.filter((h) => h.required).map((h) => h.id) ?? []
+    );
+    let hasRequiredData = true;
     let hasConnectedData = true;
 
     if (hasRequiredInputs) {
@@ -124,6 +128,9 @@ export function useCanGenerate({
 
         if (!connectedInputs.has(handleId)) {
           hasConnectedData = false;
+          if (requiredHandleIds.has(handleId)) {
+            hasRequiredData = false;
+          }
         }
       }
     }
@@ -143,7 +150,7 @@ export function useCanGenerate({
       });
     }
 
-    const canGenerate = hasRequiredInputs && schemaValidation.isValid;
+    const canGenerate = hasRequiredInputs && hasRequiredData && schemaValidation.isValid;
 
     return {
       canGenerate,
@@ -154,6 +161,7 @@ export function useCanGenerate({
     };
   }, [
     nodeId,
+    nodeType,
     hasRequiredInputs,
     missingInputs,
     inputSchema,

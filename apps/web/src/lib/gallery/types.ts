@@ -8,9 +8,15 @@ export interface GalleryItem {
   modifiedAt: string;
 }
 
+export type GalleryFilterType = 'all' | 'image' | 'video' | 'audio';
+
 export interface GalleryResponse {
   items: GalleryItem[];
   total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  counts: { all: number; image: number; video: number; audio: number };
 }
 
 export const IMAGE_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'] as const;

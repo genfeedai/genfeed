@@ -9,7 +9,7 @@ import { WorkflowCanvas } from '@genfeedai/workflow-ui/canvas';
 import { DebugPanel, NodePalette } from '@genfeedai/workflow-ui/panels';
 import { WorkflowUIProvider } from '@genfeedai/workflow-ui/provider';
 import type { WorkflowUIConfig } from '@genfeedai/workflow-ui/provider';
-import { BottomBar, Toolbar } from '@genfeedai/workflow-ui/toolbar';
+import { BottomBar, Toolbar } from '@/components/toolbar';
 import { CommandPalette } from '@/components/command-palette';
 import { ModelBrowserModal } from '@/components/models/ModelBrowserModal';
 import { AIGeneratorPanel } from '@/components/panels/AIGeneratorPanel';

@@ -6,11 +6,10 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 import { GalleryGrid } from '@/components/gallery/GalleryGrid';
 import { LightboxModal } from '@/components/gallery/LightboxModal';
-import type { GalleryItem, GalleryResponse } from '@/lib/gallery/types';
+import { Pagination } from '@/components/gallery/Pagination';
+import type { GalleryFilterType, GalleryItem, GalleryResponse } from '@/lib/gallery/types';
 
-type FilterType = 'all' | 'image' | 'video' | 'audio';
-
-const FILTERS: { type: FilterType; label: string; icon: typeof ImageIcon }[] = [
+const FILTERS: { type: GalleryFilterType; label: string; icon: typeof ImageIcon }[] = [
   { type: 'all', label: 'All', icon: ImageIcon },
   { type: 'image', label: 'Images', icon: ImageIcon },
   { type: 'video', label: 'Videos', icon: Film },
@@ -24,29 +23,49 @@ export default function GalleryPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [filter, setFilter] = useState<FilterType>('all');
+  const [filter, setFilter] = useState<GalleryFilterType>('all');
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [counts, setCounts] = useState<GalleryResponse['counts']>({
+    all: 0,
+    image: 0,
+    video: 0,
+    audio: 0,
+  });
 
-  const filteredItems = filter === 'all' ? items : items.filter((item) => item.type === filter);
-  const selectedItem = selectedIndex !== null ? filteredItems[selectedIndex] : null;
+  const selectedItem = selectedIndex !== null ? items[selectedIndex] : null;
 
-  const fetchGallery = useCallback(async (signal?: AbortSignal) => {
-    try {
-      const response = await fetch('/api/gallery', { signal });
-      if (!response.ok) throw new Error('Failed to load gallery');
-      const data: GalleryResponse = await response.json();
-      setItems(data.items);
-      setError(null);
-    } catch (err) {
-      if (signal?.aborted) return;
-      setError(err instanceof Error ? err.message : 'Failed to load gallery');
-    }
-  }, []);
+  const fetchGallery = useCallback(
+    async (targetPage: number, targetFilter: GalleryFilterType, signal?: AbortSignal) => {
+      try {
+        const params = new URLSearchParams({
+          page: String(targetPage),
+          pageSize: '30',
+          type: targetFilter,
+        });
+        const response = await fetch(`/api/gallery?${params}`, { signal });
+        if (!response.ok) throw new Error('Failed to load gallery');
+        const data: GalleryResponse = await response.json();
+        setItems(data.items);
+        setTotal(data.total);
+        setPage(data.page);
+        setTotalPages(data.totalPages);
+        setCounts(data.counts);
+        setError(null);
+      } catch (err) {
+        if (signal?.aborted) return;
+        setError(err instanceof Error ? err.message : 'Failed to load gallery');
+      }
+    },
+    []
+  );
 
   useEffect(() => {
     const controller = new AbortController();
 
     async function load() {
-      await fetchGallery(controller.signal);
+      await fetchGallery(1, 'all', controller.signal);
       setIsLoading(false);
     }
 
@@ -56,27 +75,49 @@ export default function GalleryPage() {
 
   const handleRefresh = useCallback(async () => {
     setIsRefreshing(true);
-    await fetchGallery();
+    await fetchGallery(page, filter);
     setIsRefreshing(false);
-  }, [fetchGallery]);
+  }, [fetchGallery, page, filter]);
+
+  const handleFilterChange = useCallback(
+    async (newFilter: GalleryFilterType) => {
+      setFilter(newFilter);
+      setSelectedIndex(null);
+      setIsRefreshing(true);
+      await fetchGallery(1, newFilter);
+      setIsRefreshing(false);
+    },
+    [fetchGallery]
+  );
+
+  const handlePageChange = useCallback(
+    async (newPage: number) => {
+      setSelectedIndex(null);
+      setIsRefreshing(true);
+      await fetchGallery(newPage, filter);
+      setIsRefreshing(false);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    },
+    [fetchGallery, filter]
+  );
 
   const handleSelect = useCallback(
     (item: GalleryItem) => {
-      const index = filteredItems.findIndex((i) => i.id === item.id);
+      const index = items.findIndex((i) => i.id === item.id);
       setSelectedIndex(index >= 0 ? index : null);
     },
-    [filteredItems]
+    [items]
   );
 
   const handlePrev = useCallback(() => {
-    if (selectedIndex === null || filteredItems.length === 0) return;
-    setSelectedIndex(selectedIndex > 0 ? selectedIndex - 1 : filteredItems.length - 1);
-  }, [selectedIndex, filteredItems.length]);
+    if (selectedIndex === null || items.length === 0) return;
+    setSelectedIndex(selectedIndex > 0 ? selectedIndex - 1 : items.length - 1);
+  }, [selectedIndex, items.length]);
 
   const handleNext = useCallback(() => {
-    if (selectedIndex === null || filteredItems.length === 0) return;
-    setSelectedIndex(selectedIndex < filteredItems.length - 1 ? selectedIndex + 1 : 0);
-  }, [selectedIndex, filteredItems.length]);
+    if (selectedIndex === null || items.length === 0) return;
+    setSelectedIndex(selectedIndex < items.length - 1 ? selectedIndex + 1 : 0);
+  }, [selectedIndex, items.length]);
 
   const handleDelete = useCallback(
     async (item: GalleryItem) => {
@@ -86,23 +127,27 @@ export default function GalleryPage() {
         });
         if (!response.ok) throw new Error('Failed to delete file');
 
-        // Remove from local state
-        setItems((prev) => prev.filter((i) => i.id !== item.id));
+        // If this was the last item on the page, go to previous page
+        const isLastOnPage = items.length === 1 && page > 1;
+        const targetPage = isLastOnPage ? page - 1 : page;
 
-        // Move to next item or close if last
+        // Re-fetch to get accurate server state
+        await fetchGallery(targetPage, filter);
+
+        // Adjust selection
         if (selectedIndex !== null) {
-          const newItems = items.filter((i) => i.id !== item.id);
-          if (newItems.length === 0) {
+          const remaining = items.length - 1;
+          if (remaining === 0) {
             setSelectedIndex(null);
-          } else if (selectedIndex >= newItems.length) {
-            setSelectedIndex(newItems.length - 1);
+          } else if (selectedIndex >= remaining) {
+            setSelectedIndex(remaining - 1);
           }
         }
       } catch (err) {
         alert(err instanceof Error ? err.message : 'Failed to delete file');
       }
     },
-    [items, selectedIndex]
+    [items, selectedIndex, page, filter, fetchGallery]
   );
 
   const handleClose = useCallback(() => {
@@ -110,26 +155,38 @@ export default function GalleryPage() {
   }, []);
 
   const handleDeleteAll = useCallback(async () => {
-    const itemsToDelete = filter === 'all' ? items : items.filter((item) => item.type === filter);
     const typeLabel = filter === 'all' ? 'all items' : `all ${filter}s`;
+    const count = counts[filter];
 
-    if (!confirm(`Delete ${itemsToDelete.length} ${typeLabel}? This cannot be undone.`)) {
+    if (!confirm(`Delete ${count} ${typeLabel}? This cannot be undone.`)) {
       return;
     }
 
     setIsDeleting(true);
     try {
+      // Fetch all matching items to get their paths
+      const params = new URLSearchParams({
+        page: '1',
+        pageSize: String(count),
+        type: filter,
+      });
+      const allResponse = await fetch(`/api/gallery?${params}`);
+      if (!allResponse.ok) throw new Error('Failed to fetch items for deletion');
+      const allData: GalleryResponse = await allResponse.json();
+
       await Promise.all(
-        itemsToDelete.map((item) => fetch(`/api/gallery/${item.path}`, { method: 'DELETE' }))
+        allData.items.map((item) => fetch(`/api/gallery/${item.path}`, { method: 'DELETE' }))
       );
-      setItems((prev) => prev.filter((item) => !itemsToDelete.some((d) => d.id === item.id)));
+
       setSelectedIndex(null);
+      setFilter('all');
+      await fetchGallery(1, 'all');
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete files');
     } finally {
       setIsDeleting(false);
     }
-  }, [filter, items]);
+  }, [filter, counts, fetchGallery]);
 
   return (
     <div className="min-h-screen bg-[var(--background)]">
@@ -155,7 +212,7 @@ export default function GalleryPage() {
           </div>
           <div className="flex items-center gap-3">
             <p className="text-sm text-[var(--muted-foreground)]">
-              {items.length} {items.length === 1 ? 'item' : 'items'}
+              {total} {total === 1 ? 'item' : 'items'}
             </p>
             <button
               onClick={handleRefresh}
@@ -173,13 +230,13 @@ export default function GalleryPage() {
       {/* Content */}
       <main className="max-w-7xl mx-auto px-6 py-8">
         {/* Filters and actions */}
-        {!isLoading && !error && items.length > 0 && (
+        {!isLoading && !error && counts.all > 0 && (
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
               {FILTERS.map(({ type, label, icon: Icon }) => (
                 <button
                   key={type}
-                  onClick={() => setFilter(type)}
+                  onClick={() => handleFilterChange(type)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition ${
                     filter === type
                       ? 'bg-white text-black'
@@ -188,17 +245,13 @@ export default function GalleryPage() {
                 >
                   <Icon className="w-4 h-4" />
                   {label}
-                  {type !== 'all' && (
-                    <span className="text-xs opacity-60">
-                      ({items.filter((i) => i.type === type).length})
-                    </span>
-                  )}
+                  {type !== 'all' && <span className="text-xs opacity-60">({counts[type]})</span>}
                 </button>
               ))}
             </div>
             <button
               onClick={handleDeleteAll}
-              disabled={isDeleting || filteredItems.length === 0}
+              disabled={isDeleting || items.length === 0}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <Trash2 className="w-4 h-4" />
@@ -229,7 +282,7 @@ export default function GalleryPage() {
         )}
 
         {/* Empty state */}
-        {!isLoading && !error && items.length === 0 && (
+        {!isLoading && !error && counts.all === 0 && (
           <div className="text-center py-20">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--secondary)] flex items-center justify-center">
               <ImageIcon className="w-8 h-8 text-[var(--muted-foreground)]" />
@@ -248,15 +301,18 @@ export default function GalleryPage() {
         )}
 
         {/* Empty filter state */}
-        {!isLoading && !error && items.length > 0 && filteredItems.length === 0 && (
+        {!isLoading && !error && counts.all > 0 && items.length === 0 && (
           <div className="text-center py-20">
             <p className="text-[var(--muted-foreground)]">No {filter}s found</p>
           </div>
         )}
 
         {/* Gallery grid */}
-        {!isLoading && !error && filteredItems.length > 0 && (
-          <GalleryGrid items={filteredItems} onSelect={handleSelect} />
+        {!isLoading && !error && items.length > 0 && (
+          <>
+            <GalleryGrid items={items} onSelect={handleSelect} />
+            <Pagination page={page} totalPages={totalPages} onPageChange={handlePageChange} />
+          </>
         )}
       </main>
 
@@ -264,8 +320,8 @@ export default function GalleryPage() {
       <LightboxModal
         item={selectedItem}
         onClose={handleClose}
-        onPrev={filteredItems.length > 1 ? handlePrev : undefined}
-        onNext={filteredItems.length > 1 ? handleNext : undefined}
+        onPrev={items.length > 1 ? handlePrev : undefined}
+        onNext={items.length > 1 ? handleNext : undefined}
         onDelete={handleDelete}
       />
     </div>
