@@ -28,9 +28,9 @@ export default defineConfig({
     'zundo',
     'next',
     'next/image',
-    '@genfeedai/core',
     '@genfeedai/types',
   ],
+  noExternal: ['@genfeedai/core', 'react-compare-slider'],
   esbuildOptions(options) {
     options.banner = {
       js: '"use client";',
