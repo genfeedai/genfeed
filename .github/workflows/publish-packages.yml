@@ -69,7 +69,9 @@ jobs:
 
       - name: Publish
         working-directory: packages/types
-        run: unset NODE_AUTH_TOKEN && npm publish --provenance --access public
+        run: |
+          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          npm publish --provenance --access public
 
   publish-core:
     name: Publish @genfeedai/core
@@ -140,7 +142,9 @@ jobs:
 
       - name: Publish
         working-directory: packages/core
-        run: unset NODE_AUTH_TOKEN && npm publish --provenance --access public
+        run: |
+          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          npm publish --provenance --access public
 
   publish-workflows:
     name: Publish @genfeedai/workflows
@@ -211,7 +215,9 @@ jobs:
 
       - name: Publish
         working-directory: packages/workflows
-        run: unset NODE_AUTH_TOKEN && npm publish --provenance --access public
+        run: |
+          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          npm publish --provenance --access public
 
   publish-prompts:
     name: Publish @genfeedai/prompts
@@ -282,7 +288,9 @@ jobs:
 
       - name: Publish
         working-directory: packages/prompts
-        run: unset NODE_AUTH_TOKEN && npm publish --provenance --access public
+        run: |
+          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          npm publish --provenance --access public
 
   publish-workflow-ui:
     name: Publish @genfeedai/workflow-ui
@@ -355,4 +363,6 @@ jobs:
 
       - name: Publish
         working-directory: packages/workflow-ui
-        run: unset NODE_AUTH_TOKEN && npm publish --provenance --access public
+        run: |
+          echo "registry=https://registry.npmjs.org/" > ~/.npmrc
+          npm publish --provenance --access public
