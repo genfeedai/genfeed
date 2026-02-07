@@ -2,23 +2,59 @@
   "name": "@genfeedai/types",
   "version": "0.1.0",
   "license": "AGPL-3.0",
-  "private": true,
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
+  "description": "Type definitions for Genfeed workflow engine",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/genfeedai/core.git",
+    "directory": "packages/types"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./nodes": "./src/nodes.ts",
-    "./workflow": "./src/workflow.ts",
-    "./comfyui": "./src/comfyui/index.ts",
-    "./replicate": "./src/replicate/index.ts",
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./nodes": {
+      "types": "./dist/nodes.d.ts",
+      "import": "./dist/nodes.js",
+      "require": "./dist/nodes.cjs"
+    },
+    "./workflow": {
+      "types": "./dist/workflow.d.ts",
+      "import": "./dist/workflow.js",
+      "require": "./dist/workflow.cjs"
+    },
+    "./comfyui": {
+      "types": "./dist/comfyui.d.ts",
+      "import": "./dist/comfyui.js",
+      "require": "./dist/comfyui.cjs"
+    },
+    "./replicate": {
+      "types": "./dist/replicate.d.ts",
+      "import": "./dist/replicate.js",
+      "require": "./dist/replicate.cjs"
+    },
     "./replicate/schemas.json": "./src/replicate/schemas.json"
   },
+  "files": [
+    "dist",
+    "src/replicate/schemas.json"
+  ],
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch"
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "prepublishOnly": "bun run build"
   },
   "devDependencies": {
     "@xyflow/react": "12.10.0",
+    "tsup": "8.4.0",
     "typescript": "5.9.3"
   }
 }

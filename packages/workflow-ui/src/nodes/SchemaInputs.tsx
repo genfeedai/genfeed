@@ -17,7 +17,7 @@ import { Slider } from '../ui/slider';
  * JSON Schema property definition
  * These come from Replicate model schemas
  */
-interface SchemaProperty {
+export interface SchemaProperty {
   type?: string;
   title?: string;
   description?: string;

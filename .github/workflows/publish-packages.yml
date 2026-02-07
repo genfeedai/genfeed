@@ -3,6 +3,8 @@ name: Publish Packages
 on:
   push:
     tags:
+      - 'core-v*'
+      - 'types-v*'
       - 'workflows-v*'
       - 'prompts-v*'
       - 'workflow-ui-v*'
@@ -13,6 +15,8 @@ on:
         required: true
         type: choice
         options:
+          - core
+          - types
           - workflows
           - prompts
           - workflow-ui
@@ -23,6 +27,118 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  publish-types:
+    name: Publish @genfeedai/types
+    runs-on: ubuntu-latest
+    if: >-
+      startsWith(github.ref, 'refs/tags/types-v') ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'types' || github.event.inputs.package == 'all'))
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Validate version (tag push only)
+        if: startsWith(github.ref, 'refs/tags/types-v')
+        working-directory: packages/types
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/types-v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "Version validated: $TAG_VERSION"
+
+      - name: Build
+        working-directory: packages/types
+        run: bun run build
+
+      - name: Publish
+        working-directory: packages/types
+        run: npm publish --provenance --access public
+
+  publish-core:
+    name: Publish @genfeedai/core
+    runs-on: ubuntu-latest
+    if: >-
+      startsWith(github.ref, 'refs/tags/core-v') ||
+      (github.event_name == 'workflow_dispatch' && (github.event.inputs.package == 'core' || github.event.inputs.package == 'all'))
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Resolve workspace references
+        working-directory: packages/core
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const resolve = (deps) => {
+              if (!deps) return deps;
+              for (const [name, ver] of Object.entries(deps)) {
+                if (typeof ver === 'string' && ver.startsWith('workspace:')) {
+                  const sibling = name.replace('@genfeedai/', '');
+                  const siblingPkg = JSON.parse(fs.readFileSync('../' + sibling + '/package.json', 'utf8'));
+                  deps[name] = '^' + siblingPkg.version;
+                }
+              }
+              return deps;
+            };
+            resolve(pkg.dependencies);
+            resolve(pkg.devDependencies);
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          echo "Resolved workspace references:"
+          grep -n "genfeedai" package.json || true
+
+      - name: Validate version (tag push only)
+        if: startsWith(github.ref, 'refs/tags/core-v')
+        working-directory: packages/core
+        run: |
+          TAG_VERSION="${GITHUB_REF#refs/tags/core-v}"
+          PKG_VERSION=$(node -p "require('./package.json').version")
+          if [ "$TAG_VERSION" != "$PKG_VERSION" ]; then
+            echo "::error::Tag version ($TAG_VERSION) does not match package.json version ($PKG_VERSION)"
+            exit 1
+          fi
+          echo "Version validated: $TAG_VERSION"
+
+      - name: Build
+        working-directory: packages/core
+        run: bun run build
+
+      - name: Publish
+        working-directory: packages/core
+        run: npm publish --provenance --access public
+
   publish-workflows:
     name: Publish @genfeedai/workflows
     runs-on: ubuntu-latest
@@ -46,6 +162,30 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Resolve workspace references
+        working-directory: packages/workflows
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const resolve = (deps) => {
+              if (!deps) return deps;
+              for (const [name, ver] of Object.entries(deps)) {
+                if (typeof ver === 'string' && ver.startsWith('workspace:')) {
+                  const sibling = name.replace('@genfeedai/', '');
+                  const siblingPkg = JSON.parse(fs.readFileSync('../' + sibling + '/package.json', 'utf8'));
+                  deps[name] = '^' + siblingPkg.version;
+                }
+              }
+              return deps;
+            };
+            resolve(pkg.dependencies);
+            resolve(pkg.devDependencies);
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          echo "Resolved workspace references:"
+          grep -n "genfeedai" package.json || true
 
       - name: Validate version (tag push only)
         if: startsWith(github.ref, 'refs/tags/workflows-v')
@@ -91,6 +231,30 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Resolve workspace references
+        working-directory: packages/prompts
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const resolve = (deps) => {
+              if (!deps) return deps;
+              for (const [name, ver] of Object.entries(deps)) {
+                if (typeof ver === 'string' && ver.startsWith('workspace:')) {
+                  const sibling = name.replace('@genfeedai/', '');
+                  const siblingPkg = JSON.parse(fs.readFileSync('../' + sibling + '/package.json', 'utf8'));
+                  deps[name] = '^' + siblingPkg.version;
+                }
+              }
+              return deps;
+            };
+            resolve(pkg.dependencies);
+            resolve(pkg.devDependencies);
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          echo "Resolved workspace references:"
+          grep -n "genfeedai" package.json || true
+
       - name: Validate version (tag push only)
         if: startsWith(github.ref, 'refs/tags/prompts-v')
         working-directory: packages/prompts
@@ -134,6 +298,30 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Resolve workspace references
+        working-directory: packages/workflow-ui
+        run: |
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            const resolve = (deps) => {
+              if (!deps) return deps;
+              for (const [name, ver] of Object.entries(deps)) {
+                if (typeof ver === 'string' && ver.startsWith('workspace:')) {
+                  const sibling = name.replace('@genfeedai/', '');
+                  const siblingPkg = JSON.parse(fs.readFileSync('../' + sibling + '/package.json', 'utf8'));
+                  deps[name] = '^' + siblingPkg.version;
+                }
+              }
+              return deps;
+            };
+            resolve(pkg.dependencies);
+            resolve(pkg.devDependencies);
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+          echo "Resolved workspace references:"
+          grep -n "genfeedai" package.json || true
 
       - name: Validate version (tag push only)
         if: startsWith(github.ref, 'refs/tags/workflow-ui-v')

@@ -3,17 +3,9 @@
 import { Bug, ChevronDown, ChevronRight, Copy, Trash2, X } from 'lucide-react';
 import { memo, useCallback, useState } from 'react';
 import { useExecutionStore } from '../stores/executionStore';
+import type { DebugPayload } from '../stores/execution/types';
 import { useUIStore } from '../stores/uiStore';
 import { PanelContainer } from './PanelContainer';
-
-interface DebugPayload {
-  nodeId: string;
-  nodeName?: string;
-  nodeType: string;
-  model: string;
-  timestamp: number;
-  input: unknown;
-}
 
 interface PayloadCardProps {
   payload: DebugPayload;
