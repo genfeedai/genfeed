@@ -10,6 +10,7 @@ export {
   buildFlux2DevPulidUpscalePrompt,
   buildFlux2DevPulidLoraPrompt,
   buildFlux2KleinPrompt,
+  buildZImageTurboLoraPrompt,
 } from './prompt-builder';
 export type {
   FluxDevParams,
@@ -20,4 +21,5 @@ export type {
   Flux2PulidUpscaleParams,
   Flux2PulidLoraParams,
   Flux2KleinParams,
+  ZImageTurboLoraParams,
 } from './prompt-builder';

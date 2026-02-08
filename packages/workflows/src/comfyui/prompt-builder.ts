@@ -961,3 +961,125 @@ export function buildFlux2KleinPrompt(params: Flux2KleinParams): ComfyUIPrompt {
     },
   };
 }
+
+// =============================================================================
+// Z-IMAGE TURBO + LoRA — face-consistent via trained LoRA (no PuLID needed)
+// Split loading: UNETLoader + CLIPLoader + LoraLoader + VAELoader
+// Z-Image is Lumina2-based (Qwen text encoder), uses euler_ancestral, cfg 1.0
+// =============================================================================
+
+export interface ZImageTurboLoraParams extends ZImageTurboParams {
+  loraPath: string;
+  loraStrength?: number;
+  upscaleModel?: string;
+}
+
+export function buildZImageTurboLoraPrompt(params: ZImageTurboLoraParams): ComfyUIPrompt {
+  const {
+    prompt,
+    loraPath,
+    seed = Math.floor(Math.random() * 2 ** 32),
+    width = 832,
+    height = 1216,
+    steps = 8,
+    loraStrength = 0.8,
+    upscaleModel = '4x-UltraSharp.pth',
+  } = params;
+
+  return {
+    '1': {
+      class_type: 'UNETLoader',
+      inputs: {
+        unet_name: 'z_image_turbo_bf16.safetensors',
+        weight_dtype: 'default',
+      },
+    },
+    '2': {
+      class_type: 'CLIPLoader',
+      inputs: {
+        clip_name: 'qwen_3_4b.safetensors',
+        type: 'lumina2',
+      },
+    },
+    '3': {
+      class_type: 'LoraLoader',
+      inputs: {
+        model: ['1', 0],
+        clip: ['2', 0],
+        lora_name: loraPath,
+        strength_model: loraStrength,
+        strength_clip: loraStrength,
+      },
+    },
+    '4': {
+      class_type: 'CLIPTextEncode',
+      inputs: {
+        text: prompt,
+        clip: ['3', 1],
+      },
+    },
+    '5': {
+      class_type: 'CLIPTextEncode',
+      inputs: {
+        text: '',
+        clip: ['3', 1],
+      },
+    },
+    '6': {
+      class_type: 'EmptyLatentImage',
+      inputs: {
+        width,
+        height,
+        batch_size: 1,
+      },
+    },
+    '7': {
+      class_type: 'KSampler',
+      inputs: {
+        model: ['3', 0],
+        positive: ['4', 0],
+        negative: ['5', 0],
+        latent_image: ['6', 0],
+        seed,
+        steps,
+        cfg: 1.0,
+        sampler_name: 'euler_ancestral',
+        scheduler: 'normal',
+        denoise: 1.0,
+      },
+    },
+    '8': {
+      class_type: 'VAELoader',
+      inputs: {
+        vae_name: 'ae.safetensors',
+      },
+    },
+    '9': {
+      class_type: 'VAEDecode',
+      inputs: {
+        samples: ['7', 0],
+        vae: ['8', 0],
+      },
+    },
+    '10': {
+      class_type: 'UpscaleModelLoader',
+      inputs: {
+        model_name: upscaleModel,
+      },
+    },
+    '11': {
+      class_type: 'ImageUpscaleWithModel',
+      inputs: {
+        upscale_model: ['10', 0],
+        image: ['9', 0],
+      },
+    },
+    '12': {
+      class_type: 'SaveImage',
+      inputs: {
+        images: ['11', 0],
+        filename_prefix: 'genfeed-z-turbo-lora',
+      },
+    },
+  };
+}
