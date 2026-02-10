@@ -46,6 +46,7 @@ const storeCreator = ((...args: Parameters<StateCreator<WorkflowStore>>) => ({
   selectedNodeIds: [],
   viewedCommentIds: new Set<string>(),
   navigationTargetId: null,
+  globalImageHistory: [],
 
   // Compose slices
   ...createNodeSlice(...args),

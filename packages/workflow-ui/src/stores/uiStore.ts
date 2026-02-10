@@ -1,3 +1,4 @@
+import type { HandleType } from '@genfeedai/types';
 import { create } from 'zustand';
 
 export type ModalType =
@@ -13,6 +14,14 @@ export type ModalType =
   | null;
 
 export type NodeDetailTab = 'preview' | 'history';
+
+export interface ConnectionDropMenuState {
+  position: { x: number; y: number };
+  screenPosition: { x: number; y: number };
+  sourceNodeId: string;
+  sourceHandleId: string;
+  sourceHandleType: HandleType;
+}
 
 interface UIStore {
   // Panel visibility
@@ -30,6 +39,9 @@ interface UIStore {
 
   // Modals
   activeModal: ModalType;
+
+  // Connection drop menu
+  connectionDropMenu: ConnectionDropMenuState | null;
 
   // Node detail modal
   nodeDetailNodeId: string | null;
@@ -50,6 +62,8 @@ interface UIStore {
   setHighlightedNodeIds: (ids: string[]) => void;
   openModal: (modal: ModalType) => void;
   closeModal: () => void;
+  openConnectionDropMenu: (params: ConnectionDropMenuState) => void;
+  closeConnectionDropMenu: () => void;
   openNodeDetailModal: (nodeId: string, tab?: NodeDetailTab, startIndex?: number) => void;
   closeNodeDetailModal: () => void;
   setNodeDetailTab: (tab: NodeDetailTab) => void;
@@ -76,6 +90,7 @@ export const useUIStore = create<UIStore>((set) => ({
   selectedEdgeId: null,
   highlightedNodeIds: [],
   activeModal: null,
+  connectionDropMenu: null,
   nodeDetailNodeId: null,
   nodeDetailActiveTab: 'preview',
   nodeDetailStartIndex: 0,
@@ -119,6 +134,14 @@ export const useUIStore = create<UIStore>((set) => ({
 
   closeModal: () => {
     set({ activeModal: null });
+  },
+
+  openConnectionDropMenu: (params) => {
+    set({ connectionDropMenu: params });
+  },
+
+  closeConnectionDropMenu: () => {
+    set({ connectionDropMenu: null });
   },
 
   openNodeDetailModal: (nodeId, tab = 'preview', startIndex = 0) => {

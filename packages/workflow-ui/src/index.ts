@@ -6,6 +6,10 @@ export {
   NodeSearch,
   ShortcutHelpModal,
   PauseEdge,
+  ConnectionDropMenu,
+  EditableEdge,
+  EdgeToolbar,
+  ReferenceEdge,
 } from './canvas';
 
 // Nodes
@@ -22,6 +26,7 @@ export {
   ToolbarDropdown,
   SaveAsDialog,
   OverflowMenu,
+  CostIndicator,
 } from './toolbar';
 export type { DropdownItem, ToolbarDropdownProps, OverflowMenuProps } from './toolbar';
 
@@ -37,7 +42,13 @@ export {
   usePromptAutocomplete,
   useMediaUpload,
   useAutoLoadModelSchema,
+  useCommentNavigation,
 } from './hooks';
+export type { CommentNavigation } from './hooks';
+
+// Components
+export { NotificationToast } from './components/NotificationToast';
+export { GlobalImageHistory } from './components/GlobalImageHistory';
 
 // Stores
 export { useUIStore } from './stores/uiStore';
@@ -59,3 +70,4 @@ export type {
 
 // Types
 export * from './types/groups';
+export type { ImageHistoryItem } from './stores/workflow/types';

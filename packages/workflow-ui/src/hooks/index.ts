@@ -10,3 +10,5 @@ export { useAIGenNodeHeader } from './useAIGenNodeHeader';
 export { usePromptAutocomplete } from './usePromptAutocomplete';
 export { useMediaUpload } from './useMediaUpload';
 export { useAutoLoadModelSchema } from './useAutoLoadModelSchema';
+export { useCommentNavigation } from './useCommentNavigation';
+export type { CommentNavigation } from './useCommentNavigation';

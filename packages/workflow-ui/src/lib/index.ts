@@ -11,10 +11,59 @@ export { getImageDimensions, getVideoMetadata } from './media';
 // Easing utilities
 export {
   EASING_PRESETS,
+  EASING_BEZIER_MAP,
+  PRESET_BEZIERS,
+  DEFAULT_CUSTOM_BEZIER,
   evaluateBezier,
   applySpeedCurve,
   getEasingDisplayName,
+  getPresetBezier,
+  getEasingBezier,
+  easing,
+  createAsymmetricEase,
+  createBezierEasing,
+  getEasingFunction,
+  getAllEasingNames,
 } from './easing';
+export type { EasingFunction, EasingPresetName } from './easing';
+
+// Speed curve utilities
+export {
+  warpTime,
+  calculateWarpedDuration,
+  validateWarpFunction,
+  analyzeWarpCurve,
+} from './speedCurve';
+
+// Grid splitter utilities
+export {
+  detectGrid,
+  createGridForDimensions,
+  detectGridWithDimensions,
+  getGridCandidates,
+  splitImage,
+  detectAndSplitGrid,
+  splitWithDimensions,
+} from './gridSplitter';
+export type { GridCell, GridDetectionResult, GridCandidate } from './gridSplitter';
+
+// Node dimensions utilities
+export {
+  getImageDimensions as getImageDimensionsFromDataUrl,
+  getVideoDimensions as getVideoDimensionsFromUrl,
+  calculateNodeSize,
+  calculateNodeSizePreservingHeight,
+} from './nodeDimensions';
+
+// Deduplicated fetch
+export { deduplicatedFetch, clearFetchCache } from './deduplicatedFetch';
+
+// Cost calculator
+export { calculateWorkflowCost, formatCost } from './costCalculator';
+export type { CostBreakdown, NodeCostEstimate } from './costCalculator';
+
+// Bezier editor
+export { CubicBezierEditor } from './CubicBezierEditor';
 
 // Model registry
 export {

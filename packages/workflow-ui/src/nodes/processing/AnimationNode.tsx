@@ -17,6 +17,7 @@ import {
 import { Slider } from '../../ui/slider';
 import { useRequiredInputs } from '../../hooks/useRequiredInputs';
 import { EASING_PRESETS } from '../../lib/easing';
+import { CubicBezierEditor } from '../../lib/CubicBezierEditor';
 import { useExecutionStore } from '../../stores/executionStore';
 import { useUIStore } from '../../stores/uiStore';
 import { useWorkflowStore } from '../../stores/workflowStore';
@@ -141,26 +142,27 @@ function AnimationNodeComponent(props: NodeProps) {
           </div>
         )}
 
-        {/* Custom Bezier Editor Link */}
+        {/* Custom Bezier Editor */}
         {nodeData.curveType === 'custom' && (
-          <div className="text-xs text-[var(--muted-foreground)]">
-            Bezier: [{curve.map((v) => v.toFixed(2)).join(', ')}]
-            <div className="mt-1 text-[var(--primary)] cursor-pointer hover:underline">
-              Edit in panel →
-            </div>
-          </div>
+          <CubicBezierEditor
+            value={curve}
+            onChange={(v) => updateNodeData<AnimationNodeData>(id, { customCurve: v })}
+            disabled={nodeData.status === 'processing'}
+          />
         )}
 
-        {/* Curve Preview */}
-        <div className="h-20 bg-[var(--background)] rounded border border-[var(--border)] p-2">
-          <svg viewBox="0 0 100 100" className="w-full h-full">
-            <path d={pathD} fill="none" stroke="var(--primary)" strokeWidth="2" />
-            <circle cx="0" cy="100" r="3" fill="var(--foreground)" />
-            <circle cx="100" cy="0" r="3" fill="var(--foreground)" />
-            <circle cx={curve[0] * 100} cy={100 - curve[1] * 100} r="2" fill="var(--accent)" />
-            <circle cx={curve[2] * 100} cy={100 - curve[3] * 100} r="2" fill="var(--accent)" />
-          </svg>
-        </div>
+        {/* Curve Preview (preset only) */}
+        {nodeData.curveType === 'preset' && (
+          <div className="h-20 bg-[var(--background)] rounded border border-[var(--border)] p-2">
+            <svg viewBox="0 0 100 100" className="w-full h-full">
+              <path d={pathD} fill="none" stroke="var(--primary)" strokeWidth="2" />
+              <circle cx="0" cy="100" r="3" fill="var(--foreground)" />
+              <circle cx="100" cy="0" r="3" fill="var(--foreground)" />
+              <circle cx={curve[0] * 100} cy={100 - curve[1] * 100} r="2" fill="var(--accent)" />
+              <circle cx={curve[2] * 100} cy={100 - curve[3] * 100} r="2" fill="var(--accent)" />
+            </svg>
+          </div>
+        )}
 
         {/* Speed Multiplier */}
         <div>

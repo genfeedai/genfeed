@@ -9,7 +9,7 @@ import {
   hasStateChanged,
   applyNodeUpdates,
 } from '../helpers/propagation';
-import type { WorkflowStore } from '../types';
+import type { ImageHistoryItem, WorkflowStore } from '../types';
 
 export interface NodeSlice {
   addNode: (type: NodeType, position: XYPosition) => string;
@@ -18,6 +18,8 @@ export interface NodeSlice {
   removeNode: (nodeId: string) => void;
   duplicateNode: (nodeId: string) => string | null;
   propagateOutputsDownstream: (sourceNodeId: string, outputValue?: string) => void;
+  addToGlobalHistory: (item: Omit<ImageHistoryItem, 'id'>) => void;
+  clearGlobalHistory: () => void;
 }
 
 export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (set, get) => ({
@@ -183,5 +185,16 @@ export const createNodeSlice: StateCreator<WorkflowStore, [], [], NodeSlice> = (
       nodes: applyNodeUpdates(state.nodes, updates),
       isDirty: true,
     }));
+  },
+
+  addToGlobalHistory: (item) => {
+    const id = `history-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    set((state) => ({
+      globalImageHistory: [{ ...item, id }, ...state.globalImageHistory].slice(0, 100),
+    }));
+  },
+
+  clearGlobalHistory: () => {
+    set({ globalImageHistory: [] });
   },
 });

@@ -6,6 +6,7 @@ import {
   type Connection,
   ConnectionMode,
   Controls,
+  type EdgeTypes,
   MiniMap,
   type Node,
   type NodeTypes,
@@ -26,17 +27,26 @@ import type {
   WorkflowNode,
 } from '@genfeedai/types';
 import { NODE_DEFINITIONS } from '@genfeedai/types';
+import { ConnectionDropMenu } from './ConnectionDropMenu';
+import { EditableEdge } from './EditableEdge';
+import { EdgeToolbar } from './EdgeToolbar';
+import { ReferenceEdge } from './ReferenceEdge';
 import { GroupOverlay } from './GroupOverlay';
 import { HelperLines } from './HelperLines';
 import { NodeSearch } from './NodeSearch';
 import { ShortcutHelpModal } from './ShortcutHelpModal';
 // TODO: ContextMenu will be injected via props later
 // import { ContextMenu } from '@/components/context-menu';
+import { CostModal } from '../components/CostModal';
+import { GlobalImageHistory } from '../components/GlobalImageHistory';
+import { MultiSelectToolbar } from '../components/MultiSelectToolbar';
+import { NotificationToast } from '../components/NotificationToast';
 import { nodeTypes as defaultNodeTypes } from '../nodes';
 import { NodeDetailModal } from '../nodes/NodeDetailModal';
 import { useCanvasKeyboardShortcuts } from '../hooks/useCanvasKeyboardShortcuts';
 // TODO: useContextMenu will be injected via props later
 // import { useContextMenu } from '@/hooks/useContextMenu';
+import { getHandleType } from '../stores/workflow/helpers/nodeHelpers';
 import { useExecutionStore } from '../stores/executionStore';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useUIStore } from '../stores/uiStore';
@@ -78,12 +88,20 @@ function getEdgeDataType(
   return sourceHandle?.type ?? null;
 }
 
+const edgeTypesMap: EdgeTypes = {
+  default: EditableEdge,
+  bezier: EditableEdge,
+  reference: ReferenceEdge,
+};
+
 interface WorkflowCanvasProps {
   /** Override default node types. Pass merged core + cloud nodeTypes here. */
   nodeTypes?: NodeTypes;
+  /** Optional callback for download-as-ZIP of selected nodes */
+  onDownloadAsZip?: (nodes: WorkflowNode[]) => void;
 }
 
-export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps = {}) {
+export function WorkflowCanvas({ nodeTypes: nodeTypesProp, onDownloadAsZip }: WorkflowCanvasProps = {}) {
   const {
     nodes,
     edges,
@@ -105,11 +123,13 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
 
   const {
     selectNode,
+    selectEdge,
     setHighlightedNodeIds,
     highlightedNodeIds,
     showPalette,
     togglePalette,
     openModal,
+    openConnectionDropMenu,
   } = useUIStore();
   const reactFlow = useReactFlow();
   const { edgeStyle, showMinimap } = useSettingsStore();
@@ -209,6 +229,8 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
       const dataType = getEdgeDataType(edge, nodeMap);
       const typeClass = dataType ? `edge-${dataType}` : '';
       const isDisabledTarget = isEdgeTargetingDisabledInput(edge);
+      // Enrich edge data with dataType for EditableEdge coloring
+      const enrichedData = { ...edge.data, dataType };
 
       if (!isRunning && hasActiveNodeExecutions) {
         const isActiveEdge =
@@ -217,6 +239,7 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
         if (isActiveEdge && !isDisabledTarget) {
           return {
             ...edge,
+            data: enrichedData,
             animated: false,
             className: `${typeClass} executing`.trim(),
           };
@@ -232,6 +255,7 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
         if (isDisabledTarget) {
           return {
             ...edge,
+            data: enrichedData,
             animated: false,
             className: `${typeClass} edge-disabled`.trim(),
           };
@@ -240,6 +264,7 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
         if (!isInExecutionScope) {
           return {
             ...edge,
+            data: enrichedData,
             animated: false,
             className: typeClass,
           };
@@ -247,6 +272,7 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
 
         return {
           ...edge,
+          data: enrichedData,
           animated: false,
           className: `${typeClass} ${isExecutingEdge ? 'executing' : 'active-pipe'}`.trim(),
         };
@@ -255,6 +281,7 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
       if (isDisabledTarget) {
         return {
           ...edge,
+          data: enrichedData,
           className: `${typeClass} edge-disabled`.trim(),
         };
       }
@@ -263,12 +290,14 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
         const isConnected = highlightedSet.has(edge.source) && highlightedSet.has(edge.target);
         return {
           ...edge,
+          data: enrichedData,
           className: `${typeClass} ${isConnected ? 'highlighted' : 'dimmed'}`.trim(),
         };
       }
 
       return {
         ...edge,
+        data: enrichedData,
         className: typeClass,
       };
     });
@@ -293,8 +322,16 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
 
   const handlePaneClick = useCallback(() => {
     selectNode(null);
+    selectEdge(null);
     setSelectedNodeIds([]);
-  }, [selectNode, setSelectedNodeIds]);
+  }, [selectNode, selectEdge, setSelectedNodeIds]);
+
+  const handleEdgeClick = useCallback(
+    (_event: React.MouseEvent, edge: WorkflowEdge) => {
+      selectEdge(edge.id);
+    },
+    [selectEdge]
+  );
 
   const handleSelectionChange = useCallback(
     ({ nodes: selectedNodes }: { nodes: WorkflowNode[] }) => {
@@ -348,6 +385,26 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
     (event: React.DragEvent) => {
       event.preventDefault();
 
+      // Handle history image drops
+      const historyData = event.dataTransfer.getData('application/history-image');
+      if (historyData) {
+        try {
+          const parsed = JSON.parse(historyData) as { image: string; prompt?: string };
+          const position = reactFlow.screenToFlowPosition({
+            x: event.clientX,
+            y: event.clientY,
+          });
+          const nodeId = addNode('imageInput' as NodeType, position);
+          if (nodeId && parsed.image) {
+            const { updateNodeData } = useWorkflowStore.getState();
+            updateNodeData(nodeId, { outputImage: parsed.image });
+          }
+        } catch {
+          // Invalid history data
+        }
+        return;
+      }
+
       const nodeType = event.dataTransfer.getData('nodeType') as NodeType;
       if (!nodeType) return;
 
@@ -391,7 +448,33 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
 
       const target = event.target as HTMLElement;
       const nodeElement = target.closest('.react-flow__node');
-      if (!nodeElement) return;
+
+      if (!nodeElement) {
+        // Dropped on empty canvas — open connection drop menu
+        const sourceNode = nodes.find((n) => n.id === sourceNodeId);
+        if (!sourceNode) return;
+
+        const sourceHandleType = getHandleType(
+          sourceNode.type as NodeType,
+          sourceHandleId,
+          'source'
+        );
+        if (!sourceHandleType) return;
+
+        const clientX = 'clientX' in event ? event.clientX : event.touches?.[0]?.clientX ?? 0;
+        const clientY = 'clientY' in event ? event.clientY : event.touches?.[0]?.clientY ?? 0;
+
+        const flowPosition = reactFlow.screenToFlowPosition({ x: clientX, y: clientY });
+
+        openConnectionDropMenu({
+          position: flowPosition,
+          screenPosition: { x: clientX, y: clientY },
+          sourceNodeId,
+          sourceHandleId,
+          sourceHandleType,
+        });
+        return;
+      }
 
       const targetNodeId = nodeElement.getAttribute('data-id');
       if (!targetNodeId || targetNodeId === sourceNodeId) return;
@@ -409,7 +492,7 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
         targetHandle: compatibleHandle,
       });
     },
-    [findCompatibleHandle, onConnect]
+    [findCompatibleHandle, onConnect, nodes, reactFlow, openConnectionDropMenu]
   );
 
   const checkValidConnection = useCallback(
@@ -481,8 +564,10 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
         onNodeDragStart={handleNodeDragStart}
         onNodeDrag={handleNodeDrag}
         onNodeDragStop={handleNodeDragStop}
+        onEdgeClick={handleEdgeClick}
         isValidConnection={checkValidConnection}
         nodeTypes={nodeTypesProp ?? defaultNodeTypes}
+        edgeTypes={edgeTypesMap}
         fitView
         snapToGrid
         snapGrid={[16, 16]}
@@ -536,9 +621,15 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
           onClose={closeContextMenu}
         />
       )} */}
+      <EdgeToolbar />
+      <MultiSelectToolbar onDownloadAsZip={onDownloadAsZip} />
       <NodeDetailModal />
       <ShortcutHelpModal />
       <NodeSearch />
+      <ConnectionDropMenu />
+      <CostModal />
+      <NotificationToast />
+      <GlobalImageHistory />
     </div>
   );
 }

@@ -14,6 +14,18 @@ import type { SnapshotSlice } from './slices/snapshotSlice';
 import type { Connection, EdgeChange, NodeChange, XYPosition } from '@xyflow/react';
 
 // =============================================================================
+// IMAGE HISTORY
+// =============================================================================
+
+export interface ImageHistoryItem {
+  id: string;
+  image: string;
+  prompt?: string;
+  model?: string;
+  timestamp: number;
+}
+
+// =============================================================================
 // API DATA TYPE (inlined from @/lib/api)
 // =============================================================================
 
@@ -45,6 +57,7 @@ export interface WorkflowState {
   selectedNodeIds: string[];
   viewedCommentIds: Set<string>;
   navigationTargetId: string | null;
+  globalImageHistory: ImageHistoryItem[];
 }
 
 // =============================================================================
@@ -139,6 +152,11 @@ export interface CommentNavigationActions {
   getUnviewedCommentCount: () => number;
 }
 
+export interface ImageHistoryActions {
+  addToGlobalHistory: (item: Omit<ImageHistoryItem, 'id'>) => void;
+  clearGlobalHistory: () => void;
+}
+
 // =============================================================================
 // COMBINED STORE TYPE
 // =============================================================================
@@ -155,5 +173,6 @@ export interface WorkflowStore
     ApiActions,
     HelperActions,
     CommentNavigationActions,
+    ImageHistoryActions,
     SnapshotSlice,
     ChatSlice {}

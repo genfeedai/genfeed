@@ -4,3 +4,7 @@ export { GroupOverlay } from './GroupOverlay';
 export { NodeSearch } from './NodeSearch';
 export { ShortcutHelpModal } from './ShortcutHelpModal';
 export { PauseEdge } from './PauseEdge';
+export { ConnectionDropMenu } from './ConnectionDropMenu';
+export { EditableEdge } from './EditableEdge';
+export { EdgeToolbar } from './EdgeToolbar';
+export { ReferenceEdge } from './ReferenceEdge';
