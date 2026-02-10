@@ -39,7 +39,7 @@ function hydrateWorkflowNodes(nodes: WorkflowNode[]): WorkflowNode[] {
       data: {
         ...nodeDef.defaultData,
         ...node.data,
-      },
+      } as WorkflowNodeData,
     };
   });
 }

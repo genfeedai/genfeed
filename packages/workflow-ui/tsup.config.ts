@@ -13,7 +13,7 @@ export default defineConfig({
     ui: 'src/ui/index.ts',
     lib: 'src/lib/index.ts',
   },
-  format: ['esm', 'cjs'],
+  format: ['esm'],
   tsconfig: 'tsconfig.build.json',
   dts: true,
   clean: true,

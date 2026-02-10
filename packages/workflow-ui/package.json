@@ -18,53 +18,43 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": "./dist/index.js"
     },
     "./canvas": {
       "types": "./dist/canvas.d.ts",
-      "import": "./dist/canvas.js",
-      "require": "./dist/canvas.cjs"
+      "import": "./dist/canvas.js"
     },
     "./nodes": {
       "types": "./dist/nodes.d.ts",
-      "import": "./dist/nodes.js",
-      "require": "./dist/nodes.cjs"
+      "import": "./dist/nodes.js"
     },
     "./panels": {
       "types": "./dist/panels.d.ts",
-      "import": "./dist/panels.js",
-      "require": "./dist/panels.cjs"
+      "import": "./dist/panels.js"
     },
     "./toolbar": {
       "types": "./dist/toolbar.d.ts",
-      "import": "./dist/toolbar.js",
-      "require": "./dist/toolbar.cjs"
+      "import": "./dist/toolbar.js"
     },
     "./hooks": {
       "types": "./dist/hooks.d.ts",
-      "import": "./dist/hooks.js",
-      "require": "./dist/hooks.cjs"
+      "import": "./dist/hooks.js"
     },
     "./stores": {
       "types": "./dist/stores.d.ts",
-      "import": "./dist/stores.js",
-      "require": "./dist/stores.cjs"
+      "import": "./dist/stores.js"
     },
     "./provider": {
       "types": "./dist/provider.d.ts",
-      "import": "./dist/provider.js",
-      "require": "./dist/provider.cjs"
+      "import": "./dist/provider.js"
     },
     "./ui": {
       "types": "./dist/ui.d.ts",
-      "import": "./dist/ui.js",
-      "require": "./dist/ui.cjs"
+      "import": "./dist/ui.js"
     },
     "./lib": {
       "types": "./dist/lib.d.ts",
-      "import": "./dist/lib.js",
-      "require": "./dist/lib.cjs"
+      "import": "./dist/lib.js"
     },
     "./styles": "./src/styles/workflow-ui.css"
   },

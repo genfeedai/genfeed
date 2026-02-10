@@ -17,6 +17,7 @@ interface UseCanvasKeyboardShortcutsParams {
   fitView: (options?: FitViewOptions) => void;
   openShortcutHelp: () => void;
   openNodeSearch: () => void;
+  deleteSelectedElements: () => void;
 }
 
 /**
@@ -51,15 +52,30 @@ export function useCanvasKeyboardShortcuts({
   fitView,
   openShortcutHelp,
   openNodeSearch,
+  deleteSelectedElements,
 }: UseCanvasKeyboardShortcutsParams) {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if typing in input
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement)?.contentEditable === 'true' ||
+        (e.target as HTMLElement)?.closest?.(
+          '[role="textbox"], [role="combobox"], [role="searchbox"]'
+        )
+      ) {
         return;
       }
 
       const isMod = e.ctrlKey || e.metaKey;
+
+      // Delete/Backspace - Delete selected elements
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteSelectedElements();
+        return;
+      }
 
       // M - Toggle sidebar (Todoist style)
       if (e.key === 'm' && !isMod && !e.shiftKey) {
@@ -182,5 +198,6 @@ export function useCanvasKeyboardShortcuts({
     fitView,
     openShortcutHelp,
     openNodeSearch,
+    deleteSelectedElements,
   ]);
 }

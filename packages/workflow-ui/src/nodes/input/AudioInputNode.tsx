@@ -154,7 +154,7 @@ function AudioInputNodeComponent(props: NodeProps) {
             onChange={(e) => setUrlValue(e.target.value)}
             onKeyDown={handleUrlKeyDown}
             placeholder="https://..."
-            className="flex-1 h-7 px-2 text-xs rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
+            className="nodrag nopan flex-1 h-7 px-2 text-xs rounded-md border border-border bg-background focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <Button
             variant="secondary"

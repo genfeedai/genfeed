@@ -85,7 +85,7 @@ function PromptNodeComponent(props: NodeProps) {
         value={nodeData.prompt || ''}
         onChange={handlePromptChange}
         placeholder="Enter your prompt..."
-        className="w-full flex-1 min-h-[80px] px-2 py-1.5 text-sm bg-background border border-border rounded resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+        className="nodrag nopan w-full flex-1 min-h-[80px] px-2 py-1.5 text-sm bg-background border border-border rounded resize-none focus:outline-none focus:ring-1 focus:ring-primary"
       />
     </BaseNode>
   );

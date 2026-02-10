@@ -139,6 +139,17 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
   const openShortcutHelp = useCallback(() => openModal('shortcutHelp'), [openModal]);
   const openNodeSearch = useCallback(() => openModal('nodeSearch'), [openModal]);
 
+  const deleteSelectedElements = useCallback(() => {
+    const nodesToDelete = nodes.filter((n) => selectedNodeIds.includes(n.id));
+    const edgesToDelete = edges.filter((e) => e.selected);
+    if (nodesToDelete.length > 0) {
+      onNodesChange(nodesToDelete.map((n) => ({ type: 'remove' as const, id: n.id })));
+    }
+    if (edgesToDelete.length > 0) {
+      onEdgesChange(edgesToDelete.map((e) => ({ type: 'remove' as const, id: e.id })));
+    }
+  }, [nodes, edges, selectedNodeIds, onNodesChange, onEdgesChange]);
+
   useCanvasKeyboardShortcuts({
     selectedNodeIds,
     groups,
@@ -152,6 +163,7 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
     fitView: reactFlow.fitView,
     openShortcutHelp,
     openNodeSearch,
+    deleteSelectedElements,
   });
 
   useEffect(() => {
@@ -474,13 +486,16 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp }: WorkflowCanvasProps
         fitView
         snapToGrid
         snapGrid={[16, 16]}
+        minZoom={0.1}
+        maxZoom={4}
+        nodeDragThreshold={5}
         connectionMode={ConnectionMode.Loose}
         selectionMode={SelectionMode.Partial}
         selectionOnDrag
         panOnDrag={[1, 2]}
         onMoveStart={handleMoveStart}
         onMoveEnd={handleMoveEnd}
-        deleteKeyCode={['Backspace', 'Delete']}
+        deleteKeyCode={null}
         defaultEdgeOptions={{
           type: edgeStyle,
           animated: false,

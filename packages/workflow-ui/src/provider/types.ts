@@ -1,5 +1,11 @@
 import type { ComponentType, ReactNode } from 'react';
-import type { ICreatePrompt, IPrompt, IQueryPrompts, ProviderModel } from '@genfeedai/types';
+import type {
+  ICreatePrompt,
+  IPrompt,
+  IQueryPrompts,
+  ModelCapability,
+  ProviderModel,
+} from '@genfeedai/types';
 
 // =============================================================================
 // File Upload
@@ -39,7 +45,7 @@ export interface ModelBrowserModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (model: ProviderModel) => void;
-  capabilities?: string[];
+  capabilities?: ModelCapability[];
   title?: string;
 }
 
