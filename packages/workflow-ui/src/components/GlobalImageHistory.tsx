@@ -5,6 +5,8 @@ import { createPortal } from 'react-dom';
 import { useWorkflowStore } from '../stores/workflowStore';
 import type { ImageHistoryItem } from '../stores/workflow/types';
 
+const EMPTY_HISTORY: ImageHistoryItem[] = [];
+
 function formatRelativeTime(timestamp: number): string {
   const diff = Date.now() - timestamp;
   const seconds = Math.floor(diff / 1000);
@@ -195,7 +197,7 @@ export function GlobalImageHistory() {
   const drawerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
-  const history = useWorkflowStore((state) => state.globalImageHistory);
+  const history = useWorkflowStore((state) => state.globalImageHistory ?? EMPTY_HISTORY);
   const clearGlobalHistory = useWorkflowStore((state) => state.clearGlobalHistory);
 
   const fanItems = history.slice(0, 10);

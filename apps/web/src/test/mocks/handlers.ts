@@ -149,6 +149,15 @@ export const executionHandlers = [
     const body = (await request.json()) as Record<string, unknown>;
     return HttpResponse.json({ ...mockExecution, _id: params.id, ...body });
   }),
+
+  // Stop execution
+  http.post(`${API_BASE_URL}/executions/:id/stop`, ({ params }) => {
+    return HttpResponse.json({
+      ...mockExecution,
+      _id: params.id,
+      status: 'stopped',
+    });
+  }),
 ];
 
 // Template API handlers

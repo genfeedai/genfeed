@@ -12,3 +12,6 @@ export { useMediaUpload } from './useMediaUpload';
 export { useAutoLoadModelSchema } from './useAutoLoadModelSchema';
 export { useCommentNavigation } from './useCommentNavigation';
 export type { CommentNavigation } from './useCommentNavigation';
+export { useNodeActions } from './useNodeActions';
+export { usePaneActions } from './usePaneActions';
+export { useContextMenu } from './useContextMenu';

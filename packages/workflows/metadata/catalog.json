@@ -71,6 +71,18 @@
       "defaultModel": "nano-banana-pro",
       "inputTypes": ["text"],
       "outputTypes": ["video", "image"]
+    },
+    {
+      "slug": "lora-dataset-generator",
+      "title": "LoRA Dataset Generator",
+      "description": "Generate 20 varied training images from 3 reference identity photos across frontal, three-quarter, side profile, and variety shots",
+      "category": "image-generation",
+      "tags": ["lora", "dataset", "training", "portrait", "identity"],
+      "tier": "free",
+      "icon": "📷",
+      "defaultModel": "nano-banana-pro",
+      "inputTypes": ["image", "text"],
+      "outputTypes": ["image"]
     }
   ]
 }

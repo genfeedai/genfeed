@@ -55,6 +55,19 @@ export interface PromptPickerProps {
 }
 
 // =============================================================================
+// Workflows API
+// =============================================================================
+
+export interface WorkflowsApiService {
+  setThumbnail: (
+    workflowId: string,
+    thumbnailUrl: string,
+    nodeId: string,
+    signal?: AbortSignal
+  ) => Promise<void>;
+}
+
+// =============================================================================
 // Config
 // =============================================================================
 
@@ -65,6 +78,8 @@ export interface WorkflowUIConfig {
   modelSchema?: ModelSchemaService;
   /** For PromptNode — prompt library CRUD */
   promptLibrary?: PromptLibraryService;
+  /** For context menu — set workflow thumbnail */
+  workflowsApi?: WorkflowsApiService;
   /** Injected ModelBrowserModal component (complex, app-specific) */
   ModelBrowserModal?: ComponentType<ModelBrowserModalProps> | null;
   /** Injected PromptPicker component (complex, app-specific) */

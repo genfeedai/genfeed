@@ -4,6 +4,7 @@ export type {
   FileUploadService,
   ModelSchemaService,
   PromptLibraryService,
+  WorkflowsApiService,
   ModelBrowserModalProps,
   PromptPickerProps,
 } from './types';

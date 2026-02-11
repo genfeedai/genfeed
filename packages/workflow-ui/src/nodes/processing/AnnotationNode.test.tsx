@@ -31,9 +31,7 @@ vi.mock('../BaseNode', () => ({
 }));
 
 vi.mock('next/image', () => ({
-  default: (props: Record<string, unknown>) => (
-    <img {...props} src={props.src as string} alt={props.alt as string} />
-  ),
+  default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
 }));
 
 // Mock UI button with variant support for class-based assertions

@@ -35,8 +35,7 @@ import { GroupOverlay } from './GroupOverlay';
 import { HelperLines } from './HelperLines';
 import { NodeSearch } from './NodeSearch';
 import { ShortcutHelpModal } from './ShortcutHelpModal';
-// TODO: ContextMenu will be injected via props later
-// import { ContextMenu } from '@/components/context-menu';
+import { ContextMenu } from '../components/context-menu';
 import { CostModal } from '../components/CostModal';
 import { GlobalImageHistory } from '../components/GlobalImageHistory';
 import { MultiSelectToolbar } from '../components/MultiSelectToolbar';
@@ -44,8 +43,7 @@ import { NotificationToast } from '../components/NotificationToast';
 import { nodeTypes as defaultNodeTypes } from '../nodes';
 import { NodeDetailModal } from '../nodes/NodeDetailModal';
 import { useCanvasKeyboardShortcuts } from '../hooks/useCanvasKeyboardShortcuts';
-// TODO: useContextMenu will be injected via props later
-// import { useContextMenu } from '@/hooks/useContextMenu';
+import { useContextMenu } from '../hooks/useContextMenu';
 import { getHandleType } from '../stores/workflow/helpers/nodeHelpers';
 import { useExecutionStore } from '../stores/executionStore';
 import { useSettingsStore } from '../stores/settingsStore';
@@ -144,17 +142,16 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp, onDownloadAsZip }: Wo
   const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const MINIMAP_HIDE_DELAY = 1500; // ms after stopping movement
 
-  // TODO: Context menu will be injected via props later
-  // const {
-  //   isOpen: isContextMenuOpen,
-  //   position: contextMenuPosition,
-  //   menuItems: contextMenuItems,
-  //   openNodeMenu,
-  //   openEdgeMenu,
-  //   openPaneMenu,
-  //   openSelectionMenu,
-  //   close: closeContextMenu,
-  // } = useContextMenu();
+  const {
+    isOpen: isContextMenuOpen,
+    position: contextMenuPosition,
+    menuItems: contextMenuItems,
+    openNodeMenu,
+    openEdgeMenu,
+    openPaneMenu,
+    openSelectionMenu,
+    close: closeContextMenu,
+  } = useContextMenu();
 
   const openShortcutHelp = useCallback(() => openModal('shortcutHelp'), [openModal]);
   const openNodeSearch = useCallback(() => openModal('nodeSearch'), [openModal]);
@@ -343,42 +340,38 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp, onDownloadAsZip }: Wo
   const handleNodeContextMenu = useCallback(
     (event: React.MouseEvent, node: Node) => {
       event.preventDefault();
-      // TODO: Context menu will be injected via props later
-      // if (selectedNodeIds.length > 1 && selectedNodeIds.includes(node.id)) {
-      //   openSelectionMenu(selectedNodeIds, event.clientX, event.clientY);
-      // } else {
-      //   openNodeMenu(node.id, event.clientX, event.clientY);
-      // }
+      if (selectedNodeIds.length > 1 && selectedNodeIds.includes(node.id)) {
+        openSelectionMenu(selectedNodeIds, event.clientX, event.clientY);
+      } else {
+        openNodeMenu(node.id, event.clientX, event.clientY);
+      }
     },
-    [selectedNodeIds]
+    [selectedNodeIds, openNodeMenu, openSelectionMenu]
   );
 
   const handleEdgeContextMenu = useCallback(
     (event: React.MouseEvent, edge: WorkflowEdge) => {
       event.preventDefault();
-      // TODO: Context menu will be injected via props later
-      // openEdgeMenu(edge.id, event.clientX, event.clientY);
+      openEdgeMenu(edge.id, event.clientX, event.clientY);
     },
-    []
+    [openEdgeMenu]
   );
 
   const handlePaneContextMenu = useCallback(
     (event: MouseEvent | React.MouseEvent) => {
       event.preventDefault();
-      // TODO: Context menu will be injected via props later
-      // openPaneMenu(event.clientX, event.clientY);
+      openPaneMenu(event.clientX, event.clientY);
     },
-    []
+    [openPaneMenu]
   );
 
   const handleSelectionContextMenu = useCallback(
     (event: React.MouseEvent, selectedNodes: Node[]) => {
       event.preventDefault();
-      // TODO: Context menu will be injected via props later
-      // const nodeIds = selectedNodes.map((n) => n.id);
-      // openSelectionMenu(nodeIds, event.clientX, event.clientY);
+      const nodeIds = selectedNodes.map((n) => n.id);
+      openSelectionMenu(nodeIds, event.clientX, event.clientY);
     },
-    []
+    [openSelectionMenu]
   );
 
   const handleDrop = useCallback(
@@ -580,7 +573,7 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp, onDownloadAsZip }: Wo
         panOnDrag={[1, 2]}
         onMoveStart={handleMoveStart}
         onMoveEnd={handleMoveEnd}
-        deleteKeyCode={null}
+        deleteKeyCode={['Backspace', 'Delete']}
         defaultEdgeOptions={{
           type: edgeStyle,
           animated: false,
@@ -612,15 +605,14 @@ export function WorkflowCanvas({ nodeTypes: nodeTypesProp, onDownloadAsZip }: Wo
         )}
         <HelperLines draggingNodeId={draggingNodeId} />
       </ReactFlow>
-      {/* TODO: ContextMenu will be injected via props later */}
-      {/* {isContextMenuOpen && (
+      {isContextMenuOpen && (
         <ContextMenu
           x={contextMenuPosition.x}
           y={contextMenuPosition.y}
           items={contextMenuItems}
           onClose={closeContextMenu}
         />
-      )} */}
+      )}
       <EdgeToolbar />
       <MultiSelectToolbar onDownloadAsZip={onDownloadAsZip} />
       <NodeDetailModal />

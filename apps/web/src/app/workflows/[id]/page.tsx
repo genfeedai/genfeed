@@ -18,7 +18,7 @@ import { CreatePromptModal, PromptLibraryModal, PromptPicker } from '@/component
 import { useAutoSave } from '@/hooks/useAutoSave';
 import { useGlobalShortcuts } from '@/hooks/useGlobalShortcuts';
 import { apiClient } from '@/lib/api/client';
-import { promptsApi } from '@/lib/api';
+import { promptsApi, workflowsApi } from '@/lib/api';
 import { usePromptLibraryStore } from '@/store/promptLibraryStore';
 import { useSettingsStore } from '@/store/settingsStore';
 import { useUIStore } from '@genfeedai/workflow-ui/stores';
@@ -96,6 +96,10 @@ export default function WorkflowEditorPage() {
         },
       },
       promptLibrary: promptsApi,
+      workflowsApi: {
+        setThumbnail: (workflowId, thumbnailUrl, nodeId, signal) =>
+          workflowsApi.setThumbnail(workflowId, thumbnailUrl, nodeId, signal).then(() => {}),
+      },
       ModelBrowserModal,
       PromptPicker,
     }),

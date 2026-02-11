@@ -84,3 +84,4 @@ export type {
   AnnotationShape,
 } from './annotationStore';
 export { usePromptLibraryStore, configurePromptLibrary } from './promptLibraryStore';
+export { useContextMenuStore, type ContextMenuType } from './contextMenuStore';
