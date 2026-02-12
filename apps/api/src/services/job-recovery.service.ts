@@ -1,10 +1,17 @@
-import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { forwardRef, Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { Model } from 'mongoose';
 import { Types } from 'mongoose';
-import { JOB_STATUS, QUEUE_NAMES } from '@/queue/queue.constants';
+import {
+  EXECUTION_STATUS,
+  JOB_STATUS,
+  MAX_RECOVERY_ATTEMPTS,
+  QUEUE_NAMES,
+  type QueueName,
+} from '@/queue/queue.constants';
 import { QueueJob, type QueueJobDocument } from '@/schemas/queue-job.schema';
+import type { ExecutionsService } from '@/services/executions.service';
 import { QueueManagerService } from '@/services/queue-manager.service';
 
 interface StalledJob {
@@ -14,6 +21,7 @@ interface StalledJob {
   executionId: Types.ObjectId;
   nodeId: string;
   data: Record<string, unknown>;
+  recoveryCount?: number;
 }
 
 @Injectable()
@@ -24,7 +32,9 @@ export class JobRecoveryService implements OnModuleInit {
   constructor(
     @InjectModel(QueueJob.name)
     private readonly queueJobModel: Model<QueueJobDocument>,
-    private readonly queueManager: QueueManagerService
+    private readonly queueManager: QueueManagerService,
+    @Inject(forwardRef(() => 'ExecutionsService'))
+    private readonly executionsService: ExecutionsService
   ) {}
 
   /**
@@ -50,19 +60,32 @@ export class JobRecoveryService implements OnModuleInit {
     const staleThreshold = new Date(Date.now() - this.STALE_THRESHOLD_MS);
 
     // Find jobs that were in-progress when server may have crashed
-    // Jobs are considered stalled if BOTH:
+    // Jobs are considered stalled if ALL:
     // 1. updatedAt is older than threshold (no status change)
     // 2. lastHeartbeat is null OR older than threshold (no heartbeat during polling)
+    // 3. recoveryCount below max attempts (prevent infinite recovery loops)
     const stalledJobs = await this.queueJobModel
       .find({
-        status: { $in: [JOB_STATUS.ACTIVE, JOB_STATUS.PENDING] },
-        updatedAt: { $lt: staleThreshold },
-        $or: [
-          { lastHeartbeat: { $exists: false } },
-          { lastHeartbeat: null },
-          { lastHeartbeat: { $lt: staleThreshold } },
+        $and: [
+          {
+            status: { $in: [JOB_STATUS.ACTIVE, JOB_STATUS.PENDING] },
+            updatedAt: { $lt: staleThreshold },
+            movedToDlq: false,
+          },
+          {
+            $or: [
+              { lastHeartbeat: { $exists: false } },
+              { lastHeartbeat: null },
+              { lastHeartbeat: { $lt: staleThreshold } },
+            ],
+          },
+          {
+            $or: [
+              { recoveryCount: { $exists: false } },
+              { recoveryCount: { $lt: MAX_RECOVERY_ATTEMPTS } },
+            ],
+          },
         ],
-        movedToDlq: false,
       })
       .lean<StalledJob[]>();
 
@@ -70,11 +93,59 @@ export class JobRecoveryService implements OnModuleInit {
       return 0;
     }
 
-    this.logger.warn(`Found ${stalledJobs.length} stalled jobs to recover`);
+    this.logger.warn(`Found ${stalledJobs.length} stalled job candidates to evaluate`);
+
+    // Batch-check execution statuses to filter out jobs for completed/failed/cancelled executions
+    const executionIds = [...new Set(stalledJobs.map((j) => j.executionId.toString()))];
+    const terminalExecutionIds = new Set<string>();
+
+    for (const execId of executionIds) {
+      try {
+        const execution = await this.executionsService.findExecution(execId);
+        const status = (execution as unknown as { status: string }).status;
+        if (
+          status === EXECUTION_STATUS.COMPLETED ||
+          status === EXECUTION_STATUS.FAILED ||
+          status === EXECUTION_STATUS.CANCELLED
+        ) {
+          terminalExecutionIds.add(execId);
+        }
+      } catch {
+        // Execution not found — treat as terminal (don't recover orphaned jobs)
+        terminalExecutionIds.add(execId);
+      }
+    }
+
+    // Mark jobs from terminal executions as completed — they don't need recovery
+    const terminalJobs = stalledJobs.filter((j) =>
+      terminalExecutionIds.has(j.executionId.toString())
+    );
+    if (terminalJobs.length > 0) {
+      const terminalJobIds = terminalJobs.map((j) => j._id);
+      await this.queueJobModel.updateMany(
+        { _id: { $in: terminalJobIds } },
+        {
+          $set: { status: JOB_STATUS.COMPLETED },
+          $push: {
+            logs: {
+              timestamp: new Date(),
+              message: 'Skipped recovery — parent execution already terminal',
+              level: 'info',
+            },
+          },
+        }
+      );
+      this.logger.log(`Skipped ${terminalJobs.length} jobs — parent executions already terminal`);
+    }
+
+    // Only recover jobs from active executions
+    const recoverableJobs = stalledJobs.filter(
+      (j) => !terminalExecutionIds.has(j.executionId.toString())
+    );
 
     let recoveredCount = 0;
 
-    for (const job of stalledJobs) {
+    for (const job of recoverableJobs) {
       try {
         await this.recoverJob(job);
         recoveredCount++;
@@ -90,34 +161,62 @@ export class JobRecoveryService implements OnModuleInit {
   }
 
   /**
-   * Recover a single stalled job
+   * Recover a single stalled job with guards against false positives
    */
   private async recoverJob(job: StalledJob): Promise<void> {
-    this.logger.log(`Recovering stalled job: ${job.bullJobId} from queue ${job.queueName}`);
+    const recoveryCount = job.recoveryCount ?? 0;
 
-    // Mark the old job as recovered
+    // Guard 1: Check if job is still active in BullMQ — if so, it's not actually stalled
+    const isActive = await this.queueManager.isJobActiveInBullMQ(
+      job.queueName as QueueName,
+      job.bullJobId
+    );
+    if (isActive) {
+      await this.queueJobModel.updateOne({ _id: job._id }, { $set: { lastHeartbeat: new Date() } });
+      this.logger.debug(`Job ${job.bullJobId} still active in BullMQ, refreshed heartbeat`);
+      return;
+    }
+
+    // Guard 2: Max recovery attempts exceeded — move to DLQ
+    if (recoveryCount >= MAX_RECOVERY_ATTEMPTS) {
+      await this.queueManager.moveToDeadLetterQueue(
+        job.bullJobId,
+        job.queueName as QueueName,
+        `Exceeded max recovery attempts (${MAX_RECOVERY_ATTEMPTS})`
+      );
+      this.logger.warn(
+        `Job ${job.bullJobId} exceeded ${MAX_RECOVERY_ATTEMPTS} recovery attempts, moved to DLQ`
+      );
+      return;
+    }
+
+    this.logger.log(
+      `Recovering stalled job: ${job.bullJobId} from queue ${job.queueName} (attempt ${recoveryCount + 1}/${MAX_RECOVERY_ATTEMPTS})`
+    );
+
+    // Mark the job as recovered and increment recoveryCount
     await this.queueJobModel.updateOne(
       { _id: job._id },
       {
         $set: { status: JOB_STATUS.RECOVERED },
+        $inc: { recoveryCount: 1 },
         $push: {
           logs: {
             timestamp: new Date(),
-            message: 'Job recovered after stall detection',
+            message: `Job recovered after stall detection (attempt ${recoveryCount + 1}/${MAX_RECOVERY_ATTEMPTS})`,
             level: 'warn',
           },
         },
       }
     );
 
-    // Re-enqueue based on queue type
+    // Re-enqueue based on queue type (upsert in enqueue prevents duplicate MongoDB docs)
     if (job.queueName === QUEUE_NAMES.WORKFLOW_ORCHESTRATOR) {
       await this.queueManager.enqueueWorkflow(
         job.executionId.toString(),
         job.data.workflowId as string
       );
     } else {
-      // Re-enqueue node job
       await this.queueManager.enqueueNode(
         job.executionId.toString(),
         job.data.workflowId as string,
@@ -223,11 +322,11 @@ export class JobRecoveryService implements OnModuleInit {
 
     this.logger.log(`Retrying job ${bullJobId} from DLQ`);
 
-    // Reset DLQ flag
+    // Reset DLQ flag and recovery count
     await this.queueJobModel.updateOne(
       { _id: job._id },
       {
-        $set: { movedToDlq: false, status: JOB_STATUS.PENDING },
+        $set: { movedToDlq: false, status: JOB_STATUS.PENDING, recoveryCount: 0 },
         $push: {
           logs: {
             timestamp: new Date(),

@@ -191,3 +191,8 @@ export const PASSTHROUGH_NODE_TYPES = [
 ] as const;
 
 export type PassthroughNodeType = (typeof PASSTHROUGH_NODE_TYPES)[number];
+
+/**
+ * Maximum number of times a job can be recovered before being moved to DLQ
+ */
+export const MAX_RECOVERY_ATTEMPTS = 3;

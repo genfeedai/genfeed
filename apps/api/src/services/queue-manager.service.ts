@@ -70,15 +70,21 @@ export class QueueManagerService {
       priority: JOB_PRIORITY.HIGH,
     });
 
-    // Persist to MongoDB for recovery
-    await this.queueJobModel.create({
-      bullJobId: job.id,
-      queueName: QUEUE_NAMES.WORKFLOW_ORCHESTRATOR,
-      executionId: new Types.ObjectId(executionId),
-      nodeId: 'root',
-      status: JOB_STATUS.PENDING,
-      data: jobData,
-    });
+    // Persist to MongoDB for recovery (upsert to prevent duplicates)
+    await this.queueJobModel.findOneAndUpdate(
+      { bullJobId: job.id },
+      {
+        $set: {
+          queueName: QUEUE_NAMES.WORKFLOW_ORCHESTRATOR,
+          executionId: new Types.ObjectId(executionId),
+          nodeId: 'root',
+          status: JOB_STATUS.PENDING,
+          data: jobData,
+        },
+        $setOnInsert: { recoveryCount: 0 },
+      },
+      { upsert: true }
+    );
 
     this.logger.log(`Enqueued workflow execution ${executionId}, job ID: ${job.id}`);
 
@@ -137,15 +143,21 @@ export class QueueManagerService {
       priority: this.getPriorityForNodeType(nodeType),
     });
 
-    // Persist to MongoDB for recovery
-    await this.queueJobModel.create({
-      bullJobId: job.id,
-      queueName,
-      executionId: new Types.ObjectId(executionId),
-      nodeId,
-      status: JOB_STATUS.PENDING,
-      data: jobData,
-    });
+    // Persist to MongoDB for recovery (upsert to prevent duplicates)
+    await this.queueJobModel.findOneAndUpdate(
+      { bullJobId: job.id },
+      {
+        $set: {
+          queueName,
+          executionId: new Types.ObjectId(executionId),
+          nodeId,
+          status: JOB_STATUS.PENDING,
+          data: jobData,
+        },
+        $setOnInsert: { recoveryCount: 0 },
+      },
+      { upsert: true }
+    );
 
     this.logger.log(
       `Enqueued node ${nodeId} (${nodeType}) for execution ${executionId}, job ID: ${job.id}`
@@ -335,6 +347,24 @@ export class QueueManagerService {
     }
 
     return metrics;
+  }
+
+  /**
+   * Check if a job is still active in BullMQ (not just in MongoDB)
+   */
+  async isJobActiveInBullMQ(queueName: QueueName, bullJobId: string): Promise<boolean> {
+    const queue = this.queues.get(queueName);
+    if (!queue) {
+      return false;
+    }
+
+    const job = await queue.getJob(bullJobId);
+    if (!job) {
+      return false;
+    }
+
+    const state = await job.getState();
+    return state === 'active' || state === 'waiting' || state === 'delayed';
   }
 
   /**

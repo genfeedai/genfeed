@@ -68,6 +68,10 @@ export class QueueJob extends Document {
   @Prop()
   lastHeartbeat?: Date;
 
+  /** Number of times this job has been recovered from stalled state */
+  @Prop({ default: 0 })
+  recoveryCount: number;
+
   createdAt: Date;
   updatedAt: Date;
 }

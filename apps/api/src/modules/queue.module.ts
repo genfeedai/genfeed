@@ -85,6 +85,8 @@ import { WorkflowsService } from '@/services/workflows.service';
           schema.index({ queueName: 1, status: 1 });
           schema.index({ status: 1, updatedAt: 1 });
           schema.index({ movedToDlq: 1, createdAt: -1 });
+          schema.index({ status: 1, updatedAt: 1, movedToDlq: 1, recoveryCount: 1 });
+          schema.index({ bullJobId: 1 }, { unique: true });
           return schema;
         },
       },
