@@ -1,11 +1,11 @@
-import { WorkflowTemplateCategory, type WorkflowEdge, type WorkflowNode } from '@genfeedai/types';
+import { TemplateCategory, type WorkflowEdge, type WorkflowNode } from '@genfeedai/types';
 import { apiClient } from './client';
 
 export interface TemplateData {
   _id: string;
   name: string;
   description?: string;
-  category: WorkflowTemplateCategory;
+  category: TemplateCategory;
   thumbnail?: string;
   version: number;
   nodes: WorkflowNode[];
@@ -19,7 +19,7 @@ export interface TemplateData {
 export interface CreateTemplateInput {
   name: string;
   description?: string;
-  category: WorkflowTemplateCategory;
+  category: TemplateCategory;
   thumbnail?: string;
   nodes: WorkflowNode[];
   edges: WorkflowEdge[];

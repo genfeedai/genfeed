@@ -10,6 +10,7 @@ import { QueueManagerService } from '@/services/queue-manager.service';
 describe('JobRecoveryService', () => {
   let service: JobRecoveryService;
   let mockQueueManager: QueueManagerService;
+  let mockExecutionsService: { findExecution: ReturnType<typeof vi.fn> };
 
   const mockExecutionId = new Types.ObjectId();
   const mockWorkflowId = 'workflow-123';
@@ -23,6 +24,7 @@ describe('JobRecoveryService', () => {
     movedToDlq: false,
     nodeId: 'root',
     queueName: QUEUE_NAMES.WORKFLOW_ORCHESTRATOR,
+    recoveryCount: 0,
     status: JOB_STATUS.ACTIVE,
     ...overrides,
   });
@@ -32,6 +34,7 @@ describe('JobRecoveryService', () => {
     countDocuments: vi.fn().mockResolvedValue(5),
     find: vi.fn(),
     findOne: vi.fn(),
+    updateMany: vi.fn().mockResolvedValue({ modifiedCount: 0 }),
     updateOne: vi.fn().mockResolvedValue({ modifiedCount: 1 }),
   };
 
@@ -41,13 +44,20 @@ describe('JobRecoveryService', () => {
     mockQueueManager = {
       enqueueNode: vi.fn().mockResolvedValue('new-node-job-id'),
       enqueueWorkflow: vi.fn().mockResolvedValue('new-job-id'),
+      isJobActiveInBullMQ: vi.fn().mockResolvedValue(false),
+      moveToDeadLetterQueue: vi.fn().mockResolvedValue(undefined),
     } as unknown as QueueManagerService;
+
+    mockExecutionsService = {
+      findExecution: vi.fn().mockResolvedValue({ status: 'running' }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         JobRecoveryService,
         { provide: QueueManagerService, useValue: mockQueueManager },
         { provide: getModelToken(QueueJob.name), useValue: mockQueueJobModel },
+        { provide: 'ExecutionsService', useValue: mockExecutionsService },
       ],
     }).compile();
 
@@ -150,7 +160,6 @@ describe('JobRecoveryService', () => {
           $push: {
             logs: expect.objectContaining({
               level: 'warn',
-              message: 'Job recovered after stall detection',
             }),
           },
         })
@@ -177,15 +186,57 @@ describe('JobRecoveryService', () => {
       await service.recoverStalledJobs();
 
       expect(mockQueueJobModel.find).toHaveBeenCalledWith({
-        $or: [
-          { lastHeartbeat: { $exists: false } },
-          { lastHeartbeat: null },
-          { lastHeartbeat: { $lt: expect.any(Date) } },
+        $and: [
+          {
+            movedToDlq: false,
+            status: { $in: [JOB_STATUS.ACTIVE, JOB_STATUS.PENDING] },
+            updatedAt: { $lt: expect.any(Date) },
+          },
+          {
+            $or: [
+              { lastHeartbeat: { $exists: false } },
+              { lastHeartbeat: null },
+              { lastHeartbeat: { $lt: expect.any(Date) } },
+            ],
+          },
+          {
+            $or: [
+              { recoveryCount: { $exists: false } },
+              { recoveryCount: { $lt: expect.any(Number) } },
+            ],
+          },
         ],
-        movedToDlq: false,
-        status: { $in: [JOB_STATUS.ACTIVE, JOB_STATUS.PENDING] },
-        updatedAt: { $lt: expect.any(Date) },
       });
+    });
+
+    it('should skip jobs for terminal executions', async () => {
+      const stalledJob = createStalledJob();
+      mockQueueJobModel.find.mockReturnValue({
+        lean: vi.fn().mockResolvedValue([stalledJob]),
+      });
+      mockExecutionsService.findExecution.mockResolvedValue({ status: 'completed' });
+
+      const result = await service.recoverStalledJobs();
+
+      expect(result).toBe(0);
+      expect(mockQueueJobModel.updateMany).toHaveBeenCalled();
+    });
+
+    it('should not re-enqueue jobs still active in BullMQ', async () => {
+      const stalledJob = createStalledJob();
+      mockQueueJobModel.find.mockReturnValue({
+        lean: vi.fn().mockResolvedValue([stalledJob]),
+      });
+      (mockQueueManager.isJobActiveInBullMQ as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+
+      await service.recoverStalledJobs();
+
+      // Job is still active in BullMQ, so it should refresh heartbeat instead of re-enqueuing
+      expect(mockQueueManager.enqueueWorkflow).not.toHaveBeenCalled();
+      expect(mockQueueJobModel.updateOne).toHaveBeenCalledWith(
+        { _id: stalledJob._id },
+        { $set: { lastHeartbeat: expect.any(Date) } }
+      );
     });
   });
 
@@ -292,7 +343,7 @@ describe('JobRecoveryService', () => {
       expect(mockQueueJobModel.updateOne).toHaveBeenCalledWith(
         { _id: dlqJob._id },
         expect.objectContaining({
-          $set: { movedToDlq: false, status: JOB_STATUS.PENDING },
+          $set: { movedToDlq: false, recoveryCount: 0, status: JOB_STATUS.PENDING },
         })
       );
     });

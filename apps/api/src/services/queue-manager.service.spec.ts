@@ -30,6 +30,7 @@ describe('QueueManagerService', () => {
     create: vi.fn().mockResolvedValue({}),
     find: vi.fn(),
     findOne: vi.fn(),
+    findOneAndUpdate: vi.fn().mockResolvedValue({}),
     updateOne: vi.fn().mockResolvedValue({}),
   };
 
@@ -86,16 +87,19 @@ describe('QueueManagerService', () => {
       );
     });
 
-    it('should persist job to MongoDB', async () => {
+    it('should persist job to MongoDB via upsert', async () => {
       await service.enqueueWorkflow(mockExecutionId, mockWorkflowId);
 
-      expect(mockQueueJobModel.create).toHaveBeenCalledWith(
+      expect(mockQueueJobModel.findOneAndUpdate).toHaveBeenCalledWith(
+        { bullJobId: 'job-123' },
         expect.objectContaining({
-          bullJobId: 'job-123',
-          nodeId: 'root',
-          queueName: QUEUE_NAMES.WORKFLOW_ORCHESTRATOR,
-          status: JOB_STATUS.PENDING,
-        })
+          $set: expect.objectContaining({
+            nodeId: 'root',
+            queueName: QUEUE_NAMES.WORKFLOW_ORCHESTRATOR,
+            status: JOB_STATUS.PENDING,
+          }),
+        }),
+        { upsert: true }
       );
     });
 
