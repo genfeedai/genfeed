@@ -109,10 +109,24 @@ export function WorkflowCanvas() {
   const openShortcutHelp = useCallback(() => openModal('shortcutHelp'), [openModal]);
   const openNodeSearch = useCallback(() => openModal('nodeSearch'), [openModal]);
 
+  const { removeNode, removeEdge } = useWorkflowStore();
+
+  const deleteSelectedElements = useCallback(() => {
+    const nodesToDelete = nodes.filter((n) => selectedNodeIds.includes(n.id));
+    const edgesToDelete = edges.filter((e) => e.selected);
+    for (const node of nodesToDelete) {
+      removeNode(node.id);
+    }
+    for (const edge of edgesToDelete) {
+      removeEdge(edge.id);
+    }
+  }, [nodes, edges, selectedNodeIds, removeNode, removeEdge]);
+
   useCanvasKeyboardShortcuts({
     addNode,
     createGroup,
     deleteGroup,
+    deleteSelectedElements,
     fitView: reactFlow.fitView,
     groups,
     nodes,

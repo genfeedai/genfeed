@@ -1,5 +1,22 @@
-import type { CostBreakdown, NodeCostEstimate } from '@genfeedai/types';
 import Replicate from 'replicate';
+
+export interface NodeCostEstimate {
+  nodeId: string;
+  nodeLabel: string;
+  nodeType: string;
+  model: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+  details: string;
+  duration?: number;
+  withAudio?: boolean;
+}
+
+export interface CostBreakdown {
+  items: NodeCostEstimate[];
+  total: number;
+}
 
 // Initialize Replicate client
 const replicate = new Replicate({
@@ -280,9 +297,6 @@ export function calculateWorkflowCost(
   const { total } = calculateWorkflowCostWithBreakdown(nodes);
   return total;
 }
-
-// Re-export canonical cost types for consumers
-export type { CostBreakdown, NodeCostEstimate } from '@genfeedai/types';
 
 /**
  * Calculate total estimated cost for a workflow with detailed breakdown per node
