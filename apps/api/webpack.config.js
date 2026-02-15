@@ -10,8 +10,6 @@ module.exports = {
 
   externals: [
     nodeExternals({
-      // Allow bundling of workspace packages (not in npm registry)
-      allowlist: [/^@genfeedai\//],
       modulesDir: path.resolve(rootDir, 'node_modules'),
     }),
   ],
@@ -43,10 +41,6 @@ module.exports = {
   },
 
   resolve: {
-    alias: {
-      '@genfeedai/core': path.resolve(rootDir, 'packages/core/dist'),
-      '@genfeedai/types': path.resolve(rootDir, 'packages/types/dist'),
-    },
     extensions: ['.ts', '.tsx', '.js', '.json'],
     plugins: [
       new TsconfigPathsPlugin({
