@@ -85,13 +85,6 @@ const nextConfig: NextConfig = {
     const appStores = path.resolve(__dirname, 'src/store');
     config.resolve.alias = {
       ...config.resolve.alias,
-      '@genfeedai/core': path.resolve(__dirname, '../../packages/core/dist'),
-      '@genfeedai/types': path.resolve(__dirname, '../../packages/types/dist'),
-      // Resolve workspace packages (Bun workspace linking bypasses node_modules)
-      '@genfeedai/types/replicate/schemas.json': path.resolve(
-        __dirname,
-        '../../packages/types/src/replicate/schemas.json'
-      ),
       // Map tw-animate-css to its CSS file directly (bypasses style export condition)
       'tw-animate-css': path.join(__dirname, 'node_modules/tw-animate-css/dist/tw-animate.css'),
       // Unify workflow-ui stores with app stores (single Zustand instance)
