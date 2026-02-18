@@ -73,7 +73,7 @@ The project is currently named "content-workflow" with `@content-workflow/*` pac
 - FR-021: Provide example configurations (development, production)
 
 #### Cleanup
-- FR-022: Remove or sanitize `.agent/` internal documentation
+- FR-022: Remove or sanitize `.agents/` internal documentation
 - FR-023: Remove GitHub username references (VincentShipsIt → generic)
 - FR-024: Ensure no hardcoded internal URLs remain
 - FR-025: Verify .gitignore covers all sensitive files
@@ -201,7 +201,7 @@ services:
 
 ## Open Questions
 
-1. Should we keep the `.agent/` directory or remove it entirely for OSS?
+1. Should we keep the `.agents/` directory or remove it entirely for OSS?
    - **Recommendation:** Keep but sanitize - it's useful for AI-assisted development
 2. Should we add GitHub Actions for CI/CD?
    - **Recommendation:** Separate task, not blocking for initial release

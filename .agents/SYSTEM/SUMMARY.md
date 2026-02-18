@@ -19,7 +19,7 @@
 ### 2026-01-14
 
 - Initial project setup
-- Created `.agent/` documentation structure
+- Created `.agents/` documentation structure
 
 ---
 

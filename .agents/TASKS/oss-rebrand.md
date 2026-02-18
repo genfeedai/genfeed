@@ -76,7 +76,7 @@
 
 #### Cleanup
 - [x] Remove "Private - For internal use only" from README
-- [ ] Sanitize `.agent/` documentation (optional - not shipped)
+- [ ] Sanitize `.agents/` documentation (optional - not shipped)
 
 ---
 
@@ -100,7 +100,7 @@
 - [ ] Fresh clone test: `git clone ... && bun install && bun dev` (manual)
 - [ ] Docker test: `docker compose up --build` (manual)
 - [x] No secrets in codebase (verified - grep returned no matches)
-- [x] No `@content-workflow` refs in source (only in .agent/ docs)
+- [x] No `@content-workflow` refs in source (only in .agents/ docs)
 - [x] README rewritten for OSS
 
 ---
@@ -154,4 +154,4 @@ grep -rE "(sk-|r8_|ghp_|sntrys_)" --include="*.ts" --include="*.tsx"
 
 - Keep `private: true` in all package.json - not publishing to npm
 - AGPL-3.0 chosen to prevent cloud providers from hosting without contributing back
-- `.agent/` directory kept but sanitized for AI-assisted development value
+- `.agents/` directory kept but sanitized for AI-assisted development value

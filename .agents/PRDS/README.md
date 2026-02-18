@@ -46,8 +46,8 @@ PRDs should include:
 
 ## Related Documentation
 
-- **Tasks** - Located in `.agent/TASKS/`
-- **Sessions** - Located in `.agent/SESSIONS/`
+- **Tasks** - Located in `.agents/TASKS/`
+- **Sessions** - Located in `.agents/SESSIONS/`
 
 ---
 

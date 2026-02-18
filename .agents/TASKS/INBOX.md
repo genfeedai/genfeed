@@ -47,13 +47,13 @@ Process into proper task files or complete directly.
 
 ### 2026-01-21
 
-- [x] Review and customize `.agent/SYSTEM/RULES.md` - Added project-specific rules section
-- [x] Update `.agent/SYSTEM/ARCHITECTURE.md` with project architecture - Full rewrite with tech stack, components, data flow
+- [x] Review and customize `.agents/SYSTEM/RULES.md` - Added project-specific rules section
+- [x] Update `.agents/SYSTEM/ARCHITECTURE.md` with project architecture - Full rewrite with tech stack, components, data flow
 - [x] Add project-specific rules to `SYSTEM/critical/CRITICAL-NEVER-DO.md` - Added 8 critical rules
 
 ### 2026-01-14
 
-- [x] Initial `.agent/` setup complete
+- [x] Initial `.agents/` setup complete
 - [x] Restructured to kaiban format (TASKS + PRDS folders)
 - [x] Created marketplace PRDs and tasks (OSS + Marketplace direction)
   - [marketplace-platform.md](./marketplace-platform.md) - Parent task
