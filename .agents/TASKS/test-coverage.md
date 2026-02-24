@@ -1,6 +1,7 @@
 ## Task: Comprehensive Test Coverage
 
 **ID:** test-coverage
+**Issue:** #20
 **Label:** Comprehensive Test Coverage
 **Description:** Add 80-100% test coverage with mocked Replicate integration
 **Type:** Feature

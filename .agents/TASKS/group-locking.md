@@ -1,6 +1,7 @@
 ## Task: Lock Node Groups
 
 **ID:** group-locking
+**Issue:** #13
 **Label:** Lock Node Groups
 **Description:** Lock/unlock nodes to skip during execution and use cached outputs
 **Type:** Feature

@@ -1,5 +1,6 @@
 # Input Group Component System
 
+**Issue:** #15
 **Status:** Complete
 **Priority:** Medium
 **PRD:** [input-group.md](../PRDS/input-group.md)

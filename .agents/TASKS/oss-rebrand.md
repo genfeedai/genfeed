@@ -1,6 +1,7 @@
 ## Task: OSS Rebrand to genfeedai/core
 
 **ID:** oss-rebrand
+**Issue:** #18
 **Label:** Open Source Rebrand
 **Description:** Rebrand monorepo from content-workflow to genfeed, change package scope to @genfeedai/*, add AGPL-3.0 license, and prepare for public release.
 **Type:** Infrastructure

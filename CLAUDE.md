@@ -119,3 +119,7 @@ Document all work in `.agents/SESSIONS/YYYY-MM-DD.md` (one file per day).
 | Session docs + .agents/ nav | `.agents/README.md` |
 | Architecture decisions | `.agents/SYSTEM/architecture/DECISIONS.md` |
 | Code examples | `.agents/EXAMPLES/` |
+
+## Learned Rules
+
+<!-- Rules added by Claude after corrections. Promote stable rules (30+ days) to main sections above. -->

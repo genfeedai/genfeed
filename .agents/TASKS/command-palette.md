@@ -1,6 +1,7 @@
 ## Task: Command Palette
 
 **ID:** command-palette
+**Issue:** #12
 **Label:** Command Palette
 **Description:** Add a command palette (Cmd/Ctrl+K) for quick keyboard-first access to all actions, node creation, navigation, and workflow operations.
 **Type:** Feature

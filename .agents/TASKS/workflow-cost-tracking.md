@@ -1,6 +1,7 @@
 ## Task: Workflow Cost Tracking & Analytics
 
 **ID:** workflow-cost-tracking
+**Issue:** #21
 **Label:** Workflow Cost Tracking & Analytics
 **Description:** Track estimated vs actual costs per execution with model-specific pricing
 **Type:** Feature

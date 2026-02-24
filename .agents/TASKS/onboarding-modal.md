@@ -1,6 +1,7 @@
 ## Task: Onboarding Modal & Template Gallery
 
 **ID:** onboarding-modal
+**Issue:** #17
 **Label:** Onboarding Modal
 **Description:** Add an onboarding modal with workflow templates, recent workflows, and tutorials to help users get started quickly.
 **Type:** Feature

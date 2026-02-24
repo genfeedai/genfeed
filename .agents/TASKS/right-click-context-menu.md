@@ -1,6 +1,7 @@
 ## Task: Right-Click Context Menu
 
 **ID:** right-click-context-menu
+**Issue:** #19
 **Label:** Right-Click Context Menu
 **Description:** Context-aware right-click menus for nodes, edges, and canvas
 **Type:** Feature

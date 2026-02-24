@@ -1,6 +1,7 @@
 ## Task: Natural Language Workflow Generation
 
 **ID:** ai-quickstart-natural-language
+**Issue:** #8
 **Label:** Natural Language Workflow Generation
 **Description:** Generate workflows from plain English descriptions using LLM
 **Type:** Feature

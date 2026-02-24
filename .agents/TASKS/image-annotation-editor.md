@@ -1,6 +1,7 @@
 ## Task: Full-Screen Image Annotation Editor
 
 **ID:** image-annotation-editor
+**Issue:** #14
 **Label:** Full-Screen Image Annotation Editor
 **Description:** Drawing tools for image annotation using native Canvas API
 **Type:** Feature
