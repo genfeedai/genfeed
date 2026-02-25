@@ -113,8 +113,8 @@ export function createChatTools(_nodeIds: string[]) {
     answerQuestion: tool({
       description:
         'Answer questions about how to use Genfeed. Use this for informational questions. Does NOT modify the workflow.',
-      execute: async ({ answer }: { answer: string }) => ({ answer }),
-      parameters: z.object({
+      execute: async ({ answer }) => ({ answer }),
+      inputSchema: z.object({
         answer: z.string().describe('The helpful answer to the user question'),
       }),
     }),
@@ -122,8 +122,8 @@ export function createChatTools(_nodeIds: string[]) {
     createWorkflow: tool({
       description:
         'Create a brand new workflow from scratch based on user description. Use when user wants to start fresh or build something new.',
-      execute: async ({ description }: { description: string }) => ({ description }),
-      parameters: z.object({
+      execute: async ({ description }) => ({ description }),
+      inputSchema: z.object({
         description: z.string().describe('Description of what the workflow should do'),
       }),
     }),
@@ -131,14 +131,8 @@ export function createChatTools(_nodeIds: string[]) {
     editWorkflow: tool({
       description:
         'Make targeted edits to the current workflow. Use when user wants to add, remove, or modify nodes and connections. Reference nodes by their ID.',
-      execute: async ({
-        operations,
-        explanation,
-      }: {
-        operations: Array<Record<string, unknown>>;
-        explanation: string;
-      }) => ({ explanation, operations }),
-      parameters: z.object({
+      execute: async ({ operations, explanation }) => ({ explanation, operations }),
+      inputSchema: z.object({
         explanation: z
           .string()
           .describe('Brief explanation of what changes are being made and why'),
