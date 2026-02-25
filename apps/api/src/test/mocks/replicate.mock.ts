@@ -68,8 +68,11 @@ export const mockPredictionCanceled = {
 
 // Helper to create Replicate SDK mock
 export function createReplicateMock() {
+  function MockReplicate() {
+    return mockReplicateClient;
+  }
   return {
-    default: vi.fn().mockImplementation(() => mockReplicateClient),
+    default: vi.fn(MockReplicate),
   };
 }
 

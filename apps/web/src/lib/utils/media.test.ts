@@ -8,7 +8,9 @@ describe('getImageDimensions', () => {
     mockImage = {};
     vi.stubGlobal(
       'Image',
-      vi.fn(() => mockImage)
+      vi.fn(function MockImage(this: Record<string, unknown>) {
+        mockImage = this;
+      })
     );
   });
 

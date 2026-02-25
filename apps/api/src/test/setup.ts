@@ -37,8 +37,11 @@ vi.mock('bullmq', () => ({
 
 // Mock Replicate SDK globally - must return the shared mock instance
 vi.mock('replicate', () => {
+  function MockReplicate() {
+    return mockReplicateClient;
+  }
   return {
-    default: vi.fn().mockImplementation(() => mockReplicateClient),
+    default: vi.fn(MockReplicate),
   };
 });
 
