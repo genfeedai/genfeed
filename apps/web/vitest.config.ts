@@ -31,6 +31,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['src/**/*.test.{ts,tsx}'],
+    pool: 'forks',
     server: {
       deps: {
         inline: [/react/, /react-dom/],
