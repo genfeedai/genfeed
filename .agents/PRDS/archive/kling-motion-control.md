@@ -1,6 +1,6 @@
 # PRD: Kling Motion Control Integration
 
-**Status:** Done
+**Status:** In Progress (GitHub issue open)
 **Priority:** High
 **Feature ID:** KLING-MOTION-CONTROL
 

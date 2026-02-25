@@ -5,11 +5,11 @@
 **Label:** Full-Screen Image Annotation Editor
 **Description:** Drawing tools for image annotation using native Canvas API
 **Type:** Feature
-**Status:** Done
+**Status:** To Do
 **Priority:** Medium
 **Order:** 2
 **Created:** 2026-01-14
-**Updated:** 2026-01-15
+**Updated:** 2026-02-25
 **PRD:** [Link](../PRDS/image-annotation-editor.md)
 
 ---
@@ -75,3 +75,8 @@ Full-screen image annotation editor with drawing tools.
 - **Native Canvas over Konva.js**: Avoided external dependency, Canvas API sufficient for annotation tools
 - **Undo/Redo**: Max 50 history states to prevent memory bloat
 - **Drawing Tools**: 6 tools covering common annotation needs (select, rectangle, circle, arrow, freehand, text)
+
+
+## Sync Note
+
+- 2026-02-25: Status reset to `To Do` because GitHub issue #14 is OPEN and GitHub is source of truth.

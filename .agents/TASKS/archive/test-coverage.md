@@ -5,10 +5,10 @@
 **Label:** Comprehensive Test Coverage
 **Description:** Add 80-100% test coverage with mocked Replicate integration
 **Type:** Feature
-**Status:** Done
+**Status:** To Do
 **Priority:** High
 **Created:** 2026-01-14
-**Updated:** 2026-01-14
+**Updated:** 2026-02-25
 **PRD:** [Link](../PRDS/test-coverage.md)
 
 ---
@@ -105,3 +105,8 @@ bun run test:coverage
 - Lines: 46.19%
 
 Coverage is focused on core services and API clients. Component and template files are excluded from coverage requirements.
+
+
+## Sync Note
+
+- 2026-02-25: Status reset to `To Do` because GitHub issue #20 is OPEN and GitHub is source of truth.

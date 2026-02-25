@@ -5,10 +5,10 @@
 **Label:** Auto-Save Workflow
 **Description:** Automatically save workflow to API after 5 seconds of inactivity
 **Type:** Feature
-**Status:** Done
+**Status:** To Do
 **Priority:** High
 **Created:** 2026-01-15
-**Updated:** 2026-01-15
+**Updated:** 2026-02-25
 **PRD:** [auto-save.md](../PRDS/auto-save.md)
 
 ---
@@ -234,3 +234,8 @@ useAutoSave(autoSaveEnabled);
 3. **Tab close during save:** AbortController prevents hanging requests
 4. **Rapid changes:** Debounce resets on each change
 5. **Network error:** Log error, will retry on next change
+
+
+## Sync Note
+
+- 2026-02-25: Status reset to `To Do` because GitHub issue #11 is OPEN and GitHub is source of truth.

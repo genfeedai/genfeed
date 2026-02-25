@@ -5,11 +5,11 @@
 **Label:** Right-Click Context Menu
 **Description:** Context-aware right-click menus for nodes, edges, and canvas
 **Type:** Feature
-**Status:** Done
+**Status:** To Do
 **Priority:** High
 **Order:** 2
 **Created:** 2026-01-14
-**Updated:** 2026-01-14T17:21:00.000Z
+**Updated:** 2026-02-25
 **PRD:** [Link](../PRDS/right-click-context-menu.md)
 
 ---
@@ -62,3 +62,8 @@ Implement context-aware right-click menus throughout the workflow canvas.
 6. Menu closes on action, click outside, or Escape
 7. Keyboard navigation works (arrow keys, Enter)
 8. Menu positions correctly near mouse without going off-screen
+
+
+## Sync Note
+
+- 2026-02-25: Status reset to `To Do` because GitHub issue #19 is OPEN and GitHub is source of truth.

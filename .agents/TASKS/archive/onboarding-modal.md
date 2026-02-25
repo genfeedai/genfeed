@@ -5,10 +5,10 @@
 **Label:** Onboarding Modal
 **Description:** Add an onboarding modal with workflow templates, recent workflows, and tutorials to help users get started quickly.
 **Type:** Feature
-**Status:** Done
+**Status:** To Do
 **Priority:** High
 **Created:** 2026-01-15
-**Updated:** 2026-01-15
+**Updated:** 2026-02-25
 **PRD:** [onboarding-modal.md](../PRDS/onboarding-modal.md)
 
 ---
@@ -52,3 +52,8 @@
 4. Instagram Post (Prompt → Flux → Caption → Publish)
 5. Quick Edit (Image Input → Crop → Output)
 6. Batch Generator (Multiple prompts → Flux → Output)
+
+
+## Sync Note
+
+- 2026-02-25: Status reset to `To Do` because GitHub issue #17 is OPEN and GitHub is source of truth.

@@ -2,47 +2,32 @@
 
 This folder contains Product Requirements Documents (PRDs) for all features and products.
 
-## Structure
+## Tracking Policy
 
-PRDs are stored as markdown files following the naming convention:
-- `{feature-name}.md`
+- GitHub issues are the active source of truth for feature/task status.
+- Local PRDs are not required for every active GitHub issue.
+- Historical/spec reference docs are kept under `archive/`.
 
-## Current PRDs
+## Archived PRDs
 
-### Done
-- **[right-click-context-menu.md](right-click-context-menu.md)** - Right-Click Context Menu
-- **[auto-save.md](auto-save.md)** - Auto-Save Workflow
-- **[command-palette.md](command-palette.md)** - Command Palette
-- **[auto-reorder-blocks.md](auto-reorder-blocks.md)** - Auto-Reorder Blocks (dagre layout)
-- **[ai-quickstart-natural-language.md](ai-quickstart-natural-language.md)** - Natural Language Workflow Generation
-- **[kling-motion-control.md](kling-motion-control.md)** - Kling Motion Control Integration
-- **[image-annotation-editor.md](image-annotation-editor.md)** - Full-Screen Image Annotation Editor
-- **[oss-rebrand.md](oss-rebrand.md)** - Open Source Rebrand to @genfeedai
-- **[test-coverage.md](test-coverage.md)** - Comprehensive Test Coverage
-- **[workflow-cost-tracking.md](workflow-cost-tracking.md)** - Workflow Cost Tracking & Analytics (Phase 1 MVP)
-- **[input-group.md](input-group.md)** - Input Group
-- **[avatar-workflow.md](avatar-workflow.md)** - Avatar Workflow
-- **[ugc-factory-prd.md](ugc-factory-prd.md)** - UGC Factory
-- **[ugc-factory-integration.md](ugc-factory-integration.md)** - UGC Factory Integration
-- **[group-locking.md](group-locking.md)** - Lock Node Groups (buggy — needs investigation)
-
-### Partial
-- **[onboarding-modal.md](onboarding-modal.md)** - Onboarding Modal & Template Gallery (WelcomeModal done, wizard not implemented)
-
-### Superseded
-- **[telegram-bot-core.md](telegram-bot-core.md)** - Telegram Bot Core — moved to Cloud SaaS
-- **[telegram-bot-workflow.md](telegram-bot-workflow.md)** - Telegram Bot Workflow — Cloud-only
-
-## PRD Format
-
-PRDs should include:
-- Overview and problem statement
-- Objectives and success metrics
-- Scope (in scope / out of scope)
-- Technical requirements
-- User stories and requirements
-- Implementation phases
-- Dependencies and open questions
+- **[archive/ai-quickstart-natural-language.md](archive/ai-quickstart-natural-language.md)** - Archived local mirror
+- **[archive/auto-reorder-blocks.md](archive/auto-reorder-blocks.md)** - Archived local mirror
+- **[archive/auto-save.md](archive/auto-save.md)** - Archived local mirror
+- **[archive/command-palette.md](archive/command-palette.md)** - Issue #12 closed
+- **[archive/group-locking.md](archive/group-locking.md)** - Archived local mirror
+- **[archive/image-annotation-editor.md](archive/image-annotation-editor.md)** - Archived local mirror
+- **[archive/input-group.md](archive/input-group.md)** - Archived local mirror
+- **[archive/kling-motion-control.md](archive/kling-motion-control.md)** - Archived local mirror
+- **[archive/onboarding-modal.md](archive/onboarding-modal.md)** - Archived local mirror
+- **[archive/oss-rebrand.md](archive/oss-rebrand.md)** - Archived local mirror
+- **[archive/right-click-context-menu.md](archive/right-click-context-menu.md)** - Archived local mirror
+- **[archive/test-coverage.md](archive/test-coverage.md)** - Archived local mirror
+- **[archive/workflow-cost-tracking.md](archive/workflow-cost-tracking.md)** - Archived local mirror
+- **[archive/avatar-workflow.md](archive/avatar-workflow.md)** - No matching GitHub issue
+- **[archive/ugc-factory-prd.md](archive/ugc-factory-prd.md)** - No matching GitHub issue
+- **[archive/ugc-factory-integration.md](archive/ugc-factory-integration.md)** - No matching GitHub issue
+- **[archive/telegram-bot-core.md](archive/telegram-bot-core.md)** - Superseded (Cloud-only)
+- **[archive/telegram-bot-workflow.md](archive/telegram-bot-workflow.md)** - Superseded (Cloud-only)
 
 ## Related Documentation
 
@@ -51,4 +36,4 @@ PRDs should include:
 
 ---
 
-**Last Updated:** 2026-02-02
+**Last Updated:** 2026-02-25

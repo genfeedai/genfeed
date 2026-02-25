@@ -5,11 +5,11 @@
 **Label:** Kling Motion Control Integration
 **Description:** Add Kling v2.6 Motion Control model from Replicate to enable precise motion control for animating static images with motion paths
 **Type:** Feature
-**Status:** Done
+**Status:** To Do
 **Priority:** High
 **Order:** 1
 **Created:** 2026-01-14
-**Updated:** 2026-01-14
+**Updated:** 2026-02-25
 **PRD:** [Link](../PRDS/kling-motion-control.md)
 
 ---
@@ -49,3 +49,8 @@ Integrate the Kling v2.6 Motion Control model (`kwaivgi/kling-v2.6-motion-contro
 - [ ] Webhook handling for async predictions
 - [ ] Node appears in workflow editor node palette
 - [ ] All tests pass with 80%+ coverage
+
+
+## Sync Note
+
+- 2026-02-25: Status reset to `To Do` because GitHub issue #16 is OPEN and GitHub is source of truth.

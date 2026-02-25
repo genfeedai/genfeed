@@ -1,6 +1,6 @@
 # PRD: Image Annotation Editor
 
-**Status:** Done
+**Status:** In Progress (GitHub issue open)
 **Priority:** Medium
 **Complexity:** High
 

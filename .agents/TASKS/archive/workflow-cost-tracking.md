@@ -5,11 +5,11 @@
 **Label:** Workflow Cost Tracking & Analytics
 **Description:** Track estimated vs actual costs per execution with model-specific pricing
 **Type:** Feature
-**Status:** Done
+**Status:** To Do
 **Priority:** High
 **Order:** 3
 **Created:** 2026-01-14
-**Updated:** 2026-01-14
+**Updated:** 2026-02-25
 **PRD:** [Link](../PRDS/workflow-cost-tracking.md)
 
 ---
@@ -69,3 +69,8 @@ Inspired by [node-banana](https://github.com/VincentShipsIt/node-banana)
 - Organization-level cost tracking
 - `GET /analytics/costs` endpoint
 - Frontend cost visualization dashboard
+
+
+## Sync Note
+
+- 2026-02-25: Status reset to `To Do` because GitHub issue #21 is OPEN and GitHub is source of truth.

@@ -1,6 +1,6 @@
 # PRD: Auto-Save Workflow
 
-**Status:** Done
+**Status:** In Progress (GitHub issue open)
 **Priority:** High
 **Complexity:** Low
 **Created:** 2026-01-15

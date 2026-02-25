@@ -1,6 +1,6 @@
 # PRD: Workflow Cost Tracking & Analytics
 
-**Status:** Done (Phase 1 MVP)
+**Status:** In Progress (GitHub issue open)
 **Priority:** High
 **Feature ID:** COST-TRACKING
 

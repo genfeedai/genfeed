@@ -5,10 +5,10 @@
 **Label:** Natural Language Workflow Generation
 **Description:** Generate workflows from plain English descriptions using LLM
 **Type:** Feature
-**Status:** Done
+**Status:** To Do
 **Priority:** High
 **Created:** 2026-01-14
-**Updated:** 2026-01-15
+**Updated:** 2026-02-25
 **PRD:** [Link](../PRDS/ai-quickstart-natural-language.md)
 
 ---
@@ -74,3 +74,8 @@ Generate workflows from plain English descriptions. Uses LLM to create node grap
 |--------|----------|---------|
 | POST | `/api/ai/generate-workflow` | Frontend route (Next.js) |
 | POST | `/workflows/generate` | Backend route (NestJS) |
+
+
+## Sync Note
+
+- 2026-02-25: Status reset to `To Do` because GitHub issue #8 is OPEN and GitHub is source of truth.

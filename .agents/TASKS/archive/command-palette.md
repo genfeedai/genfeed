@@ -9,7 +9,7 @@
 **Priority:** High
 **Created:** 2026-01-15
 **Updated:** 2026-01-15
-**PRD:** [command-palette.md](../PRDS/command-palette.md)
+**PRD:** [command-palette.md](../../PRDS/archive/command-palette.md)
 
 ---
 

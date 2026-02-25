@@ -1,6 +1,6 @@
 # PRD: Right-Click Context Menu
 
-**Status:** Done
+**Status:** In Progress (GitHub issue open)
 **Priority:** High
 **Complexity:** Low
 

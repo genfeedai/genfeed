@@ -5,10 +5,10 @@
 **Label:** Open Source Rebrand
 **Description:** Rebrand monorepo from content-workflow to genfeed, change package scope to @genfeedai/*, add AGPL-3.0 license, and prepare for public release.
 **Type:** Infrastructure
-**Status:** Done
+**Status:** To Do
 **Priority:** High
 **Created:** 2026-01-15
-**Updated:** 2026-01-15T23:59:00.000Z
+**Updated:** 2026-02-25
 **PRD:** [oss-rebrand.md](../PRDS/oss-rebrand.md)
 
 ---
@@ -156,3 +156,8 @@ grep -rE "(sk-|r8_|ghp_|sntrys_)" --include="*.ts" --include="*.tsx"
 - Keep `private: true` in all package.json - not publishing to npm
 - AGPL-3.0 chosen to prevent cloud providers from hosting without contributing back
 - `.agents/` directory kept but sanitized for AI-assisted development value
+
+
+## Sync Note
+
+- 2026-02-25: Status reset to `To Do` because GitHub issue #18 is OPEN and GitHub is source of truth.

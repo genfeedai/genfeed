@@ -1,6 +1,6 @@
 # Input Group Component System
 
-**Status:** Complete
+**Status:** In Progress (GitHub issue open)
 **Priority:** Medium
 **Created:** 2026-01-14
 **Updated:** 2026-01-14

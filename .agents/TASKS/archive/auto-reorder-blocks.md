@@ -5,10 +5,10 @@
 **Label:** Auto-Reorder Blocks
 **Description:** Add an "Auto-Layout" button to automatically reorganize all workflow nodes in a clean, hierarchical layout that minimizes edge crossings and respects execution order.
 **Type:** Feature
-**Status:** Done
+**Status:** To Do
 **Priority:** Medium
 **Created:** 2026-01-15
-**Updated:** 2026-01-15
+**Updated:** 2026-02-25
 **PRD:** [auto-reorder-blocks.md](../PRDS/auto-reorder-blocks.md)
 
 ---
@@ -34,3 +34,8 @@
 - Integrate with existing topologicalSort from @content-workflow/core
 - Update node positions via workflowStore.onNodesChange
 - Consider React Flow's fitView after layout
+
+
+## Sync Note
+
+- 2026-02-25: Status reset to `To Do` because GitHub issue #10 is OPEN and GitHub is source of truth.

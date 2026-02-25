@@ -1,6 +1,6 @@
 # PRD: AI Quickstart - Natural Language Workflow Generation
 
-**Status:** Done
+**Status:** In Progress (GitHub issue open)
 **Priority:** High
 **Complexity:** Medium
 

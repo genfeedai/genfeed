@@ -1,6 +1,6 @@
 # Open Source Rebrand: genfeedai/genfeed
 
-**Status:** Done
+**Status:** In Progress (GitHub issue open)
 **Priority:** High
 **Created:** 2026-01-15
 **Category:** Infrastructure / Branding

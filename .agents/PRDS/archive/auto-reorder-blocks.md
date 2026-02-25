@@ -1,6 +1,6 @@
 # Auto-Reorder Blocks Feature
 
-**Status:** Done
+**Status:** In Progress (GitHub issue open)
 **Priority:** Medium
 **Created:** 2026-01-15
 **Category:** Canvas / Layout
