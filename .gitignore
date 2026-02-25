@@ -43,6 +43,7 @@ logs/
 # Testing
 coverage/
 .nyc_output/
+.vitest-localstorage*
 
 # Misc
 *.local
