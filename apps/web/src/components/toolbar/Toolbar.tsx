@@ -75,8 +75,15 @@ function isValidWorkflow(data: unknown): data is WorkflowFile {
 
 export function Toolbar() {
   const router = useRouter();
-  const { exportWorkflow, workflowId, workflowName, workflowTags, setWorkflowTags, duplicateWorkflowApi, nodes } =
-    useWorkflowStore();
+  const {
+    exportWorkflow,
+    workflowId,
+    workflowName,
+    workflowTags,
+    setWorkflowTags,
+    duplicateWorkflowApi,
+    nodes,
+  } = useWorkflowStore();
   const { getNodes } = useReactFlow();
   const { undo, redo } = useWorkflowStore.temporal.getState();
   const [canUndo, setCanUndo] = useState(false);

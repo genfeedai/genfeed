@@ -234,7 +234,7 @@ export const createPersistenceSlice: StateCreator<WorkflowStore, [], [], Persist
   },
 
   listWorkflows: async (signal) => {
-    return workflowsApi.getAll(signal);
+    return workflowsApi.getAll(undefined, signal);
   },
   loadWorkflow: (workflow) => {
     const hydratedNodes = hydrateWorkflowNodes(workflow.nodes);

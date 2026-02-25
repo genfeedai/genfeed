@@ -50,7 +50,7 @@ describe('workflowsApi', () => {
       vi.mocked(apiClient.get).mockResolvedValueOnce([]);
 
       const controller = new AbortController();
-      await workflowsApi.getAll(controller.signal);
+      await workflowsApi.getAll(undefined, controller.signal);
 
       expect(apiClient.get).toHaveBeenCalledWith('/workflows', { signal: controller.signal });
     });

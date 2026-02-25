@@ -63,7 +63,7 @@ export class WorkflowsService {
     }
 
     if (query?.search) {
-      filter.name = { $regex: query.search, $options: 'i' };
+      filter.name = { $options: 'i', $regex: query.search };
     }
 
     return this.workflowModel
@@ -82,9 +82,7 @@ export class WorkflowsService {
    * Get all unique tags across all workflows
    */
   async getAllTags(): Promise<string[]> {
-    const result = await this.workflowModel
-      .distinct('tags', { isDeleted: false })
-      .exec();
+    const result = await this.workflowModel.distinct('tags', { isDeleted: false }).exec();
     return (result as string[]).sort();
   }
 

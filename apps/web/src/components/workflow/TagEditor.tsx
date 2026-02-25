@@ -17,7 +17,10 @@ export function TagEditor({ tags, onChange }: TagEditorProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    workflowsApi.getAllTags().then(setAllTags).catch(() => {});
+    workflowsApi
+      .getAllTags()
+      .then(setAllTags)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -30,8 +33,7 @@ export function TagEditor({ tags, onChange }: TagEditorProps) {
     if (inputValue.trim()) {
       const filtered = allTags
         .filter(
-          (t: string) =>
-            t.toLowerCase().includes(inputValue.toLowerCase()) && !tags.includes(t)
+          (t: string) => t.toLowerCase().includes(inputValue.toLowerCase()) && !tags.includes(t)
         )
         .slice(0, 5);
       setSuggestions(filtered);
@@ -42,7 +44,10 @@ export function TagEditor({ tags, onChange }: TagEditorProps) {
 
   const addTag = useCallback(
     (tag: string) => {
-      const normalized = tag.trim().toLowerCase().replace(/[^a-z0-9-]/g, '-');
+      const normalized = tag
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, '-');
       if (normalized && !tags.includes(normalized)) {
         onChange([...tags, normalized]);
       }
