@@ -5,9 +5,7 @@ import { WorkflowGeneratorService } from '@/services/workflow-generator.service'
 // Mock Replicate
 vi.mock('replicate', () => {
   return {
-    default: vi.fn().mockImplementation(() => ({
-      run: vi.fn(),
-    })),
+    default: vi.fn().mockImplementation(() => ({ run: vi.fn() })),
   };
 });
 
