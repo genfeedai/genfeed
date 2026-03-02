@@ -27,7 +27,7 @@ npx tsc --noEmit
 2. **No `console.log`** — use `LoggerService`
 3. **No relative imports** for shared code — use path aliases (`@components/`, `@services/`, `@props/`)
 4. **No `deletedAt`** — use `isDeleted: boolean` for soft deletes
-5. **No inline interfaces** for shared types — file-local only is fine; shared goes to `packages/`
+5. **No inline interfaces** — ever. All interfaces go to `packages/types/` or `packages/interfaces/`
 
 ## Architecture Patterns
 
