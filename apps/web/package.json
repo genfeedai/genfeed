@@ -4,7 +4,7 @@
     "@ai-sdk/provider-utils": "4.0.17",
     "@dagrejs/dagre": "2.0.4",
     "@genfeedai/core": "0.2.0",
-    "@genfeedai/types": "0.2.0",
+    "@genfeedai/types": "0.2.1",
     "@genfeedai/workflow-ui": "0.2.2",
     "@radix-ui/react-checkbox": "1.3.3",
     "@radix-ui/react-label": "2.1.8",

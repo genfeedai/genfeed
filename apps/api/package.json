@@ -4,7 +4,7 @@
     "@bull-board/express": "6.20.3",
     "@bull-board/ui": "6.20.3",
     "@genfeedai/core": "0.2.0",
-    "@genfeedai/types": "0.2.0",
+    "@genfeedai/types": "0.2.1",
     "@nestjs/bullmq": "11.0.4",
     "@nestjs/common": "11.1.14",
     "@nestjs/config": "4.0.3",
