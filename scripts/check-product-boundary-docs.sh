@@ -11,6 +11,21 @@ CLOUD_ADR_PATH="$CLOUD_ROOT/.agents/SYSTEM/architecture/ADR-PLG-BOUNDARY-OSS-CLO
 DOCS_PAGE_PATH="$DOCS_ROOT/content/product/core-cloud-boundary.mdx"
 DOCS_META_PATH="$DOCS_ROOT/content/product/_meta.ts"
 
+read_section_value() {
+  local file_path="$1"
+  local heading="$2"
+  awk -v heading="$heading" '
+    $0 == heading {
+      while (getline) {
+        if ($0 ~ /\S/) {
+          print $0
+          exit
+        }
+      }
+    }
+  ' "$file_path" | tr -d '[:space:]'
+}
+
 if [[ ! -f "$ADR_PATH" ]]; then
   echo "Missing required ADR: $ADR_PATH"
   exit 1
@@ -55,9 +70,9 @@ if [[ ! -f "$DOCS_META_PATH" ]]; then
   exit 1
 fi
 
-core_version="$(awk '/^## Boundary Spec Version$/ {getline; print $0}' "$ADR_PATH" | tr -d '[:space:]')"
-cloud_version="$(awk '/^## Boundary Spec Version$/ {getline; print $0}' "$CLOUD_ADR_PATH" | tr -d '[:space:]')"
-docs_version="$(awk '/^## Boundary Spec Version$/ {getline; print $0}' "$DOCS_PAGE_PATH" | tr -d '[:space:]')"
+core_version="$(read_section_value "$ADR_PATH" "## Boundary Spec Version")"
+cloud_version="$(read_section_value "$CLOUD_ADR_PATH" "## Boundary Spec Version")"
+docs_version="$(read_section_value "$DOCS_PAGE_PATH" "## Boundary Spec Version")"
 
 if [[ -z "$core_version" || -z "$cloud_version" || -z "$docs_version" ]]; then
   echo "Unable to read Boundary Spec Version in core/cloud/docs boundary files"
